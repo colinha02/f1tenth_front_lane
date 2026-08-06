@@ -1,5 +1,0 @@
-bev_geometry_test 1 0.0170348
-bev_lane_reconstructor_test 1 0.0285521
-ground_plane_estimator_test 1 0.00994398
-startup_attitude_test 1 0.0091424
----

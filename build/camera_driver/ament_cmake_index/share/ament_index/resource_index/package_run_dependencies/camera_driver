@@ -1,1 +1,0 @@
-rclcpp;rclcpp_components;sensor_msgs;depthai;opencv4;launch;launch_ros;ament_index_python

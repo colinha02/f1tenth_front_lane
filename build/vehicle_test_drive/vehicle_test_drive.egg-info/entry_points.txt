@@ -1,4 +1,0 @@
-[console_scripts]
-vehicle_test_drive = vehicle_test_drive.vehicle_test_drive_node:main
-vehicle_test_drive_node = vehicle_test_drive.vehicle_test_drive_node:main
-

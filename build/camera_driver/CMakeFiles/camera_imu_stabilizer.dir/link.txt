@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcamera_imu_stabilizer.a CMakeFiles/camera_imu_stabilizer.dir/src/imu_image_stabilizer.cpp.o
-/usr/bin/ranlib libcamera_imu_stabilizer.a

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libbev_geometry.a CMakeFiles/bev_geometry.dir/src/bev_geometry.cpp.o
-/usr/bin/ranlib libbev_geometry.a

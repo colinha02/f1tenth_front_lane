@@ -1,2 +1,0 @@
-/usr/bin/ar qc libbev_ground_plane.a CMakeFiles/bev_ground_plane.dir/src/ground_plane_estimator.cpp.o
-/usr/bin/ranlib libbev_ground_plane.a

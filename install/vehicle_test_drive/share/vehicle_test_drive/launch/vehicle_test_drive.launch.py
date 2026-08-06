@@ -1,1 +1,0 @@
-/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/launch/vehicle_test_drive.launch.py

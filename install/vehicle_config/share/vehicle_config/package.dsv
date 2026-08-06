@@ -1,9 +1,0 @@
-source;share/vehicle_config/hook/pythonpath.ps1
-source;share/vehicle_config/hook/pythonpath.dsv
-source;share/vehicle_config/hook/pythonpath.sh
-source;share/vehicle_config/hook/ament_prefix_path.ps1
-source;share/vehicle_config/hook/ament_prefix_path.dsv
-source;share/vehicle_config/hook/ament_prefix_path.sh
-source;../../build/vehicle_config/share/vehicle_config/hook/pythonpath_develop.ps1
-source;../../build/vehicle_config/share/vehicle_config/hook/pythonpath_develop.dsv
-source;../../build/vehicle_config/share/vehicle_config/hook/pythonpath_develop.sh
