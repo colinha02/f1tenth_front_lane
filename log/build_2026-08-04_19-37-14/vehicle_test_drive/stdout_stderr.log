@@ -1,0 +1,25 @@
+running develop
+running egg_info
+creating vehicle_test_drive.egg-info
+writing vehicle_test_drive.egg-info/PKG-INFO
+writing dependency_links to vehicle_test_drive.egg-info/dependency_links.txt
+writing entry points to vehicle_test_drive.egg-info/entry_points.txt
+writing requirements to vehicle_test_drive.egg-info/requires.txt
+writing top-level names to vehicle_test_drive.egg-info/top_level.txt
+writing manifest file 'vehicle_test_drive.egg-info/SOURCES.txt'
+reading manifest file 'vehicle_test_drive.egg-info/SOURCES.txt'
+writing manifest file 'vehicle_test_drive.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages/vehicle-test-drive.egg-link (link to .)
+Installing vehicle_test_drive script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/vehicle_test_drive
+Installing vehicle_test_drive_node script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/vehicle_test_drive
+
+Installed /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive
+running symlink_data
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index/resource_index
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index/resource_index/packages
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/resource/vehicle_test_drive -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index/resource_index/packages
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/package.xml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/launch
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/launch/vehicle_test_drive.launch.py -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/launch

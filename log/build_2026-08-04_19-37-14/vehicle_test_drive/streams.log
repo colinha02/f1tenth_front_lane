@@ -1,0 +1,27 @@
+[3.553s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/build --no-deps symlink_data
+[4.414s] running develop
+[4.890s] running egg_info
+[4.890s] creating vehicle_test_drive.egg-info
+[4.891s] writing vehicle_test_drive.egg-info/PKG-INFO
+[4.891s] writing dependency_links to vehicle_test_drive.egg-info/dependency_links.txt
+[4.891s] writing entry points to vehicle_test_drive.egg-info/entry_points.txt
+[4.892s] writing requirements to vehicle_test_drive.egg-info/requires.txt
+[4.892s] writing top-level names to vehicle_test_drive.egg-info/top_level.txt
+[4.893s] writing manifest file 'vehicle_test_drive.egg-info/SOURCES.txt'
+[4.898s] reading manifest file 'vehicle_test_drive.egg-info/SOURCES.txt'
+[4.899s] writing manifest file 'vehicle_test_drive.egg-info/SOURCES.txt'
+[4.903s] running build_ext
+[4.904s] Creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages/vehicle-test-drive.egg-link (link to .)
+[4.906s] Installing vehicle_test_drive script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/vehicle_test_drive
+[4.906s] Installing vehicle_test_drive_node script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/vehicle_test_drive
+[4.907s] 
+[4.907s] Installed /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive
+[4.907s] running symlink_data
+[4.907s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index
+[4.908s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index/resource_index
+[4.908s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index/resource_index/packages
+[4.908s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/resource/vehicle_test_drive -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/ament_index/resource_index/packages
+[4.908s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/package.xml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive
+[4.908s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/launch
+[4.909s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/launch/vehicle_test_drive.launch.py -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/launch
+[5.435s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/build --no-deps symlink_data

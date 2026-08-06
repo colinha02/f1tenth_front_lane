@@ -1,0 +1,93 @@
+[0.022s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_test_drive:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_launcher:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/joy_initializer:/opt/ros/humble /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver
+[0.155s] -- The C compiler identification is GNU 11.4.0
+[0.278s] -- The CXX compiler identification is GNU 11.4.0
+[0.298s] -- Detecting C compiler ABI info
+[0.459s] -- Detecting C compiler ABI info - done
+[0.483s] -- Check for working C compiler: /usr/bin/cc - skipped
+[0.484s] -- Detecting C compile features
+[0.484s] -- Detecting C compile features - done
+[0.493s] -- Detecting CXX compiler ABI info
+[0.667s] -- Detecting CXX compiler ABI info - done
+[0.697s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[0.698s] -- Detecting CXX compile features
+[0.700s] -- Detecting CXX compile features - done
+[0.710s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[1.131s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[1.412s] -- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)
+[1.515s] -- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[1.526s] -- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[1.548s] -- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[1.577s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[1.615s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[1.720s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[1.727s] -- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[1.922s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[1.989s] -- Found FastRTPS: /opt/ros/humble/include  
+[2.079s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[2.100s] -- Looking for pthread.h
+[2.270s] -- Looking for pthread.h - found
+[2.271s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[2.442s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[2.446s] -- Found Threads: TRUE  
+[2.590s] -- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)
+[2.651s] -- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)
+[2.725s] -- Found OpenCV: /usr (found suitable version "4.8.0", minimum required is "4") found components: core highgui imgproc 
+[2.767s] -- Performing Test arch_native_supported
+[2.943s] -- Performing Test arch_native_supported - Success
+[3.146s] -- Configuring done
+[3.193s] -- Generating done
+[3.199s] [33mCMake Warning:
+[3.199s]   Manually-specified variables were not used by the project:
+[3.199s] 
+[3.199s]     CMAKE_CUDA_COMPILER
+[3.200s] 
+[3.200s] [0m
+[3.212s] -- Build files have been written to: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver
+[3.241s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_test_drive:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_launcher:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/joy_initializer:/opt/ros/humble /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver
+[3.247s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_test_drive:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_launcher:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/joy_initializer:/opt/ros/humble /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver -- -j6 -l6
+[3.340s] [35m[1mConsolidate compiler generated dependencies of target camera_imu_stabilizer[0m
+[3.378s] [ 25%] Built target camera_imu_stabilizer
+[3.400s] [35m[1mConsolidate compiler generated dependencies of target imu_image_stabilizer_test[0m
+[3.402s] [35m[1mConsolidate compiler generated dependencies of target camera_driver_component[0m
+[3.430s] [ 50%] Built target imu_image_stabilizer_test
+[3.450s] [ 75%] Built target camera_driver_component
+[3.480s] [35m[1mConsolidate compiler generated dependencies of target camera_driver_node[0m
+[3.518s] [100%] Built target camera_driver_node
+[3.545s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_test_drive:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_launcher:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/joy_initializer:/opt/ros/humble /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver -- -j6 -l6
+[3.573s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_test_drive:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_launcher:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/joy_initializer:/opt/ros/humble /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver
+[3.593s] -- Install configuration: "Release"
+[3.593s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/include
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/include/camera_driver
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/include/camera_driver/imu_image_stabilizer.hpp
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/include/camera_driver/visibility_control.hpp
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/include/camera_driver/camera_driver_node.hpp
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/config
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/config/camera_config.yaml
+[3.594s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/launch
+[3.595s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/launch/camera_driver.launch.py
+[3.595s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/libcamera_imu_stabilizer.a
+[3.595s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/libcamera_driver_component.so
+[3.595s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/camera_driver/camera_driver_node
+[3.595s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/library_path.sh
+[3.595s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/library_path.dsv
+[3.596s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/package_run_dependencies/camera_driver
+[3.596s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/parent_prefix_path/camera_driver
+[3.596s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/ament_prefix_path.sh
+[3.596s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/ament_prefix_path.dsv
+[3.596s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/path.sh
+[3.596s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/path.dsv
+[3.597s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.bash
+[3.597s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.sh
+[3.597s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.zsh
+[3.597s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.dsv
+[3.598s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.dsv
+[3.598s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/packages/camera_driver
+[3.598s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/rclcpp_components/camera_driver
+[3.598s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/export_camera_driverExport.cmake
+[3.598s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/export_camera_driverExport-release.cmake
+[3.599s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/ament_cmake_export_targets-extras.cmake
+[3.599s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/ament_cmake_export_dependencies-extras.cmake
+[3.599s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/camera_driverConfig.cmake
+[3.599s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/camera_driverConfig-version.cmake
+[3.600s] -- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.xml
+[3.604s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_test_drive:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_launcher:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/joy_initializer:/opt/ros/humble /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver

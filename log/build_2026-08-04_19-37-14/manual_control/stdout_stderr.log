@@ -1,0 +1,23 @@
+running develop
+running egg_info
+creating manual_control.egg-info
+writing manual_control.egg-info/PKG-INFO
+writing dependency_links to manual_control.egg-info/dependency_links.txt
+writing entry points to manual_control.egg-info/entry_points.txt
+writing requirements to manual_control.egg-info/requires.txt
+writing top-level names to manual_control.egg-info/top_level.txt
+writing manifest file 'manual_control.egg-info/SOURCES.txt'
+reading manifest file 'manual_control.egg-info/SOURCES.txt'
+writing manifest file 'manual_control.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/python3.10/site-packages/manual-control.egg-link (link to .)
+Installing actuator_commander_node script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/manual_control
+Installing joy_params_converter_node script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/manual_control
+
+Installed /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control
+running symlink_data
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/ament_index
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/ament_index/resource_index
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/ament_index/resource_index/packages
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/resource/manual_control -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/ament_index/resource_index/packages
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/package.xml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control

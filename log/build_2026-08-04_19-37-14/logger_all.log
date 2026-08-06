@@ -1,0 +1,488 @@
+[0.318s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--symlink-install', '--packages-select', 'joy_initializer', 'vehicle_config', 'manual_control', 'vesc_initializer', 'vehicle_launcher', 'vehicle_test_drive']
+[0.318s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=True, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=6, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=['joy_initializer', 'vehicle_config', 'manual_control', 'vesc_initializer', 'vehicle_launcher', 'vehicle_test_drive'], packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=None, cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0xffff924f9b70>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0xffff926bada0>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0xffff926bada0>>, mixin_verb=('build',))
+[0.778s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.778s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.778s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.778s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.778s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.778s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.779s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo'
+[0.779s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.779s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.779s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.780s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.780s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.780s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.780s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.780s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.780s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.810s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[0.810s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[0.810s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[0.810s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[0.811s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[0.811s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[0.811s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[0.811s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[0.812s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[0.812s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[0.812s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[0.812s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[0.813s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[0.814s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['ignore', 'ignore_ament_install']
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'ignore'
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'ignore_ament_install'
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['colcon_pkg']
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'colcon_pkg'
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['colcon_meta']
+[0.815s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'colcon_meta'
+[0.816s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['ros']
+[0.816s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'ros'
+[0.822s] DEBUG:colcon.colcon_core.package_identification:Package 'src/auto_control' with type 'ros.ament_python' and name 'auto_control'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['ignore', 'ignore_ament_install']
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'ignore'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'ignore_ament_install'
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['colcon_pkg']
+[0.823s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'colcon_pkg'
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['colcon_meta']
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'colcon_meta'
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['ros']
+[0.824s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'ros'
+[0.827s] DEBUG:colcon.colcon_core.package_identification:Package 'src/bev_processor' with type 'ros.ament_cmake' and name 'bev_processor'
+[0.827s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['ignore', 'ignore_ament_install']
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'ignore'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'ignore_ament_install'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['colcon_pkg']
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'colcon_pkg'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['colcon_meta']
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'colcon_meta'
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['ros']
+[0.828s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'ros'
+[0.831s] DEBUG:colcon.colcon_core.package_identification:Package 'src/camera_driver' with type 'ros.ament_cmake' and name 'camera_driver'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['ignore', 'ignore_ament_install']
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'ignore'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'ignore_ament_install'
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['colcon_pkg']
+[0.832s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'colcon_pkg'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['colcon_meta']
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'colcon_meta'
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['ros']
+[0.833s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'ros'
+[0.835s] DEBUG:colcon.colcon_core.package_identification:Package 'src/camera_height_estimator' with type 'ros.ament_cmake' and name 'camera_height_estimator'
+[0.835s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['ignore', 'ignore_ament_install']
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'ignore'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'ignore_ament_install'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['colcon_pkg']
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'colcon_pkg'
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['colcon_meta']
+[0.836s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'colcon_meta'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['ros']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'ros'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['cmake', 'python']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'cmake'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'python'
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['python_setup_py']
+[0.837s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'python_setup_py'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['ignore', 'ignore_ament_install']
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'ignore'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'ignore_ament_install'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['colcon_pkg']
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'colcon_pkg'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['colcon_meta']
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'colcon_meta'
+[0.838s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['ros']
+[0.839s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'ros'
+[0.840s] DEBUG:colcon.colcon_core.package_identification:Package 'src/joy_initializer' with type 'ros.ament_python' and name 'joy_initializer'
+[0.840s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['ignore', 'ignore_ament_install']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'ignore'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'ignore_ament_install'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['colcon_pkg']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'colcon_pkg'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['colcon_meta']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'colcon_meta'
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['ros']
+[0.841s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'ros'
+[0.843s] DEBUG:colcon.colcon_core.package_identification:Package 'src/manual_control' with type 'ros.ament_python' and name 'manual_control'
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['ignore', 'ignore_ament_install']
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'ignore'
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'ignore_ament_install'
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['colcon_pkg']
+[0.843s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'colcon_pkg'
+[0.844s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['colcon_meta']
+[0.844s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'colcon_meta'
+[0.844s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['ros']
+[0.844s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'ros'
+[0.845s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_config' with type 'ros.ament_python' and name 'vehicle_config'
+[0.845s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['ignore', 'ignore_ament_install']
+[0.845s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'ignore'
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'ignore_ament_install'
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['colcon_pkg']
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'colcon_pkg'
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['colcon_meta']
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'colcon_meta'
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['ros']
+[0.846s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'ros'
+[0.847s] DEBUG:colcon.colcon_core.package_identification:Failed to parse potential ROS package manifest in'src/vehicle_interfaces': Error(s) in package 'src/vehicle_interfaces/package.xml':
+The manifest contains invalid XML:
+no element found: line 1, column 0
+[0.847s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['cmake', 'python']
+[0.847s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'cmake'
+[0.849s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'python'
+[0.850s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_interfaces' with type 'cmake' and name 'vehicle_interfaces'
+[0.850s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['ignore', 'ignore_ament_install']
+[0.850s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'ignore'
+[0.850s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'ignore_ament_install'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['colcon_pkg']
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'colcon_pkg'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['colcon_meta']
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'colcon_meta'
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['ros']
+[0.851s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'ros'
+[0.853s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_launcher' with type 'ros.ament_python' and name 'vehicle_launcher'
+[0.853s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['ignore', 'ignore_ament_install']
+[0.853s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'ignore'
+[0.853s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'ignore_ament_install'
+[0.853s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['colcon_pkg']
+[0.853s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'colcon_pkg'
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['colcon_meta']
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'colcon_meta'
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['ros']
+[0.854s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'ros'
+[0.856s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_test_drive' with type 'ros.ament_python' and name 'vehicle_test_drive'
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['ignore', 'ignore_ament_install']
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'ignore'
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'ignore_ament_install'
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['colcon_pkg']
+[0.856s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'colcon_pkg'
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['colcon_meta']
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'colcon_meta'
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['ros']
+[0.857s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'ros'
+[0.858s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vesc_initializer' with type 'ros.ament_python' and name 'vesc_initializer'
+[0.858s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.858s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.858s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.858s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.859s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.962s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'auto_control' in 'src/auto_control'
+[0.962s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'camera_driver' in 'src/camera_driver'
+[0.962s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'camera_height_estimator' in 'src/camera_height_estimator'
+[0.962s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vehicle_interfaces' in 'src/vehicle_interfaces'
+[0.962s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'bev_processor' in 'src/bev_processor'
+[0.964s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[0.964s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[0.968s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 2 installed packages in /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install
+[0.971s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 275 installed packages in /opt/ros/humble
+[0.974s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'cmake_args' from command line to 'None'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'cmake_target' from command line to 'None'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'cmake_clean_cache' from command line to 'False'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'cmake_clean_first' from command line to 'False'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'cmake_force_configure' from command line to 'False'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'ament_cmake_args' from command line to 'None'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'catkin_cmake_args' from command line to 'None'
+[1.073s] Level 5:colcon.colcon_core.verb:set package 'joy_initializer' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.074s] DEBUG:colcon.colcon_core.verb:Building package 'joy_initializer' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/joy_initializer', 'symlink_install': True, 'test_result_base': None}
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'cmake_args' from command line to 'None'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'cmake_target' from command line to 'None'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'cmake_clean_cache' from command line to 'False'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'cmake_clean_first' from command line to 'False'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'cmake_force_configure' from command line to 'False'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'ament_cmake_args' from command line to 'None'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'catkin_cmake_args' from command line to 'None'
+[1.075s] Level 5:colcon.colcon_core.verb:set package 'vehicle_config' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.075s] DEBUG:colcon.colcon_core.verb:Building package 'vehicle_config' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_config', 'symlink_install': True, 'test_result_base': None}
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'cmake_args' from command line to 'None'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'cmake_target' from command line to 'None'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'cmake_clean_cache' from command line to 'False'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'cmake_clean_first' from command line to 'False'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'cmake_force_configure' from command line to 'False'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'ament_cmake_args' from command line to 'None'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'catkin_cmake_args' from command line to 'None'
+[1.076s] Level 5:colcon.colcon_core.verb:set package 'vesc_initializer' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.077s] DEBUG:colcon.colcon_core.verb:Building package 'vesc_initializer' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vesc_initializer', 'symlink_install': True, 'test_result_base': None}
+[1.077s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'cmake_args' from command line to 'None'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'cmake_target' from command line to 'None'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'cmake_clean_cache' from command line to 'False'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'cmake_clean_first' from command line to 'False'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'cmake_force_configure' from command line to 'False'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'ament_cmake_args' from command line to 'None'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'catkin_cmake_args' from command line to 'None'
+[1.078s] Level 5:colcon.colcon_core.verb:set package 'manual_control' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.078s] DEBUG:colcon.colcon_core.verb:Building package 'manual_control' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/manual_control', 'symlink_install': True, 'test_result_base': None}
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'cmake_args' from command line to 'None'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'cmake_target' from command line to 'None'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'cmake_clean_cache' from command line to 'False'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'cmake_clean_first' from command line to 'False'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'cmake_force_configure' from command line to 'False'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'ament_cmake_args' from command line to 'None'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'catkin_cmake_args' from command line to 'None'
+[1.079s] Level 5:colcon.colcon_core.verb:set package 'vehicle_test_drive' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.079s] DEBUG:colcon.colcon_core.verb:Building package 'vehicle_test_drive' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_test_drive', 'symlink_install': True, 'test_result_base': None}
+[1.080s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'cmake_args' from command line to 'None'
+[1.080s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'cmake_target' from command line to 'None'
+[1.080s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.080s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'cmake_clean_cache' from command line to 'False'
+[1.081s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'cmake_clean_first' from command line to 'False'
+[1.081s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'cmake_force_configure' from command line to 'False'
+[1.081s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'ament_cmake_args' from command line to 'None'
+[1.081s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'catkin_cmake_args' from command line to 'None'
+[1.081s] Level 5:colcon.colcon_core.verb:set package 'vehicle_launcher' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.081s] DEBUG:colcon.colcon_core.verb:Building package 'vehicle_launcher' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_launcher', 'symlink_install': True, 'test_result_base': None}
+[1.081s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[1.084s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[1.085s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_config' with build type 'ament_python'
+[1.085s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_config', 'ament_prefix_path')
+[1.092s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[1.093s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/hook/ament_prefix_path.ps1'
+[1.095s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/hook/ament_prefix_path.dsv'
+[1.096s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/hook/ament_prefix_path.sh'
+[1.099s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.099s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.114s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vesc_initializer' with build type 'ament_python'
+[1.115s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_initializer', 'ament_prefix_path')
+[1.115s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/hook/ament_prefix_path.ps1'
+[1.119s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/hook/ament_prefix_path.dsv'
+[1.120s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/hook/ament_prefix_path.sh'
+[1.122s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.123s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.134s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/joy_initializer' with build type 'ament_python'
+[1.136s] Level 1:colcon.colcon_core.shell:create_environment_hook('joy_initializer', 'ament_prefix_path')
+[1.137s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/hook/ament_prefix_path.ps1'
+[1.139s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/hook/ament_prefix_path.dsv'
+[1.140s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/hook/ament_prefix_path.sh'
+[1.141s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.141s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.846s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_config'
+[1.847s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.847s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[2.548s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vesc_initializer'
+[2.550s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[2.550s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[3.316s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/joy_initializer'
+[3.317s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[3.318s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[4.261s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools commands: bdist_wheel, install_lib, symlink_data, develop, build, saveopts, build_clib, upload, install_scripts, test, easy_install, check, build_ext, bdist_egg, bdist_rpm, install_data, dist_info, bdist, alias, install_egg_info, register, setopt, rotate, upload_docs, sdist, install_headers, build_scripts, clean, bdist_dumb, build_py, egg_info, install
+[4.520s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools commands: bdist_wheel, install_lib, symlink_data, develop, build, saveopts, build_clib, upload, install_scripts, test, easy_install, check, build_ext, bdist_egg, bdist_rpm, install_data, dist_info, bdist, alias, install_egg_info, register, setopt, rotate, upload_docs, sdist, install_headers, build_scripts, clean, bdist_dumb, build_py, egg_info, install
+[4.638s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools commands: bdist_wheel, install_lib, symlink_data, develop, build, saveopts, build_clib, upload, install_scripts, test, easy_install, check, build_ext, bdist_egg, bdist_rpm, install_data, dist_info, bdist, alias, install_egg_info, register, setopt, rotate, upload_docs, sdist, install_headers, build_scripts, clean, bdist_dumb, build_py, egg_info, install
+[5.152s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools 'develop' options: --editable, --quiet, --always-unzip, --optimize, --version, --zip-ok, --always-copy, --no-find-links, --allow-hosts, --index-url, --exclude-scripts, --egg-path, --record, --dry-run, --find-links, --user, --verbose, --site-dirs, --local-snapshots-ok, --install-layout, --build-directory, --no-deps, --install-dir, --script-dir, --multi-version, --uninstall, --no-user-cfg, --upgrade, --prefix, --help, --force-installation-into-system-dir
+[5.156s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/build --no-deps symlink_data
+[5.703s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools 'develop' options: --editable, --quiet, --always-unzip, --optimize, --version, --zip-ok, --always-copy, --no-find-links, --allow-hosts, --index-url, --exclude-scripts, --egg-path, --record, --dry-run, --find-links, --user, --verbose, --site-dirs, --local-snapshots-ok, --install-layout, --build-directory, --no-deps, --install-dir, --script-dir, --multi-version, --uninstall, --no-user-cfg, --upgrade, --prefix, --help, --force-installation-into-system-dir
+[5.706s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/build --no-deps symlink_data
+[5.724s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools 'develop' options: --editable, --quiet, --always-unzip, --optimize, --version, --zip-ok, --always-copy, --no-find-links, --allow-hosts, --index-url, --exclude-scripts, --egg-path, --record, --dry-run, --find-links, --user, --verbose, --site-dirs, --local-snapshots-ok, --install-layout, --build-directory, --no-deps, --install-dir, --script-dir, --multi-version, --uninstall, --no-user-cfg, --upgrade, --prefix, --help, --force-installation-into-system-dir
+[5.733s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/build --no-deps symlink_data
+[6.783s] Level 1:colcon.colcon_core.shell:create_environment_hook('joy_initializer', 'pythonpath_develop')
+[6.784s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/share/joy_initializer/hook/pythonpath_develop.ps1'
+[6.786s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/share/joy_initializer/hook/pythonpath_develop.dsv'
+[6.787s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/share/joy_initializer/hook/pythonpath_develop.sh'
+[6.789s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer' returned '0': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer/build --no-deps symlink_data
+[6.794s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer' for CMake module files
+[6.795s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer' for CMake config files
+[6.797s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib'
+[6.797s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/bin'
+[6.797s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib/pkgconfig/joy_initializer.pc'
+[6.798s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib/python3.10/site-packages'
+[6.798s] Level 1:colcon.colcon_core.shell:create_environment_hook('joy_initializer', 'pythonpath')
+[6.799s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/hook/pythonpath.ps1'
+[6.801s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/hook/pythonpath.dsv'
+[6.802s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/hook/pythonpath.sh'
+[6.804s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/bin'
+[6.804s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(joy_initializer)
+[6.805s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/package.ps1'
+[6.809s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/package.dsv'
+[6.812s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/package.sh'
+[6.814s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/package.bash'
+[6.816s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/joy_initializer/package.zsh'
+[6.818s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/share/colcon-core/packages/joy_initializer)
+[7.038s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_initializer', 'pythonpath_develop')
+[7.039s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/share/vesc_initializer/hook/pythonpath_develop.ps1'
+[7.040s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer' returned '0': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/build --no-deps symlink_data
+[7.041s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/share/vesc_initializer/hook/pythonpath_develop.dsv'
+[7.042s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/share/vesc_initializer/hook/pythonpath_develop.sh'
+[7.043s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer' for CMake module files
+[7.044s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer' for CMake config files
+[7.046s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib'
+[7.046s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/bin'
+[7.046s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/pkgconfig/vesc_initializer.pc'
+[7.047s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages'
+[7.047s] Level 1:colcon.colcon_core.shell:create_environment_hook('vesc_initializer', 'pythonpath')
+[7.047s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/hook/pythonpath.ps1'
+[7.049s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/hook/pythonpath.dsv'
+[7.049s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/hook/pythonpath.sh'
+[7.051s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/bin'
+[7.052s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(vesc_initializer)
+[7.053s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/package.ps1'
+[7.056s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/package.dsv'
+[7.058s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/package.sh'
+[7.061s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/package.bash'
+[7.063s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer/package.zsh'
+[7.071s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/colcon-core/packages/vesc_initializer)
+[7.399s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_config', 'pythonpath_develop')
+[7.400s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/share/vehicle_config/hook/pythonpath_develop.ps1'
+[7.402s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/share/vehicle_config/hook/pythonpath_develop.dsv'
+[7.403s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/share/vehicle_config/hook/pythonpath_develop.sh'
+[7.404s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config' for CMake module files
+[7.405s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config' for CMake config files
+[7.406s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib'
+[7.406s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/bin'
+[7.407s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/pkgconfig/vehicle_config.pc'
+[7.407s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages'
+[7.407s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_config', 'pythonpath')
+[7.408s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/hook/pythonpath.ps1'
+[7.408s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config' returned '0': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/build --no-deps symlink_data
+[7.412s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/hook/pythonpath.dsv'
+[7.413s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/hook/pythonpath.sh'
+[7.415s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/bin'
+[7.415s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(vehicle_config)
+[7.416s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/package.ps1'
+[7.420s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/package.dsv'
+[7.422s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/package.sh'
+[7.423s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/package.bash'
+[7.425s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/package.zsh'
+[7.425s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/colcon-core/packages/vehicle_config)
+[7.428s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/manual_control' with build type 'ament_python'
+[7.430s] Level 1:colcon.colcon_core.shell:create_environment_hook('manual_control', 'ament_prefix_path')
+[7.431s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/hook/ament_prefix_path.ps1'
+[7.434s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/hook/ament_prefix_path.dsv'
+[7.434s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/hook/ament_prefix_path.sh'
+[7.436s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[7.436s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[7.454s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_test_drive' with build type 'ament_python'
+[7.454s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_test_drive', 'ament_prefix_path')
+[7.456s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/hook/ament_prefix_path.ps1'
+[7.459s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/hook/ament_prefix_path.dsv'
+[7.463s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/hook/ament_prefix_path.sh'
+[7.471s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[7.472s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[8.257s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/manual_control'
+[8.258s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[8.258s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[8.925s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_test_drive'
+[8.925s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[8.926s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[9.898s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools commands: bdist_wheel, install_lib, symlink_data, develop, build, saveopts, build_clib, upload, install_scripts, test, easy_install, check, build_ext, bdist_egg, bdist_rpm, install_data, dist_info, bdist, alias, install_egg_info, register, setopt, rotate, upload_docs, sdist, install_headers, build_scripts, clean, bdist_dumb, build_py, egg_info, install
+[10.139s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools commands: bdist_wheel, install_lib, symlink_data, develop, build, saveopts, build_clib, upload, install_scripts, test, easy_install, check, build_ext, bdist_egg, bdist_rpm, install_data, dist_info, bdist, alias, install_egg_info, register, setopt, rotate, upload_docs, sdist, install_headers, build_scripts, clean, bdist_dumb, build_py, egg_info, install
+[10.622s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools 'develop' options: --editable, --quiet, --always-unzip, --optimize, --version, --zip-ok, --always-copy, --no-find-links, --allow-hosts, --index-url, --exclude-scripts, --egg-path, --record, --dry-run, --find-links, --user, --verbose, --site-dirs, --local-snapshots-ok, --install-layout, --build-directory, --no-deps, --install-dir, --script-dir, --multi-version, --uninstall, --no-user-cfg, --upgrade, --prefix, --help, --force-installation-into-system-dir
+[10.626s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/build --no-deps symlink_data
+[11.002s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools 'develop' options: --editable, --quiet, --always-unzip, --optimize, --version, --zip-ok, --always-copy, --no-find-links, --allow-hosts, --index-url, --exclude-scripts, --egg-path, --record, --dry-run, --find-links, --user, --verbose, --site-dirs, --local-snapshots-ok, --install-layout, --build-directory, --no-deps, --install-dir, --script-dir, --multi-version, --uninstall, --no-user-cfg, --upgrade, --prefix, --help, --force-installation-into-system-dir
+[11.008s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/build --no-deps symlink_data
+[12.027s] Level 1:colcon.colcon_core.shell:create_environment_hook('manual_control', 'pythonpath_develop')
+[12.030s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/share/manual_control/hook/pythonpath_develop.ps1'
+[12.029s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/build --no-deps symlink_data
+[12.032s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/share/manual_control/hook/pythonpath_develop.dsv'
+[12.033s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control/share/manual_control/hook/pythonpath_develop.sh'
+[12.035s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control' for CMake module files
+[12.036s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control' for CMake config files
+[12.037s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib'
+[12.037s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/bin'
+[12.037s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/pkgconfig/manual_control.pc'
+[12.038s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/python3.10/site-packages'
+[12.038s] Level 1:colcon.colcon_core.shell:create_environment_hook('manual_control', 'pythonpath')
+[12.039s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/hook/pythonpath.ps1'
+[12.040s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/hook/pythonpath.dsv'
+[12.040s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/hook/pythonpath.sh'
+[12.042s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/bin'
+[12.042s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(manual_control)
+[12.043s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/package.ps1'
+[12.045s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/package.dsv'
+[12.046s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/package.sh'
+[12.047s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/package.bash'
+[12.048s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/manual_control/package.zsh'
+[12.049s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/share/colcon-core/packages/manual_control)
+[12.051s] INFO:colcon.colcon_ros.task.ament_python.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_launcher' with build type 'ament_python'
+[12.051s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_launcher', 'ament_prefix_path')
+[12.052s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/hook/ament_prefix_path.ps1'
+[12.054s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/hook/ament_prefix_path.dsv'
+[12.055s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/hook/ament_prefix_path.sh'
+[12.056s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[12.057s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[12.866s] INFO:colcon.colcon_core.task.python.build:Building Python package in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/vehicle_launcher'
+[12.867s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[12.867s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[12.887s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_test_drive', 'pythonpath_develop')
+[12.888s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/share/vehicle_test_drive/hook/pythonpath_develop.ps1'
+[12.890s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/build --no-deps symlink_data
+[12.891s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/share/vehicle_test_drive/hook/pythonpath_develop.dsv'
+[12.892s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_test_drive/share/vehicle_test_drive/hook/pythonpath_develop.sh'
+[12.894s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive' for CMake module files
+[12.895s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive' for CMake config files
+[12.896s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib'
+[12.896s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/bin'
+[12.896s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/pkgconfig/vehicle_test_drive.pc'
+[12.897s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/lib/python3.10/site-packages'
+[12.897s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_test_drive', 'pythonpath')
+[12.898s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/hook/pythonpath.ps1'
+[12.899s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/hook/pythonpath.dsv'
+[12.900s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/hook/pythonpath.sh'
+[12.902s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/bin'
+[12.902s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(vehicle_test_drive)
+[12.903s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/package.ps1'
+[12.905s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/package.dsv'
+[12.907s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/package.sh'
+[12.908s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/package.bash'
+[12.909s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/vehicle_test_drive/package.zsh'
+[12.909s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_test_drive/share/colcon-core/packages/vehicle_test_drive)
+[13.836s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools commands: bdist_wheel, install_lib, symlink_data, develop, build, saveopts, build_clib, upload, install_scripts, test, easy_install, check, build_ext, bdist_egg, bdist_rpm, install_data, dist_info, bdist, alias, install_egg_info, register, setopt, rotate, upload_docs, sdist, install_headers, build_scripts, clean, bdist_dumb, build_py, egg_info, install
+[14.672s] DEBUG:colcon.colcon_core.task.python.build:Available setuptools 'develop' options: --editable, --quiet, --always-unzip, --optimize, --version, --zip-ok, --always-copy, --no-find-links, --allow-hosts, --index-url, --exclude-scripts, --egg-path, --record, --dry-run, --find-links, --user, --verbose, --site-dirs, --local-snapshots-ok, --install-layout, --build-directory, --no-deps, --install-dir, --script-dir, --multi-version, --uninstall, --no-user-cfg, --upgrade, --prefix, --help, --force-installation-into-system-dir
+[14.676s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/build --no-deps symlink_data
+[16.002s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_launcher', 'pythonpath_develop')
+[16.003s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/share/vehicle_launcher/hook/pythonpath_develop.ps1'
+[16.005s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer:${AMENT_PREFIX_PATH} PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/manual_control:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/manual_control/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/joy_initializer:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/joy_initializer/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/build --no-deps symlink_data
+[16.007s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/share/vehicle_launcher/hook/pythonpath_develop.dsv'
+[16.008s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_launcher/share/vehicle_launcher/hook/pythonpath_develop.sh'
+[16.009s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher' for CMake module files
+[16.010s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher' for CMake config files
+[16.012s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/lib'
+[16.012s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/bin'
+[16.012s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/lib/pkgconfig/vehicle_launcher.pc'
+[16.013s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/lib/python3.10/site-packages'
+[16.013s] Level 1:colcon.colcon_core.shell:create_environment_hook('vehicle_launcher', 'pythonpath')
+[16.014s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/hook/pythonpath.ps1'
+[16.015s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/hook/pythonpath.dsv'
+[16.017s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/hook/pythonpath.sh'
+[16.021s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/bin'
+[16.021s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(vehicle_launcher)
+[16.023s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/package.ps1'
+[16.028s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/package.dsv'
+[16.031s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/package.sh'
+[16.033s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/package.bash'
+[16.034s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/vehicle_launcher/package.zsh'
+[16.035s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_launcher/share/colcon-core/packages/vehicle_launcher)
+[16.041s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[16.042s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[16.042s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[16.043s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[16.062s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[16.063s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[16.063s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[16.139s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[16.141s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/local_setup.ps1'
+[16.144s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/_local_setup_util_ps1.py'
+[16.148s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/setup.ps1'
+[16.151s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/local_setup.sh'
+[16.152s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/_local_setup_util_sh.py'
+[16.154s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/setup.sh'
+[16.157s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/local_setup.bash'
+[16.159s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/setup.bash'
+[16.162s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/local_setup.zsh'
+[16.163s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/setup.zsh'

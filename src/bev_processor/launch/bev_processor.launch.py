@@ -32,7 +32,7 @@ def generate_launch_description():
         ("lane_reconstruction_enabled", "true", bool),
         ("lane_output_topic", "/camera/image_bev_lane", str),
         ("lane_preview_enabled", "true", bool),
-        ("lane_preview_overlay_alpha", "0.35", float),
+        ("lane_preview_overlay_alpha", "1.0", float),
         ("lane_minimum_brightness", "160", int),
         ("lane_far_minimum_brightness", "110", int),
         ("lane_maximum_saturation", "80", int),

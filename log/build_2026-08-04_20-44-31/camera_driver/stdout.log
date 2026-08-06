@@ -1,0 +1,81 @@
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)
+-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Found OpenCV: /usr (found suitable version "4.8.0", minimum required is "4") found components: core highgui imgproc 
+-- Performing Test arch_native_supported
+-- Performing Test arch_native_supported - Success
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver
+[35m[1mConsolidate compiler generated dependencies of target camera_imu_stabilizer[0m
+[ 25%] Built target camera_imu_stabilizer
+[35m[1mConsolidate compiler generated dependencies of target imu_image_stabilizer_test[0m
+[35m[1mConsolidate compiler generated dependencies of target camera_driver_component[0m
+[ 50%] Built target imu_image_stabilizer_test
+[ 75%] Built target camera_driver_component
+[35m[1mConsolidate compiler generated dependencies of target camera_driver_node[0m
+[100%] Built target camera_driver_node
+-- Install configuration: "Release"
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver/imu_image_stabilizer.hpp
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver/visibility_control.hpp
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver/camera_driver_node.hpp
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/config
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/config/camera_config.yaml
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/launch
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/launch/camera_driver.launch.py
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib/libcamera_imu_stabilizer.a
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib/libcamera_driver_component.so
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib/camera_driver/camera_driver_node
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/library_path.sh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/library_path.dsv
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/package_run_dependencies/camera_driver
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/parent_prefix_path/camera_driver
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/ament_prefix_path.sh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/ament_prefix_path.dsv
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/path.sh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/path.dsv
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.bash
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.sh
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.zsh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.dsv
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.dsv
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/packages/camera_driver
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/rclcpp_components/camera_driver
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/export_camera_driverExport.cmake
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/export_camera_driverExport-release.cmake
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/ament_cmake_export_targets-extras.cmake
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/camera_driverConfig.cmake
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/camera_driverConfig-version.cmake
+-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.xml

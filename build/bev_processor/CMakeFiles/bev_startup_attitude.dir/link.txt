@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbev_startup_attitude.a CMakeFiles/bev_startup_attitude.dir/src/startup_attitude.cpp.o
+/usr/bin/ranlib libbev_startup_attitude.a

@@ -132,8 +132,8 @@ cv::Mat makeLaneOverlayPreview(
             "lane preview overlay expects matching BGR8 and MONO8 images");
   }
   cv::Mat highlighted = bev_bgr.clone();
-  // OpenCV uses BGR. This becomes a pale cyan-blue highlighter after blending.
-  highlighted.setTo(cv::Scalar(255, 210, 100), lane_mask);
+  // OpenCV uses BGR, so (0, 0, 255) renders the detected lane in red.
+  highlighted.setTo(cv::Scalar(0, 0, 255), lane_mask);
   cv::Mat blended;
   cv::addWeighted(
     highlighted, alpha, bev_bgr, 1.0 - alpha, 0.0, blended);
@@ -521,7 +521,7 @@ private:
     declare_parameter<std::string>(
       "lane_output_topic", "/camera/image_bev_lane");
     declare_parameter<bool>("lane_preview_enabled", true);
-    declare_parameter<double>("lane_preview_overlay_alpha", 0.35);
+    declare_parameter<double>("lane_preview_overlay_alpha", 1.0);
     declare_parameter<int>("lane_minimum_brightness", 160);
     declare_parameter<int>("lane_far_minimum_brightness", 110);
     declare_parameter<int>("lane_maximum_saturation", 80);
@@ -1777,7 +1777,7 @@ private:
   bool lane_reconstruction_enabled_{true};
   std::string lane_output_topic_{"/camera/image_bev_lane"};
   bool lane_preview_enabled_{true};
-  double lane_preview_overlay_alpha_{0.35};
+  double lane_preview_overlay_alpha_{1.0};
   BevLaneReconstructorConfig lane_reconstructor_config_{};
   double status_log_interval_sec_{5.0};
   double startup_timeout_sec_{12.0};

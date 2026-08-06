@@ -1,0 +1,343 @@
+[0.419s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--packages-select', 'camera_driver', 'bev_processor', '--cmake-clean-cache', '--cmake-args', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc']
+[0.420s] DEBUG:colcon:Parsed command line arguments: Namespace(log_base=None, log_level=None, verb_name='build', build_base='build', install_base='install', merge_install=False, symlink_install=False, test_result_base=None, continue_on_error=False, executor='parallel', parallel_workers=6, event_handlers=None, ignore_user_meta=False, metas=['./colcon.meta'], base_paths=['.'], packages_ignore=None, packages_ignore_regex=None, paths=None, packages_up_to=None, packages_up_to_regex=None, packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_select_by_dep=None, packages_skip_by_dep=None, packages_skip_up_to=None, packages_select_build_failed=False, packages_skip_build_finished=False, packages_select_test_failures=False, packages_skip_test_passed=False, packages_select=['camera_driver', 'bev_processor'], packages_skip=None, packages_select_regex=None, packages_skip_regex=None, packages_start=None, packages_end=None, allow_overriding=[], cmake_args=['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc'], cmake_target=None, cmake_target_skip_unavailable=False, cmake_clean_cache=True, cmake_clean_first=False, cmake_force_configure=False, ament_cmake_args=None, catkin_cmake_args=None, catkin_skip_building_tests=False, mixin_files=None, mixin=None, verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0xffff9ec29ba0>, verb_extension=<colcon_core.verb.build.BuildVerb object at 0xffff9edeadd0>, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0xffff9edeadd0>>, mixin_verb=('build',))
+[0.974s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.974s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.974s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.975s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.975s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.975s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.975s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo'
+[0.975s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.975s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.976s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[1.007s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['cmake', 'python']
+[1.007s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'cmake'
+[1.007s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python'
+[1.008s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['python_setup_py']
+[1.008s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'python_setup_py'
+[1.008s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extensions ['ignore', 'ignore_ament_install']
+[1.008s] Level 1:colcon.colcon_core.package_identification:_identify(build) by extension 'ignore'
+[1.009s] Level 1:colcon.colcon_core.package_identification:_identify(build) ignored
+[1.009s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extensions ['ignore', 'ignore_ament_install']
+[1.009s] Level 1:colcon.colcon_core.package_identification:_identify(install) by extension 'ignore'
+[1.009s] Level 1:colcon.colcon_core.package_identification:_identify(install) ignored
+[1.009s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extensions ['ignore', 'ignore_ament_install']
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(log) by extension 'ignore'
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(log) ignored
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ignore', 'ignore_ament_install']
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore'
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ignore_ament_install'
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_pkg']
+[1.010s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_pkg'
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['colcon_meta']
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'colcon_meta'
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['ros']
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'ros'
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['cmake', 'python']
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'cmake'
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python'
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extensions ['python_setup_py']
+[1.011s] Level 1:colcon.colcon_core.package_identification:_identify(src) by extension 'python_setup_py'
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['ignore', 'ignore_ament_install']
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'ignore'
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'ignore_ament_install'
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['colcon_pkg']
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'colcon_pkg'
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['colcon_meta']
+[1.012s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'colcon_meta'
+[1.013s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extensions ['ros']
+[1.013s] Level 1:colcon.colcon_core.package_identification:_identify(src/auto_control) by extension 'ros'
+[1.019s] DEBUG:colcon.colcon_core.package_identification:Package 'src/auto_control' with type 'ros.ament_python' and name 'auto_control'
+[1.020s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['ignore', 'ignore_ament_install']
+[1.020s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'ignore'
+[1.020s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'ignore_ament_install'
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['colcon_pkg']
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'colcon_pkg'
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['colcon_meta']
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'colcon_meta'
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extensions ['ros']
+[1.021s] Level 1:colcon.colcon_core.package_identification:_identify(src/bev_processor) by extension 'ros'
+[1.024s] DEBUG:colcon.colcon_core.package_identification:Package 'src/bev_processor' with type 'ros.ament_cmake' and name 'bev_processor'
+[1.024s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['ignore', 'ignore_ament_install']
+[1.024s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'ignore'
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'ignore_ament_install'
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['colcon_pkg']
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'colcon_pkg'
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['colcon_meta']
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'colcon_meta'
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extensions ['ros']
+[1.025s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_driver) by extension 'ros'
+[1.027s] DEBUG:colcon.colcon_core.package_identification:Package 'src/camera_driver' with type 'ros.ament_cmake' and name 'camera_driver'
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['ignore', 'ignore_ament_install']
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'ignore'
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'ignore_ament_install'
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['colcon_pkg']
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'colcon_pkg'
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['colcon_meta']
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'colcon_meta'
+[1.028s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extensions ['ros']
+[1.029s] Level 1:colcon.colcon_core.package_identification:_identify(src/camera_height_estimator) by extension 'ros'
+[1.030s] DEBUG:colcon.colcon_core.package_identification:Package 'src/camera_height_estimator' with type 'ros.ament_cmake' and name 'camera_height_estimator'
+[1.030s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['ignore', 'ignore_ament_install']
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'ignore'
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'ignore_ament_install'
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['colcon_pkg']
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'colcon_pkg'
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['colcon_meta']
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'colcon_meta'
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['ros']
+[1.031s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'ros'
+[1.032s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['cmake', 'python']
+[1.032s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'cmake'
+[1.032s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'python'
+[1.032s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extensions ['python_setup_py']
+[1.032s] Level 1:colcon.colcon_core.package_identification:_identify(src/docs) by extension 'python_setup_py'
+[1.032s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['ignore', 'ignore_ament_install']
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'ignore'
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'ignore_ament_install'
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['colcon_pkg']
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'colcon_pkg'
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['colcon_meta']
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'colcon_meta'
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extensions ['ros']
+[1.033s] Level 1:colcon.colcon_core.package_identification:_identify(src/joy_initializer) by extension 'ros'
+[1.034s] DEBUG:colcon.colcon_core.package_identification:Package 'src/joy_initializer' with type 'ros.ament_python' and name 'joy_initializer'
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['ignore', 'ignore_ament_install']
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'ignore'
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'ignore_ament_install'
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['colcon_pkg']
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'colcon_pkg'
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['colcon_meta']
+[1.035s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'colcon_meta'
+[1.036s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extensions ['ros']
+[1.036s] Level 1:colcon.colcon_core.package_identification:_identify(src/manual_control) by extension 'ros'
+[1.037s] DEBUG:colcon.colcon_core.package_identification:Package 'src/manual_control' with type 'ros.ament_python' and name 'manual_control'
+[1.037s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['ignore', 'ignore_ament_install']
+[1.037s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'ignore'
+[1.037s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'ignore_ament_install'
+[1.038s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['colcon_pkg']
+[1.038s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'colcon_pkg'
+[1.038s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['colcon_meta']
+[1.038s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'colcon_meta'
+[1.038s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extensions ['ros']
+[1.038s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_config) by extension 'ros'
+[1.039s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_config' with type 'ros.ament_python' and name 'vehicle_config'
+[1.039s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['ignore', 'ignore_ament_install']
+[1.039s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'ignore'
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'ignore_ament_install'
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['colcon_pkg']
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'colcon_pkg'
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['colcon_meta']
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'colcon_meta'
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['ros']
+[1.040s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'ros'
+[1.041s] DEBUG:colcon.colcon_core.package_identification:Failed to parse potential ROS package manifest in'src/vehicle_interfaces': Error(s) in package 'src/vehicle_interfaces/package.xml':
+The manifest contains invalid XML:
+no element found: line 1, column 0
+[1.041s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extensions ['cmake', 'python']
+[1.041s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'cmake'
+[1.043s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_interfaces) by extension 'python'
+[1.043s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_interfaces' with type 'cmake' and name 'vehicle_interfaces'
+[1.044s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['ignore', 'ignore_ament_install']
+[1.044s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'ignore'
+[1.044s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'ignore_ament_install'
+[1.044s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['colcon_pkg']
+[1.044s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'colcon_pkg'
+[1.044s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['colcon_meta']
+[1.045s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'colcon_meta'
+[1.045s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extensions ['ros']
+[1.045s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_launcher) by extension 'ros'
+[1.046s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_launcher' with type 'ros.ament_python' and name 'vehicle_launcher'
+[1.046s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['ignore', 'ignore_ament_install']
+[1.046s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'ignore'
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'ignore_ament_install'
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['colcon_pkg']
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'colcon_pkg'
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['colcon_meta']
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'colcon_meta'
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extensions ['ros']
+[1.047s] Level 1:colcon.colcon_core.package_identification:_identify(src/vehicle_test_drive) by extension 'ros'
+[1.049s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vehicle_test_drive' with type 'ros.ament_python' and name 'vehicle_test_drive'
+[1.049s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['ignore', 'ignore_ament_install']
+[1.049s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'ignore'
+[1.049s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'ignore_ament_install'
+[1.049s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['colcon_pkg']
+[1.049s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'colcon_pkg'
+[1.050s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['colcon_meta']
+[1.050s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'colcon_meta'
+[1.050s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extensions ['ros']
+[1.050s] Level 1:colcon.colcon_core.package_identification:_identify(src/vesc_initializer) by extension 'ros'
+[1.051s] DEBUG:colcon.colcon_core.package_identification:Package 'src/vesc_initializer' with type 'ros.ament_python' and name 'vesc_initializer'
+[1.051s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[1.051s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[1.051s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[1.051s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[1.051s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'auto_control' in 'src/auto_control'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'camera_height_estimator' in 'src/camera_height_estimator'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'joy_initializer' in 'src/joy_initializer'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vehicle_config' in 'src/vehicle_config'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vehicle_interfaces' in 'src/vehicle_interfaces'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vesc_initializer' in 'src/vesc_initializer'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'manual_control' in 'src/manual_control'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vehicle_test_drive' in 'src/vehicle_test_drive'
+[1.147s] INFO:colcon.colcon_core.package_selection:Skipping not selected package 'vehicle_launcher' in 'src/vehicle_launcher'
+[1.148s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[1.148s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[1.155s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 275 installed packages in /opt/ros/humble
+[1.158s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'cmake_args' from command line to '['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc']'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'cmake_target' from command line to 'None'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'cmake_clean_cache' from command line to 'True'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'cmake_clean_first' from command line to 'False'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'cmake_force_configure' from command line to 'False'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'ament_cmake_args' from command line to 'None'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'catkin_cmake_args' from command line to 'None'
+[1.249s] Level 5:colcon.colcon_core.verb:set package 'camera_driver' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.249s] DEBUG:colcon.colcon_core.verb:Building package 'camera_driver' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc'], 'cmake_clean_cache': True, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver', 'symlink_install': False, 'test_result_base': None}
+[1.250s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'cmake_args' from command line to '['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc']'
+[1.250s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'cmake_target' from command line to 'None'
+[1.250s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[1.250s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'cmake_clean_cache' from command line to 'True'
+[1.250s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'cmake_clean_first' from command line to 'False'
+[1.251s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'cmake_force_configure' from command line to 'False'
+[1.251s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'ament_cmake_args' from command line to 'None'
+[1.251s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'catkin_cmake_args' from command line to 'None'
+[1.251s] Level 5:colcon.colcon_core.verb:set package 'bev_processor' build argument 'catkin_skip_building_tests' from command line to 'False'
+[1.251s] DEBUG:colcon.colcon_core.verb:Building package 'bev_processor' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc'], 'cmake_clean_cache': True, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor', 'merge_install': False, 'path': '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/bev_processor', 'symlink_install': False, 'test_result_base': None}
+[1.251s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[1.253s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[1.254s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver' with build type 'ament_cmake'
+[1.254s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver'
+[1.263s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[1.263s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[1.263s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[1.277s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver
+[4.647s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/camera_driver -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver
+[4.654s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver -- -j6 -l6
+[89.631s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver -- -j6 -l6
+[89.655s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver
+[89.684s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(camera_driver)
+[89.685s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver' returned '0': CMAKE_PREFIX_PATH=/opt/ros/humble /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/camera_driver
+[89.695s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver' for CMake module files
+[89.697s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver' for CMake config files
+[89.698s] Level 1:colcon.colcon_core.shell:create_environment_hook('camera_driver', 'cmake_prefix_path')
+[89.699s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/cmake_prefix_path.ps1'
+[89.702s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/cmake_prefix_path.dsv'
+[89.703s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/cmake_prefix_path.sh'
+[89.707s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib'
+[89.707s] Level 1:colcon.colcon_core.shell:create_environment_hook('camera_driver', 'ld_library_path_lib')
+[89.708s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/ld_library_path_lib.ps1'
+[89.710s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/ld_library_path_lib.dsv'
+[89.711s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/ld_library_path_lib.sh'
+[89.713s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/bin'
+[89.713s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/pkgconfig/camera_driver.pc'
+[89.714s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/python3.10/site-packages'
+[89.715s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/bin'
+[89.716s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.ps1'
+[89.721s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.dsv'
+[89.723s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.sh'
+[89.726s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.bash'
+[89.729s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.zsh'
+[89.732s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/colcon-core/packages/camera_driver)
+[89.734s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(camera_driver)
+[89.735s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver' for CMake module files
+[89.737s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver' for CMake config files
+[89.738s] Level 1:colcon.colcon_core.shell:create_environment_hook('camera_driver', 'cmake_prefix_path')
+[89.739s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/cmake_prefix_path.ps1'
+[89.740s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/cmake_prefix_path.dsv'
+[89.742s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/cmake_prefix_path.sh'
+[89.744s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib'
+[89.744s] Level 1:colcon.colcon_core.shell:create_environment_hook('camera_driver', 'ld_library_path_lib')
+[89.745s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/ld_library_path_lib.ps1'
+[89.747s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/ld_library_path_lib.dsv'
+[89.748s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/hook/ld_library_path_lib.sh'
+[89.749s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/bin'
+[89.749s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/pkgconfig/camera_driver.pc'
+[89.750s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib/python3.10/site-packages'
+[89.752s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/bin'
+[89.753s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.ps1'
+[89.755s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.dsv'
+[89.757s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.sh'
+[89.759s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.bash'
+[89.760s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.zsh'
+[89.762s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/share/colcon-core/packages/camera_driver)
+[89.763s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/bev_processor' with build type 'ament_cmake'
+[89.763s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/bev_processor'
+[89.764s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[89.764s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[89.786s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/bev_processor -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor
+[97.352s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/src/bev_processor -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor
+[97.356s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor -- -j6 -l6
+[200.276s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor -- -j6 -l6
+[200.281s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor
+[200.315s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(bev_processor)
+[200.316s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor' for CMake module files
+[200.320s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor' for CMake config files
+[200.324s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/build/bev_processor
+[200.324s] Level 1:colcon.colcon_core.shell:create_environment_hook('bev_processor', 'cmake_prefix_path')
+[200.325s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/cmake_prefix_path.ps1'
+[200.327s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/cmake_prefix_path.dsv'
+[200.328s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/cmake_prefix_path.sh'
+[200.330s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/lib'
+[200.331s] Level 1:colcon.colcon_core.shell:create_environment_hook('bev_processor', 'ld_library_path_lib')
+[200.331s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/ld_library_path_lib.ps1'
+[200.333s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/ld_library_path_lib.dsv'
+[200.334s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/ld_library_path_lib.sh'
+[200.335s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/bin'
+[200.336s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/lib/pkgconfig/bev_processor.pc'
+[200.337s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/lib/python3.10/site-packages'
+[200.338s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/bin'
+[200.339s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.ps1'
+[200.342s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.dsv'
+[200.344s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.sh'
+[200.346s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.bash'
+[200.347s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.zsh'
+[200.349s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/colcon-core/packages/bev_processor)
+[200.352s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(bev_processor)
+[200.353s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor' for CMake module files
+[200.354s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor' for CMake config files
+[200.354s] Level 1:colcon.colcon_core.shell:create_environment_hook('bev_processor', 'cmake_prefix_path')
+[200.355s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/cmake_prefix_path.ps1'
+[200.356s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/cmake_prefix_path.dsv'
+[200.358s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/cmake_prefix_path.sh'
+[200.360s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/lib'
+[200.360s] Level 1:colcon.colcon_core.shell:create_environment_hook('bev_processor', 'ld_library_path_lib')
+[200.361s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/ld_library_path_lib.ps1'
+[200.363s] INFO:colcon.colcon_core.shell:Creating environment descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/ld_library_path_lib.dsv'
+[200.363s] INFO:colcon.colcon_core.shell:Creating environment hook '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/hook/ld_library_path_lib.sh'
+[200.364s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/bin'
+[200.365s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/lib/pkgconfig/bev_processor.pc'
+[200.365s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/lib/python3.10/site-packages'
+[200.367s] Level 1:colcon.colcon_core.environment:checking '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/bin'
+[200.368s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.ps1'
+[200.371s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.dsv'
+[200.373s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.sh'
+[200.374s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.bash'
+[200.376s] INFO:colcon.colcon_core.shell:Creating package script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.zsh'
+[200.377s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/bev_processor/share/colcon-core/packages/bev_processor)
+[200.378s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[200.379s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[200.379s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished with '0'
+[200.380s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[200.401s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[200.401s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[200.401s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[200.484s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[200.485s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/local_setup.ps1'
+[200.489s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/_local_setup_util_ps1.py'
+[200.495s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/setup.ps1'
+[200.499s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/local_setup.sh'
+[200.501s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/_local_setup_util_sh.py'
+[200.503s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/setup.sh'
+[200.508s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/local_setup.bash'
+[200.512s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/setup.bash'
+[200.517s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/local_setup.zsh'
+[200.520s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/autopilot03/Desktop/f1tenth_test0806/f1tenth_project_repo/install/setup.zsh'

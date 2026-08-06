@@ -1,0 +1,133 @@
+-- The CXX compiler identification is GNU 11.4.0
+-- The CUDA compiler identification is NVIDIA 12.6.68
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: /usr/local/cuda/bin/nvcc - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found CUDAToolkit: /usr/local/cuda/include (found version "12.6.68") 
+-- Looking for C++ include pthread.h
+-- Looking for C++ include pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found OpenCV: /usr (found suitable version "4.8.0", minimum required is "4") found components: core highgui imgproc 
+-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)
+-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Performing Test arch_native_supported
+-- Performing Test arch_native_supported - Success
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor
+[  4%] [32mBuilding CXX object CMakeFiles/bev_geometry.dir/src/bev_geometry.cpp.o[0m
+[  9%] [32mBuilding CXX object CMakeFiles/bev_startup_attitude.dir/src/startup_attitude.cpp.o[0m
+[ 13%] [32mBuilding CXX object CMakeFiles/bev_ground_plane.dir/src/ground_plane_estimator.cpp.o[0m
+[ 18%] [32mBuilding CXX object CMakeFiles/bev_lane_reconstructor.dir/src/bev_lane_reconstructor.cpp.o[0m
+[ 22%] [32mBuilding CUDA object CMakeFiles/bev_cuda.dir/src/cuda_bev_processor.cu.o[0m
+[ 27%] [32m[1mLinking CXX static library libbev_startup_attitude.a[0m
+[ 27%] Built target bev_startup_attitude
+[ 31%] [32mBuilding CXX object CMakeFiles/startup_attitude_test.dir/test/startup_attitude_test.cpp.o[0m
+[ 36%] [32m[1mLinking CXX static library libbev_geometry.a[0m
+[ 36%] Built target bev_geometry
+[ 40%] [32mBuilding CXX object CMakeFiles/bev_geometry_test.dir/test/bev_geometry_test.cpp.o[0m
+[ 45%] [32m[1mLinking CXX static library libbev_ground_plane.a[0m
+[ 45%] Built target bev_ground_plane
+[ 50%] [32mBuilding CXX object CMakeFiles/ground_plane_estimator_test.dir/test/ground_plane_estimator_test.cpp.o[0m
+[ 54%] [32mBuilding CXX object CMakeFiles/bev_startup_measurement.dir/src/oak_startup_measurement.cpp.o[0m
+[ 59%] [32m[1mLinking CXX static library libbev_lane_reconstructor.a[0m
+[ 59%] Built target bev_lane_reconstructor
+[ 63%] [32mBuilding CXX object CMakeFiles/bev_lane_reconstructor_test.dir/test/bev_lane_reconstructor_test.cpp.o[0m
+[ 68%] [32m[1mLinking CXX executable startup_attitude_test[0m
+[ 68%] Built target startup_attitude_test
+[ 72%] [32m[1mLinking CXX executable bev_geometry_test[0m
+[ 72%] Built target bev_geometry_test
+[ 77%] [32m[1mLinking CXX executable ground_plane_estimator_test[0m
+[ 77%] Built target ground_plane_estimator_test
+[ 81%] [32m[1mLinking CXX executable bev_lane_reconstructor_test[0m
+[ 81%] Built target bev_lane_reconstructor_test
+[ 86%] [32m[1mLinking CUDA static library libbev_cuda.a[0m
+[ 86%] Built target bev_cuda
+In file included from [01m[K/usr/local/include/depthai/utility/Serialization.hpp:6[m[K,
+                 from [01m[K/usr/local/include/depthai/common/Point3f.hpp:7[m[K,
+                 from [01m[K/usr/local/include/depthai/common/Extrinsics.hpp:9[m[K,
+                 from [01m[K/usr/local/include/depthai/common/CameraInfo.hpp:4[m[K,
+                 from [01m[K/usr/local/include/depthai/common/EepromData.hpp:7[m[K,
+                 from [01m[K/usr/local/include/depthai/device/CalibrationHandler.hpp:11[m[K,
+                 from [01m[K/usr/local/include/depthai/depthai.hpp:11[m[K,
+                 from [01m[K/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/bev_processor/src/oak_startup_measurement.cpp:18[m[K:
+/usr/local/include/nlohmann/json.hpp: In instantiation of ‘[01m[Kconstexpr decltype (declval<const basic_json_t&>().get_impl<ValueType>(nlohmann::json_abi_v3_12_0::detail::priority_tag<4>{})) nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get() const [with ValueTypeCV = std::pair<float, float>; ValueType = std::pair<float, float>; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void; decltype (declval<const basic_json_t&>().get_impl<ValueType>(nlohmann::json_abi_v3_12_0::detail::priority_tag<4>{})) = std::pair<float, float>; nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::basic_json_t = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’:
+[01m[K/usr/local/include/depthai/common/variant.hpp:16:66:[m[K   required from ‘[01m[Kvoid dai::internal::VariantSwitch<N>::operator()(int, const json&, Variant&) const [with Variant = std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > >; long unsigned int N = 1; json = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’
+[01m[K/usr/local/include/depthai/common/variant.hpp:18:35:[m[K   required from ‘[01m[Kvoid dai::internal::VariantSwitch<N>::operator()(int, const json&, Variant&) const [with Variant = std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > >; long unsigned int N = 2; json = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’
+[01m[K/usr/local/include/depthai/common/variant.hpp:50:62:[m[K   required from ‘[01m[Kstatic void nlohmann::json_abi_v3_12_0::adl_serializer<std::variant<_Types ...> >::from_json(const json&, std::variant<_Types ...>&) [with Args = {float, std::pair<float, float>, std::vector<float, std::allocator<float> >}; nlohmann::json_abi_v3_12_0::json = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’
+[01m[K/usr/local/include/nlohmann/json.hpp:1637:45:[m[K   required from ‘[01m[KValueType nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get_impl(nlohmann::json_abi_v3_12_0::detail::priority_tag<0>) const [with ValueType = std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > >; typename std::enable_if<(nlohmann::json_abi_v3_12_0::detail::is_default_constructible<ValueType>::value && nlohmann::json_abi_v3_12_0::detail::has_from_json<nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>, ValueType>::value), int>::type <anonymous> = 0; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void][m[K’
+[01m[K/usr/local/include/nlohmann/json.hpp:1780:35:[m[K   [ skipping 2 instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]
+[01m[K/usr/local/include/nlohmann/json.hpp:1828:45:[m[K   required from ‘[01m[KValueType& nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get_to(ValueType&) const [with ValueType = std::optional<std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > > >; typename std::enable_if<((! nlohmann::json_abi_v3_12_0::detail::is_basic_json<BasicJsonType>::value) && nlohmann::json_abi_v3_12_0::detail::has_from_json<nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>, ValueType>::value), int>::type <anonymous> = 0; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void][m[K’
+[01m[K/usr/local/include/depthai/capabilities/CapabilityRange.hpp:33:5:[m[K   required from ‘[01m[Kvoid dai::from_json(const json&, dai::CapabilityRange<float>&)[m[K’
+[01m[K/usr/local/include/nlohmann/detail/conversions/from_json.hpp:558:25:[m[K   required from ‘[01m[Kdecltype (nlohmann::json_abi_v3_12_0::detail::from_json(j, forward<T>(val))) nlohmann::json_abi_v3_12_0::detail::from_json_fn::operator()(const BasicJsonType&, T&&) const [with BasicJsonType = nlohmann::json_abi_v3_12_0::basic_json<>; T = dai::CapabilityRange<float>&; decltype (nlohmann::json_abi_v3_12_0::detail::from_json(j, forward<T>(val))) = void][m[K’
+[01m[K/usr/local/include/nlohmann/adl_serializer.hpp:31:30:[m[K   required from ‘[01m[Kstatic decltype ((nlohmann::json_abi_v3_12_0::from_json(forward<BasicJsonType>(j), val), void())) nlohmann::json_abi_v3_12_0::adl_serializer<T, SFINAE>::from_json(BasicJsonType&&, TargetType&) [with BasicJsonType = const nlohmann::json_abi_v3_12_0::basic_json<>&; TargetType = dai::CapabilityRange<float>; ValueType = dai::CapabilityRange<float>; <template-parameter-1-2> = void; decltype ((nlohmann::json_abi_v3_12_0::from_json(forward<BasicJsonType>(j), val), void())) = void][m[K’
+[01m[K/usr/local/include/nlohmann/json.hpp:1828:45:[m[K   required from ‘[01m[KValueType& nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get_to(ValueType&) const [with ValueType = dai::CapabilityRange<float>; typename std::enable_if<((! nlohmann::json_abi_v3_12_0::detail::is_basic_json<BasicJsonType>::value) && nlohmann::json_abi_v3_12_0::detail::has_from_json<nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>, ValueType>::value), int>::type <anonymous> = 0; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void][m[K’
+[01m[K/usr/local/include/depthai/capabilities/ImgFrameCapability.hpp:55:5:[m[K   required from here
+[01m[K/usr/local/include/nlohmann/json.hpp:1771:10:[m[K [01;36m[Knote: [m[Kparameter passing for argument of type ‘[01m[Kstd::pair<float, float>[m[K’ when C++17 is enabled changed to match C++14 ]8;;https://gcc.gnu.org/gcc-10/changes.html#empty_basein GCC 10.1]8;;
+ 1771 |     auto [01;36m[Kget[m[K() const noexcept(
+      |          [01;36m[K^~~[m[K
+[ 90%] [32m[1mLinking CXX static library libbev_startup_measurement.a[0m
+[ 90%] Built target bev_startup_measurement
+[ 95%] [32mBuilding CXX object CMakeFiles/bev_processor_component.dir/src/bev_processor_node.cpp.o[0m
+[100%] [32m[1mLinking CXX shared library libbev_processor_component.so[0m
+[100%] Built target bev_processor_component
+-- Install configuration: "Release"
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_geometry.a
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_lane_reconstructor.a
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_ground_plane.a
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_startup_attitude.a
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_startup_measurement.a
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_processor_component.so
+-- Set runtime path of "/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_processor_component.so" to ""
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/bev_geometry.hpp
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/bev_lane_reconstructor.hpp
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/ground_plane_estimator.hpp
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/startup_attitude.hpp
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/cuda_bev_processor.hpp
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/oak_startup_measurement.hpp
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/config
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/config/bev_config.yaml
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/launch
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/launch/bev_processor.launch.py
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/package_run_dependencies/bev_processor
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/parent_prefix_path/bev_processor
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/ament_prefix_path.sh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/ament_prefix_path.dsv
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/path.sh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/path.dsv
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.bash
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.sh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.zsh
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.dsv
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.dsv
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/packages/bev_processor
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/rclcpp_components/bev_processor
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/bev_processorConfig.cmake
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/bev_processorConfig-version.cmake
+-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.xml

@@ -1,0 +1,759 @@
+[0.000000] (-) TimerEvent: {}
+[0.000717] (-) JobUnselected: {'identifier': 'auto_control'}
+[0.001314] (-) JobUnselected: {'identifier': 'camera_height_estimator'}
+[0.001606] (-) JobUnselected: {'identifier': 'joy_initializer'}
+[0.001929] (-) JobUnselected: {'identifier': 'manual_control'}
+[0.001985] (-) JobUnselected: {'identifier': 'vehicle_config'}
+[0.002106] (-) JobUnselected: {'identifier': 'vehicle_interfaces'}
+[0.002202] (-) JobUnselected: {'identifier': 'vehicle_launcher'}
+[0.002293] (-) JobUnselected: {'identifier': 'vehicle_test_drive'}
+[0.002382] (-) JobUnselected: {'identifier': 'vesc_initializer'}
+[0.002476] (camera_driver) JobQueued: {'identifier': 'camera_driver', 'dependencies': OrderedDict()}
+[0.002585] (bev_processor) JobQueued: {'identifier': 'bev_processor', 'dependencies': OrderedDict([('camera_driver', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver')])}
+[0.002684] (camera_driver) JobStarted: {'identifier': 'camera_driver'}
+[0.021360] (camera_driver) JobProgress: {'identifier': 'camera_driver', 'progress': 'cmake'}
+[0.022269] (camera_driver) Command: {'cmd': ['/usr/bin/cmake', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/camera_driver', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc', '-DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver'], 'cwd': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver', 'env': OrderedDict([('OPENBLAS_CORETYPE', 'ARMV8'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'autopilot03'), ('XDG_SESSION_TYPE', 'x11'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64:'), ('HOME', '/home/autopilot03'), ('OLDPWD', '/home/autopilot03/Desktop/f1tenth_test0804'), ('DESKTOP_SESSION', 'ubuntu'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('DBUS_STARTER_BUS_TYPE', 'session'), ('SYSTEMD_EXEC_PID', '3625'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('COLORTERM', 'truecolor'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'autopilot03'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'autopilot03'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/opt/ros/humble/bin:/usr/local/cuda/bin:/home/autopilot03/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/autopilot03-desktop:@/tmp/.ICE-unix/3625,unix/autopilot03-desktop:/tmp/.ICE-unix/3625'), ('XDG_MENU_PREFIX', 'gnome-'), ('GNOME_TERMINAL_SCREEN', '/org/gnome/Terminal/screen/bfbe520d_0ebe_4561_ad60_d63b61313ae1'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('GNOME_TERMINAL_SERVICE', ':1.93'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('DBUS_STARTER_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/home/autopilot03/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VTE_VERSION', '6800'), ('CMAKE_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble')]), 'shell': False}
+[0.099299] (-) TimerEvent: {}
+[0.151093] (camera_driver) StdoutLine: {'line': b'-- The C compiler identification is GNU 11.4.0\n'}
+[0.199451] (-) TimerEvent: {}
+[0.275122] (camera_driver) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[0.296441] (camera_driver) StdoutLine: {'line': b'-- Detecting C compiler ABI info\n'}
+[0.299534] (-) TimerEvent: {}
+[0.400107] (-) TimerEvent: {}
+[0.466168] (camera_driver) StdoutLine: {'line': b'-- Detecting C compiler ABI info - done\n'}
+[0.491068] (camera_driver) StdoutLine: {'line': b'-- Check for working C compiler: /usr/bin/cc - skipped\n'}
+[0.491880] (camera_driver) StdoutLine: {'line': b'-- Detecting C compile features\n'}
+[0.493145] (camera_driver) StdoutLine: {'line': b'-- Detecting C compile features - done\n'}
+[0.500199] (-) TimerEvent: {}
+[0.502407] (camera_driver) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[0.600378] (-) TimerEvent: {}
+[0.681494] (camera_driver) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[0.700509] (-) TimerEvent: {}
+[0.708558] (camera_driver) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[0.709845] (camera_driver) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[0.711326] (camera_driver) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[0.718146] (camera_driver) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[0.800677] (-) TimerEvent: {}
+[0.901307] (-) TimerEvent: {}
+[1.001943] (-) TimerEvent: {}
+[1.077550] (camera_driver) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[1.102111] (-) TimerEvent: {}
+[1.202724] (-) TimerEvent: {}
+[1.303333] (-) TimerEvent: {}
+[1.304414] (camera_driver) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[1.401083] (camera_driver) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[1.403448] (-) TimerEvent: {}
+[1.410366] (camera_driver) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[1.426947] (camera_driver) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[1.452776] (camera_driver) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[1.486404] (camera_driver) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[1.503633] (-) TimerEvent: {}
+[1.576128] (camera_driver) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[1.581100] (camera_driver) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[1.603745] (-) TimerEvent: {}
+[1.704949] (-) TimerEvent: {}
+[1.756616] (camera_driver) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[1.805105] (-) TimerEvent: {}
+[1.813467] (camera_driver) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[1.905282] (-) TimerEvent: {}
+[1.905842] (camera_driver) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[1.922370] (camera_driver) StdoutLine: {'line': b'-- Looking for pthread.h\n'}
+[2.005446] (-) TimerEvent: {}
+[2.094303] (camera_driver) StdoutLine: {'line': b'-- Looking for pthread.h - found\n'}
+[2.096014] (camera_driver) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[2.105579] (-) TimerEvent: {}
+[2.206279] (-) TimerEvent: {}
+[2.274092] (camera_driver) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[2.277914] (camera_driver) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[2.306452] (-) TimerEvent: {}
+[2.407166] (-) TimerEvent: {}
+[2.409498] (camera_driver) StdoutLine: {'line': b'-- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)\n'}
+[2.466892] (camera_driver) StdoutLine: {'line': b'-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)\n'}
+[2.507294] (-) TimerEvent: {}
+[2.537012] (camera_driver) StdoutLine: {'line': b'-- Found OpenCV: /usr (found suitable version "4.8.0", minimum required is "4") found components: core highgui imgproc \n'}
+[2.572168] (camera_driver) StdoutLine: {'line': b'-- Performing Test arch_native_supported\n'}
+[2.607465] (-) TimerEvent: {}
+[2.708093] (-) TimerEvent: {}
+[2.736340] (camera_driver) StdoutLine: {'line': b'-- Performing Test arch_native_supported - Success\n'}
+[2.808275] (-) TimerEvent: {}
+[2.908896] (-) TimerEvent: {}
+[2.915516] (camera_driver) StdoutLine: {'line': b'-- Configuring done\n'}
+[2.976184] (camera_driver) StdoutLine: {'line': b'-- Generating done\n'}
+[2.980398] (camera_driver) StderrLine: {'line': b'\x1b[33mCMake Warning:\n'}
+[2.980925] (camera_driver) StderrLine: {'line': b'  Manually-specified variables were not used by the project:\n'}
+[2.981115] (camera_driver) StderrLine: {'line': b'\n'}
+[2.981309] (camera_driver) StderrLine: {'line': b'    CMAKE_CUDA_COMPILER\n'}
+[2.981476] (camera_driver) StderrLine: {'line': b'\n'}
+[2.981618] (camera_driver) StderrLine: {'line': b'\x1b[0m\n'}
+[2.993483] (camera_driver) StdoutLine: {'line': b'-- Build files have been written to: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver\n'}
+[3.009036] (-) TimerEvent: {}
+[3.022863] (camera_driver) CommandEnded: {'returncode': 0}
+[3.024299] (camera_driver) JobProgress: {'identifier': 'camera_driver', 'progress': 'build'}
+[3.026871] (camera_driver) Command: {'cmd': ['/usr/bin/cmake', '--build', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver', '--', '-j6', '-l6'], 'cwd': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver', 'env': OrderedDict([('OPENBLAS_CORETYPE', 'ARMV8'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'autopilot03'), ('XDG_SESSION_TYPE', 'x11'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64:'), ('HOME', '/home/autopilot03'), ('OLDPWD', '/home/autopilot03/Desktop/f1tenth_test0804'), ('DESKTOP_SESSION', 'ubuntu'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('DBUS_STARTER_BUS_TYPE', 'session'), ('SYSTEMD_EXEC_PID', '3625'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('COLORTERM', 'truecolor'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'autopilot03'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'autopilot03'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/opt/ros/humble/bin:/usr/local/cuda/bin:/home/autopilot03/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/autopilot03-desktop:@/tmp/.ICE-unix/3625,unix/autopilot03-desktop:/tmp/.ICE-unix/3625'), ('XDG_MENU_PREFIX', 'gnome-'), ('GNOME_TERMINAL_SCREEN', '/org/gnome/Terminal/screen/bfbe520d_0ebe_4561_ad60_d63b61313ae1'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('GNOME_TERMINAL_SERVICE', ':1.93'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('DBUS_STARTER_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/home/autopilot03/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VTE_VERSION', '6800'), ('CMAKE_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble')]), 'shell': False}
+[3.109234] (-) TimerEvent: {}
+[3.126013] (camera_driver) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target camera_imu_stabilizer\x1b[0m\n'}
+[3.155879] (camera_driver) StdoutLine: {'line': b'[ 25%] Built target camera_imu_stabilizer\n'}
+[3.183325] (camera_driver) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target imu_image_stabilizer_test\x1b[0m\n'}
+[3.188498] (camera_driver) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target camera_driver_component\x1b[0m\n'}
+[3.209371] (-) TimerEvent: {}
+[3.216477] (camera_driver) StdoutLine: {'line': b'[ 50%] Built target imu_image_stabilizer_test\n'}
+[3.239564] (camera_driver) StdoutLine: {'line': b'[ 75%] Built target camera_driver_component\n'}
+[3.269102] (camera_driver) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target camera_driver_node\x1b[0m\n'}
+[3.309525] (-) TimerEvent: {}
+[3.310261] (camera_driver) StdoutLine: {'line': b'[100%] Built target camera_driver_node\n'}
+[3.337688] (camera_driver) CommandEnded: {'returncode': 0}
+[3.340078] (camera_driver) JobProgress: {'identifier': 'camera_driver', 'progress': 'install'}
+[3.365922] (camera_driver) Command: {'cmd': ['/usr/bin/cmake', '--install', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver'], 'cwd': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver', 'env': OrderedDict([('OPENBLAS_CORETYPE', 'ARMV8'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'autopilot03'), ('XDG_SESSION_TYPE', 'x11'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64:'), ('HOME', '/home/autopilot03'), ('OLDPWD', '/home/autopilot03/Desktop/f1tenth_test0804'), ('DESKTOP_SESSION', 'ubuntu'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('DBUS_STARTER_BUS_TYPE', 'session'), ('SYSTEMD_EXEC_PID', '3625'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('COLORTERM', 'truecolor'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'autopilot03'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'autopilot03'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/opt/ros/humble/bin:/usr/local/cuda/bin:/home/autopilot03/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/autopilot03-desktop:@/tmp/.ICE-unix/3625,unix/autopilot03-desktop:/tmp/.ICE-unix/3625'), ('XDG_MENU_PREFIX', 'gnome-'), ('GNOME_TERMINAL_SCREEN', '/org/gnome/Terminal/screen/bfbe520d_0ebe_4561_ad60_d63b61313ae1'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('GNOME_TERMINAL_SERVICE', ':1.93'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/camera_driver'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('DBUS_STARTER_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/home/autopilot03/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VTE_VERSION', '6800'), ('CMAKE_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble')]), 'shell': False}
+[3.385259] (camera_driver) StdoutLine: {'line': b'-- Install configuration: "Release"\n'}
+[3.386031] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include\n'}
+[3.386421] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver\n'}
+[3.386701] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver/imu_image_stabilizer.hpp\n'}
+[3.387069] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver/visibility_control.hpp\n'}
+[3.387418] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/include/camera_driver/camera_driver_node.hpp\n'}
+[3.387672] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/config\n'}
+[3.387995] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/config/camera_config.yaml\n'}
+[3.388239] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/launch\n'}
+[3.388556] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/launch/camera_driver.launch.py\n'}
+[3.388887] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib/libcamera_imu_stabilizer.a\n'}
+[3.389226] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib/libcamera_driver_component.so\n'}
+[3.389494] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib/camera_driver/camera_driver_node\n'}
+[3.389782] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/library_path.sh\n'}
+[3.390113] (camera_driver) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/library_path.dsv\n'}
+[3.390428] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/package_run_dependencies/camera_driver\n'}
+[3.390777] (camera_driver) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/parent_prefix_path/camera_driver\n'}
+[3.391104] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/ament_prefix_path.sh\n'}
+[3.391466] (camera_driver) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/ament_prefix_path.dsv\n'}
+[3.391753] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/path.sh\n'}
+[3.391985] (camera_driver) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/environment/path.dsv\n'}
+[3.392234] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.bash\n'}
+[3.392458] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.sh\n'}
+[3.392678] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.zsh\n'}
+[3.392898] (camera_driver) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/local_setup.dsv\n'}
+[3.393140] (camera_driver) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.dsv\n'}
+[3.393409] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/packages/camera_driver\n'}
+[3.393634] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/ament_index/resource_index/rclcpp_components/camera_driver\n'}
+[3.393983] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/export_camera_driverExport.cmake\n'}
+[3.394650] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/export_camera_driverExport-release.cmake\n'}
+[3.396363] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/ament_cmake_export_targets-extras.cmake\n'}
+[3.397402] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/ament_cmake_export_dependencies-extras.cmake\n'}
+[3.397982] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/camera_driverConfig.cmake\n'}
+[3.398479] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/cmake/camera_driverConfig-version.cmake\n'}
+[3.398918] (camera_driver) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/share/camera_driver/package.xml\n'}
+[3.399478] (camera_driver) CommandEnded: {'returncode': 0}
+[3.409776] (-) TimerEvent: {}
+[3.472507] (camera_driver) JobEnded: {'identifier': 'camera_driver', 'rc': 0}
+[3.476393] (bev_processor) JobStarted: {'identifier': 'bev_processor'}
+[3.495461] (bev_processor) JobProgress: {'identifier': 'bev_processor', 'progress': 'cmake'}
+[3.496291] (bev_processor) Command: {'cmd': ['/usr/bin/cmake', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/bev_processor', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc', '-DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor'], 'cwd': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor', 'env': OrderedDict([('OPENBLAS_CORETYPE', 'ARMV8'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'autopilot03'), ('XDG_SESSION_TYPE', 'x11'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64'), ('HOME', '/home/autopilot03'), ('OLDPWD', '/home/autopilot03/Desktop/f1tenth_test0804'), ('DESKTOP_SESSION', 'ubuntu'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('DBUS_STARTER_BUS_TYPE', 'session'), ('SYSTEMD_EXEC_PID', '3625'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('COLORTERM', 'truecolor'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'autopilot03'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'autopilot03'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/opt/ros/humble/bin:/usr/local/cuda/bin:/home/autopilot03/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/autopilot03-desktop:@/tmp/.ICE-unix/3625,unix/autopilot03-desktop:/tmp/.ICE-unix/3625'), ('XDG_MENU_PREFIX', 'gnome-'), ('GNOME_TERMINAL_SCREEN', '/org/gnome/Terminal/screen/bfbe520d_0ebe_4561_ad60_d63b61313ae1'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('GNOME_TERMINAL_SERVICE', ':1.93'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('DBUS_STARTER_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/home/autopilot03/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VTE_VERSION', '6800'), ('CMAKE_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/opt/ros/humble')]), 'shell': False}
+[3.510423] (-) TimerEvent: {}
+[3.611178] (-) TimerEvent: {}
+[3.645670] (bev_processor) StdoutLine: {'line': b'-- The CXX compiler identification is GNU 11.4.0\n'}
+[3.711340] (-) TimerEvent: {}
+[3.811968] (-) TimerEvent: {}
+[3.912583] (-) TimerEvent: {}
+[4.013310] (-) TimerEvent: {}
+[4.114006] (-) TimerEvent: {}
+[4.214715] (-) TimerEvent: {}
+[4.315361] (-) TimerEvent: {}
+[4.416144] (-) TimerEvent: {}
+[4.516750] (-) TimerEvent: {}
+[4.617427] (-) TimerEvent: {}
+[4.718165] (-) TimerEvent: {}
+[4.818771] (-) TimerEvent: {}
+[4.919396] (-) TimerEvent: {}
+[5.020019] (-) TimerEvent: {}
+[5.120632] (-) TimerEvent: {}
+[5.221296] (-) TimerEvent: {}
+[5.321929] (-) TimerEvent: {}
+[5.422672] (-) TimerEvent: {}
+[5.523506] (-) TimerEvent: {}
+[5.624127] (-) TimerEvent: {}
+[5.724774] (-) TimerEvent: {}
+[5.825567] (-) TimerEvent: {}
+[5.926269] (-) TimerEvent: {}
+[5.980543] (bev_processor) StdoutLine: {'line': b'-- The CUDA compiler identification is NVIDIA 12.6.68\n'}
+[5.995837] (bev_processor) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info\n'}
+[6.026429] (-) TimerEvent: {}
+[6.127065] (-) TimerEvent: {}
+[6.163038] (bev_processor) StdoutLine: {'line': b'-- Detecting CXX compiler ABI info - done\n'}
+[6.186381] (bev_processor) StdoutLine: {'line': b'-- Check for working CXX compiler: /usr/bin/c++ - skipped\n'}
+[6.187197] (bev_processor) StdoutLine: {'line': b'-- Detecting CXX compile features\n'}
+[6.188825] (bev_processor) StdoutLine: {'line': b'-- Detecting CXX compile features - done\n'}
+[6.199218] (bev_processor) StdoutLine: {'line': b'-- Detecting CUDA compiler ABI info\n'}
+[6.227219] (-) TimerEvent: {}
+[6.327830] (-) TimerEvent: {}
+[6.428435] (-) TimerEvent: {}
+[6.529048] (-) TimerEvent: {}
+[6.629817] (-) TimerEvent: {}
+[6.730558] (-) TimerEvent: {}
+[6.831170] (-) TimerEvent: {}
+[6.932276] (-) TimerEvent: {}
+[7.032906] (-) TimerEvent: {}
+[7.133576] (-) TimerEvent: {}
+[7.234176] (-) TimerEvent: {}
+[7.335078] (-) TimerEvent: {}
+[7.435704] (-) TimerEvent: {}
+[7.536319] (-) TimerEvent: {}
+[7.636958] (-) TimerEvent: {}
+[7.737639] (-) TimerEvent: {}
+[7.838301] (-) TimerEvent: {}
+[7.939046] (-) TimerEvent: {}
+[8.041088] (-) TimerEvent: {}
+[8.141863] (-) TimerEvent: {}
+[8.242692] (-) TimerEvent: {}
+[8.343471] (-) TimerEvent: {}
+[8.443141] (bev_processor) StdoutLine: {'line': b'-- Detecting CUDA compiler ABI info - done\n'}
+[8.443765] (-) TimerEvent: {}
+[8.518060] (bev_processor) StdoutLine: {'line': b'-- Check for working CUDA compiler: /usr/local/cuda/bin/nvcc - skipped\n'}
+[8.518673] (bev_processor) StdoutLine: {'line': b'-- Detecting CUDA compile features\n'}
+[8.519339] (bev_processor) StdoutLine: {'line': b'-- Detecting CUDA compile features - done\n'}
+[8.523435] (bev_processor) StdoutLine: {'line': b'-- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)\n'}
+[8.543910] (-) TimerEvent: {}
+[8.644484] (-) TimerEvent: {}
+[8.745078] (-) TimerEvent: {}
+[8.846234] (-) TimerEvent: {}
+[8.867994] (bev_processor) StdoutLine: {'line': b'-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter \n'}
+[8.946385] (-) TimerEvent: {}
+[9.047014] (-) TimerEvent: {}
+[9.115157] (bev_processor) StdoutLine: {'line': b'-- Found CUDAToolkit: /usr/local/cuda/include (found version "12.6.68") \n'}
+[9.141895] (bev_processor) StdoutLine: {'line': b'-- Looking for C++ include pthread.h\n'}
+[9.147149] (-) TimerEvent: {}
+[9.247742] (-) TimerEvent: {}
+[9.320561] (bev_processor) StdoutLine: {'line': b'-- Looking for C++ include pthread.h - found\n'}
+[9.321379] (bev_processor) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD\n'}
+[9.347887] (-) TimerEvent: {}
+[9.448472] (-) TimerEvent: {}
+[9.515751] (bev_processor) StdoutLine: {'line': b'-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success\n'}
+[9.519293] (bev_processor) StdoutLine: {'line': b'-- Found Threads: TRUE  \n'}
+[9.548626] (-) TimerEvent: {}
+[9.642221] (bev_processor) StdoutLine: {'line': b'-- Found OpenCV: /usr (found suitable version "4.8.0", minimum required is "4") found components: core highgui imgproc \n'}
+[9.644773] (bev_processor) StdoutLine: {'line': b'-- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)\n'}
+[9.648896] (-) TimerEvent: {}
+[9.715019] (bev_processor) StdoutLine: {'line': b'-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)\n'}
+[9.724229] (bev_processor) StdoutLine: {'line': b'-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)\n'}
+[9.741002] (bev_processor) StdoutLine: {'line': b'-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)\n'}
+[9.749023] (-) TimerEvent: {}
+[9.765070] (bev_processor) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[9.798950] (bev_processor) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[9.849231] (-) TimerEvent: {}
+[9.885035] (bev_processor) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)\n'}
+[9.890231] (bev_processor) StdoutLine: {'line': b'-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)\n'}
+[9.949384] (-) TimerEvent: {}
+[10.050103] (-) TimerEvent: {}
+[10.070923] (bev_processor) StdoutLine: {'line': b'-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  \n'}
+[10.129103] (bev_processor) StdoutLine: {'line': b'-- Found FastRTPS: /opt/ros/humble/include  \n'}
+[10.150261] (-) TimerEvent: {}
+[10.222781] (bev_processor) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[10.250410] (-) TimerEvent: {}
+[10.349732] (bev_processor) StdoutLine: {'line': b'-- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)\n'}
+[10.350471] (-) TimerEvent: {}
+[10.407543] (bev_processor) StdoutLine: {'line': b'-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)\n'}
+[10.450628] (-) TimerEvent: {}
+[10.503082] (bev_processor) StdoutLine: {'line': b'-- Performing Test arch_native_supported\n'}
+[10.550801] (-) TimerEvent: {}
+[10.651454] (-) TimerEvent: {}
+[10.665385] (bev_processor) StdoutLine: {'line': b'-- Performing Test arch_native_supported - Success\n'}
+[10.751585] (-) TimerEvent: {}
+[10.852219] (-) TimerEvent: {}
+[10.856897] (bev_processor) StdoutLine: {'line': b'-- Configuring done\n'}
+[10.934275] (bev_processor) StdoutLine: {'line': b'-- Generating done\n'}
+[10.952334] (-) TimerEvent: {}
+[10.955693] (bev_processor) StdoutLine: {'line': b'-- Build files have been written to: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor\n'}
+[10.987120] (bev_processor) CommandEnded: {'returncode': 0}
+[10.992553] (bev_processor) JobProgress: {'identifier': 'bev_processor', 'progress': 'build'}
+[10.992830] (bev_processor) Command: {'cmd': ['/usr/bin/cmake', '--build', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor', '--', '-j6', '-l6'], 'cwd': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor', 'env': OrderedDict([('OPENBLAS_CORETYPE', 'ARMV8'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'autopilot03'), ('XDG_SESSION_TYPE', 'x11'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64'), ('HOME', '/home/autopilot03'), ('OLDPWD', '/home/autopilot03/Desktop/f1tenth_test0804'), ('DESKTOP_SESSION', 'ubuntu'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('DBUS_STARTER_BUS_TYPE', 'session'), ('SYSTEMD_EXEC_PID', '3625'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('COLORTERM', 'truecolor'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'autopilot03'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'autopilot03'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/opt/ros/humble/bin:/usr/local/cuda/bin:/home/autopilot03/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/autopilot03-desktop:@/tmp/.ICE-unix/3625,unix/autopilot03-desktop:/tmp/.ICE-unix/3625'), ('XDG_MENU_PREFIX', 'gnome-'), ('GNOME_TERMINAL_SCREEN', '/org/gnome/Terminal/screen/bfbe520d_0ebe_4561_ad60_d63b61313ae1'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('GNOME_TERMINAL_SERVICE', ':1.93'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('DBUS_STARTER_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/home/autopilot03/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VTE_VERSION', '6800'), ('CMAKE_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/opt/ros/humble')]), 'shell': False}
+[11.052557] (-) TimerEvent: {}
+[11.078326] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_lane_reconstructor\x1b[0m\n'}
+[11.078889] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_geometry\x1b[0m\n'}
+[11.080609] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_startup_attitude\x1b[0m\n'}
+[11.081713] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_cuda\x1b[0m\n'}
+[11.085718] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_ground_plane\x1b[0m\n'}
+[11.118000] (bev_processor) StdoutLine: {'line': b'[  9%] Built target bev_startup_attitude\n'}
+[11.121278] (bev_processor) StdoutLine: {'line': b'[ 18%] Built target bev_geometry\n'}
+[11.122328] (bev_processor) StdoutLine: {'line': b'[ 31%] \x1b[32mBuilding CXX object CMakeFiles/bev_lane_reconstructor.dir/src/bev_lane_reconstructor.cpp.o\x1b[0m\n'}
+[11.122569] (bev_processor) StdoutLine: {'line': b'[ 31%] Built target bev_ground_plane\n'}
+[11.126414] (bev_processor) StdoutLine: {'line': b'[ 40%] Built target bev_cuda\n'}
+[11.143394] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_geometry_test\x1b[0m\n'}
+[11.144757] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target ground_plane_estimator_test\x1b[0m\n'}
+[11.145135] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target startup_attitude_test\x1b[0m\n'}
+[11.146918] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_startup_measurement\x1b[0m\n'}
+[11.152675] (-) TimerEvent: {}
+[11.175836] (bev_processor) StdoutLine: {'line': b'[ 59%] Built target startup_attitude_test\n'}
+[11.176477] (bev_processor) StdoutLine: {'line': b'[ 59%] Built target ground_plane_estimator_test\n'}
+[11.178054] (bev_processor) StdoutLine: {'line': b'[ 68%] Built target bev_geometry_test\n'}
+[11.189562] (bev_processor) StdoutLine: {'line': b'[ 77%] Built target bev_startup_measurement\n'}
+[11.252878] (-) TimerEvent: {}
+[11.353761] (-) TimerEvent: {}
+[11.454569] (-) TimerEvent: {}
+[11.555987] (-) TimerEvent: {}
+[11.656700] (-) TimerEvent: {}
+[11.757489] (-) TimerEvent: {}
+[11.858235] (-) TimerEvent: {}
+[11.958977] (-) TimerEvent: {}
+[12.059730] (-) TimerEvent: {}
+[12.160649] (-) TimerEvent: {}
+[12.261766] (-) TimerEvent: {}
+[12.362532] (-) TimerEvent: {}
+[12.463266] (-) TimerEvent: {}
+[12.564013] (-) TimerEvent: {}
+[12.664759] (-) TimerEvent: {}
+[12.765735] (-) TimerEvent: {}
+[12.866559] (-) TimerEvent: {}
+[12.967323] (-) TimerEvent: {}
+[13.068084] (-) TimerEvent: {}
+[13.168857] (-) TimerEvent: {}
+[13.269673] (-) TimerEvent: {}
+[13.370437] (-) TimerEvent: {}
+[13.471330] (-) TimerEvent: {}
+[13.572071] (-) TimerEvent: {}
+[13.672841] (-) TimerEvent: {}
+[13.774310] (-) TimerEvent: {}
+[13.875949] (-) TimerEvent: {}
+[13.976776] (-) TimerEvent: {}
+[14.077669] (-) TimerEvent: {}
+[14.178429] (-) TimerEvent: {}
+[14.279189] (-) TimerEvent: {}
+[14.379945] (-) TimerEvent: {}
+[14.480711] (-) TimerEvent: {}
+[14.581528] (-) TimerEvent: {}
+[14.682261] (-) TimerEvent: {}
+[14.783006] (-) TimerEvent: {}
+[14.883754] (-) TimerEvent: {}
+[14.984493] (-) TimerEvent: {}
+[15.085245] (-) TimerEvent: {}
+[15.185968] (-) TimerEvent: {}
+[15.286715] (-) TimerEvent: {}
+[15.387492] (-) TimerEvent: {}
+[15.488908] (-) TimerEvent: {}
+[15.589735] (-) TimerEvent: {}
+[15.690566] (-) TimerEvent: {}
+[15.791360] (-) TimerEvent: {}
+[15.856378] (bev_processor) StdoutLine: {'line': b'[ 81%] \x1b[32m\x1b[1mLinking CXX static library libbev_lane_reconstructor.a\x1b[0m\n'}
+[15.891540] (-) TimerEvent: {}
+[15.932355] (bev_processor) StdoutLine: {'line': b'[ 81%] Built target bev_lane_reconstructor\n'}
+[15.957549] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_lane_reconstructor_test\x1b[0m\n'}
+[15.958300] (bev_processor) StdoutLine: {'line': b'\x1b[35m\x1b[1mConsolidate compiler generated dependencies of target bev_processor_component\x1b[0m\n'}
+[15.986100] (bev_processor) StdoutLine: {'line': b'[ 86%] \x1b[32mBuilding CXX object CMakeFiles/bev_lane_reconstructor_test.dir/test/bev_lane_reconstructor_test.cpp.o\x1b[0m\n'}
+[15.991674] (-) TimerEvent: {}
+[15.995967] (bev_processor) StdoutLine: {'line': b'[ 90%] \x1b[32mBuilding CXX object CMakeFiles/bev_processor_component.dir/src/bev_processor_node.cpp.o\x1b[0m\n'}
+[16.091840] (-) TimerEvent: {}
+[16.192485] (-) TimerEvent: {}
+[16.293137] (-) TimerEvent: {}
+[16.393787] (-) TimerEvent: {}
+[16.494413] (-) TimerEvent: {}
+[16.595039] (-) TimerEvent: {}
+[16.695671] (-) TimerEvent: {}
+[16.796314] (-) TimerEvent: {}
+[16.896947] (-) TimerEvent: {}
+[16.997748] (-) TimerEvent: {}
+[17.098399] (-) TimerEvent: {}
+[17.199034] (-) TimerEvent: {}
+[17.299679] (-) TimerEvent: {}
+[17.400311] (-) TimerEvent: {}
+[17.500948] (-) TimerEvent: {}
+[17.601626] (-) TimerEvent: {}
+[17.702279] (-) TimerEvent: {}
+[17.802934] (-) TimerEvent: {}
+[17.903579] (-) TimerEvent: {}
+[18.004219] (-) TimerEvent: {}
+[18.105154] (-) TimerEvent: {}
+[18.205823] (-) TimerEvent: {}
+[18.306464] (-) TimerEvent: {}
+[18.407106] (-) TimerEvent: {}
+[18.507770] (-) TimerEvent: {}
+[18.608390] (-) TimerEvent: {}
+[18.709069] (-) TimerEvent: {}
+[18.809793] (-) TimerEvent: {}
+[18.910468] (-) TimerEvent: {}
+[19.011141] (-) TimerEvent: {}
+[19.111807] (-) TimerEvent: {}
+[19.212446] (-) TimerEvent: {}
+[19.313118] (-) TimerEvent: {}
+[19.413812] (-) TimerEvent: {}
+[19.514493] (-) TimerEvent: {}
+[19.615180] (-) TimerEvent: {}
+[19.715861] (-) TimerEvent: {}
+[19.816580] (-) TimerEvent: {}
+[19.833816] (bev_processor) StdoutLine: {'line': b'[ 95%] \x1b[32m\x1b[1mLinking CXX executable bev_lane_reconstructor_test\x1b[0m\n'}
+[19.916753] (-) TimerEvent: {}
+[20.017469] (-) TimerEvent: {}
+[20.034607] (bev_processor) StdoutLine: {'line': b'[ 95%] Built target bev_lane_reconstructor_test\n'}
+[20.117698] (-) TimerEvent: {}
+[20.218441] (-) TimerEvent: {}
+[20.319180] (-) TimerEvent: {}
+[20.419934] (-) TimerEvent: {}
+[20.520694] (-) TimerEvent: {}
+[20.621498] (-) TimerEvent: {}
+[20.722237] (-) TimerEvent: {}
+[20.822974] (-) TimerEvent: {}
+[20.924408] (-) TimerEvent: {}
+[21.025299] (-) TimerEvent: {}
+[21.126077] (-) TimerEvent: {}
+[21.226932] (-) TimerEvent: {}
+[21.327655] (-) TimerEvent: {}
+[21.428422] (-) TimerEvent: {}
+[21.529225] (-) TimerEvent: {}
+[21.629999] (-) TimerEvent: {}
+[21.730775] (-) TimerEvent: {}
+[21.831528] (-) TimerEvent: {}
+[21.932276] (-) TimerEvent: {}
+[22.033010] (-) TimerEvent: {}
+[22.133783] (-) TimerEvent: {}
+[22.234535] (-) TimerEvent: {}
+[22.335272] (-) TimerEvent: {}
+[22.436028] (-) TimerEvent: {}
+[22.536772] (-) TimerEvent: {}
+[22.637585] (-) TimerEvent: {}
+[22.738332] (-) TimerEvent: {}
+[22.839095] (-) TimerEvent: {}
+[22.939865] (-) TimerEvent: {}
+[23.040628] (-) TimerEvent: {}
+[23.141389] (-) TimerEvent: {}
+[23.242152] (-) TimerEvent: {}
+[23.342983] (-) TimerEvent: {}
+[23.443749] (-) TimerEvent: {}
+[23.544551] (-) TimerEvent: {}
+[23.645307] (-) TimerEvent: {}
+[23.746051] (-) TimerEvent: {}
+[23.846794] (-) TimerEvent: {}
+[23.947541] (-) TimerEvent: {}
+[24.048281] (-) TimerEvent: {}
+[24.149028] (-) TimerEvent: {}
+[24.249812] (-) TimerEvent: {}
+[24.350552] (-) TimerEvent: {}
+[24.451305] (-) TimerEvent: {}
+[24.552063] (-) TimerEvent: {}
+[24.652816] (-) TimerEvent: {}
+[24.753606] (-) TimerEvent: {}
+[24.854356] (-) TimerEvent: {}
+[24.955083] (-) TimerEvent: {}
+[25.055827] (-) TimerEvent: {}
+[25.156574] (-) TimerEvent: {}
+[25.257356] (-) TimerEvent: {}
+[25.358097] (-) TimerEvent: {}
+[25.458823] (-) TimerEvent: {}
+[25.559564] (-) TimerEvent: {}
+[25.660319] (-) TimerEvent: {}
+[25.761054] (-) TimerEvent: {}
+[25.861834] (-) TimerEvent: {}
+[25.962585] (-) TimerEvent: {}
+[26.063323] (-) TimerEvent: {}
+[26.164039] (-) TimerEvent: {}
+[26.264769] (-) TimerEvent: {}
+[26.365553] (-) TimerEvent: {}
+[26.466320] (-) TimerEvent: {}
+[26.567071] (-) TimerEvent: {}
+[26.667962] (-) TimerEvent: {}
+[26.768702] (-) TimerEvent: {}
+[26.869491] (-) TimerEvent: {}
+[26.970249] (-) TimerEvent: {}
+[27.070997] (-) TimerEvent: {}
+[27.171733] (-) TimerEvent: {}
+[27.272457] (-) TimerEvent: {}
+[27.373230] (-) TimerEvent: {}
+[27.473986] (-) TimerEvent: {}
+[27.574736] (-) TimerEvent: {}
+[27.675493] (-) TimerEvent: {}
+[27.776230] (-) TimerEvent: {}
+[27.876893] (-) TimerEvent: {}
+[27.977745] (-) TimerEvent: {}
+[28.078508] (-) TimerEvent: {}
+[28.179262] (-) TimerEvent: {}
+[28.280038] (-) TimerEvent: {}
+[28.380840] (-) TimerEvent: {}
+[28.481694] (-) TimerEvent: {}
+[28.582460] (-) TimerEvent: {}
+[28.683227] (-) TimerEvent: {}
+[28.784137] (-) TimerEvent: {}
+[28.884881] (-) TimerEvent: {}
+[28.985782] (-) TimerEvent: {}
+[29.086675] (-) TimerEvent: {}
+[29.187423] (-) TimerEvent: {}
+[29.288205] (-) TimerEvent: {}
+[29.388978] (-) TimerEvent: {}
+[29.489753] (-) TimerEvent: {}
+[29.591989] (-) TimerEvent: {}
+[29.692783] (-) TimerEvent: {}
+[29.793575] (-) TimerEvent: {}
+[29.894314] (-) TimerEvent: {}
+[29.995056] (-) TimerEvent: {}
+[30.095823] (-) TimerEvent: {}
+[30.196661] (-) TimerEvent: {}
+[30.297324] (-) TimerEvent: {}
+[30.397989] (-) TimerEvent: {}
+[30.498645] (-) TimerEvent: {}
+[30.599345] (-) TimerEvent: {}
+[30.699995] (-) TimerEvent: {}
+[30.800679] (-) TimerEvent: {}
+[30.901340] (-) TimerEvent: {}
+[31.001976] (-) TimerEvent: {}
+[31.102627] (-) TimerEvent: {}
+[31.203288] (-) TimerEvent: {}
+[31.303933] (-) TimerEvent: {}
+[31.404563] (-) TimerEvent: {}
+[31.505255] (-) TimerEvent: {}
+[31.606285] (-) TimerEvent: {}
+[31.707081] (-) TimerEvent: {}
+[31.807852] (-) TimerEvent: {}
+[31.908563] (-) TimerEvent: {}
+[32.009337] (-) TimerEvent: {}
+[32.110210] (-) TimerEvent: {}
+[32.210989] (-) TimerEvent: {}
+[32.311730] (-) TimerEvent: {}
+[32.412444] (-) TimerEvent: {}
+[32.513225] (-) TimerEvent: {}
+[32.613966] (-) TimerEvent: {}
+[32.714703] (-) TimerEvent: {}
+[32.815463] (-) TimerEvent: {}
+[32.916201] (-) TimerEvent: {}
+[33.016990] (-) TimerEvent: {}
+[33.117664] (-) TimerEvent: {}
+[33.218355] (-) TimerEvent: {}
+[33.319008] (-) TimerEvent: {}
+[33.419653] (-) TimerEvent: {}
+[33.520329] (-) TimerEvent: {}
+[33.620948] (-) TimerEvent: {}
+[33.721610] (-) TimerEvent: {}
+[33.822303] (-) TimerEvent: {}
+[33.924089] (-) TimerEvent: {}
+[34.024719] (-) TimerEvent: {}
+[34.125337] (-) TimerEvent: {}
+[34.226017] (-) TimerEvent: {}
+[34.326661] (-) TimerEvent: {}
+[34.427314] (-) TimerEvent: {}
+[34.527983] (-) TimerEvent: {}
+[34.628630] (-) TimerEvent: {}
+[34.729297] (-) TimerEvent: {}
+[34.829939] (-) TimerEvent: {}
+[34.930587] (-) TimerEvent: {}
+[35.031241] (-) TimerEvent: {}
+[35.132113] (-) TimerEvent: {}
+[35.232740] (-) TimerEvent: {}
+[35.333420] (-) TimerEvent: {}
+[35.434060] (-) TimerEvent: {}
+[35.534701] (-) TimerEvent: {}
+[35.635386] (-) TimerEvent: {}
+[35.736033] (-) TimerEvent: {}
+[35.836664] (-) TimerEvent: {}
+[35.937295] (-) TimerEvent: {}
+[36.037924] (-) TimerEvent: {}
+[36.138562] (-) TimerEvent: {}
+[36.239238] (-) TimerEvent: {}
+[36.340011] (-) TimerEvent: {}
+[36.440758] (-) TimerEvent: {}
+[36.541554] (-) TimerEvent: {}
+[36.642277] (-) TimerEvent: {}
+[36.743163] (-) TimerEvent: {}
+[36.843886] (-) TimerEvent: {}
+[36.944604] (-) TimerEvent: {}
+[37.045343] (-) TimerEvent: {}
+[37.146088] (-) TimerEvent: {}
+[37.246851] (-) TimerEvent: {}
+[37.347755] (-) TimerEvent: {}
+[37.448484] (-) TimerEvent: {}
+[37.549255] (-) TimerEvent: {}
+[37.649973] (-) TimerEvent: {}
+[37.750686] (-) TimerEvent: {}
+[37.851442] (-) TimerEvent: {}
+[37.952199] (-) TimerEvent: {}
+[38.052946] (-) TimerEvent: {}
+[38.153727] (-) TimerEvent: {}
+[38.254494] (-) TimerEvent: {}
+[38.355218] (-) TimerEvent: {}
+[38.455981] (-) TimerEvent: {}
+[38.556730] (-) TimerEvent: {}
+[38.659016] (-) TimerEvent: {}
+[38.759677] (-) TimerEvent: {}
+[38.860312] (-) TimerEvent: {}
+[38.960955] (-) TimerEvent: {}
+[39.061620] (-) TimerEvent: {}
+[39.162305] (-) TimerEvent: {}
+[39.262943] (-) TimerEvent: {}
+[39.363605] (-) TimerEvent: {}
+[39.464273] (-) TimerEvent: {}
+[39.564931] (-) TimerEvent: {}
+[39.665600] (-) TimerEvent: {}
+[39.766255] (-) TimerEvent: {}
+[39.866960] (-) TimerEvent: {}
+[39.967910] (-) TimerEvent: {}
+[40.068854] (-) TimerEvent: {}
+[40.170237] (-) TimerEvent: {}
+[40.270825] (-) TimerEvent: {}
+[40.371502] (-) TimerEvent: {}
+[40.472223] (-) TimerEvent: {}
+[40.572971] (-) TimerEvent: {}
+[40.673773] (-) TimerEvent: {}
+[40.774532] (-) TimerEvent: {}
+[40.875262] (-) TimerEvent: {}
+[40.976015] (-) TimerEvent: {}
+[41.076781] (-) TimerEvent: {}
+[41.177573] (-) TimerEvent: {}
+[41.278366] (-) TimerEvent: {}
+[41.379109] (-) TimerEvent: {}
+[41.479860] (-) TimerEvent: {}
+[41.580613] (-) TimerEvent: {}
+[41.681342] (-) TimerEvent: {}
+[41.782155] (-) TimerEvent: {}
+[41.882899] (-) TimerEvent: {}
+[41.983649] (-) TimerEvent: {}
+[42.084393] (-) TimerEvent: {}
+[42.185125] (-) TimerEvent: {}
+[42.285895] (-) TimerEvent: {}
+[42.386627] (-) TimerEvent: {}
+[42.487436] (-) TimerEvent: {}
+[42.588295] (-) TimerEvent: {}
+[42.689148] (-) TimerEvent: {}
+[42.789960] (-) TimerEvent: {}
+[42.890738] (-) TimerEvent: {}
+[42.991543] (-) TimerEvent: {}
+[43.092295] (-) TimerEvent: {}
+[43.193121] (-) TimerEvent: {}
+[43.293918] (-) TimerEvent: {}
+[43.394633] (-) TimerEvent: {}
+[43.495285] (-) TimerEvent: {}
+[43.596013] (-) TimerEvent: {}
+[43.696749] (-) TimerEvent: {}
+[43.797518] (-) TimerEvent: {}
+[43.898262] (-) TimerEvent: {}
+[44.000066] (-) TimerEvent: {}
+[44.100983] (-) TimerEvent: {}
+[44.201785] (-) TimerEvent: {}
+[44.302682] (-) TimerEvent: {}
+[44.403408] (-) TimerEvent: {}
+[44.504158] (-) TimerEvent: {}
+[44.606290] (-) TimerEvent: {}
+[44.707217] (-) TimerEvent: {}
+[44.807951] (-) TimerEvent: {}
+[44.908666] (-) TimerEvent: {}
+[45.009439] (-) TimerEvent: {}
+[45.110182] (-) TimerEvent: {}
+[45.211275] (-) TimerEvent: {}
+[45.312370] (-) TimerEvent: {}
+[45.413103] (-) TimerEvent: {}
+[45.513870] (-) TimerEvent: {}
+[45.614612] (-) TimerEvent: {}
+[45.715392] (-) TimerEvent: {}
+[45.816238] (-) TimerEvent: {}
+[45.916995] (-) TimerEvent: {}
+[46.017783] (-) TimerEvent: {}
+[46.118515] (-) TimerEvent: {}
+[46.219238] (-) TimerEvent: {}
+[46.319991] (-) TimerEvent: {}
+[46.420728] (-) TimerEvent: {}
+[46.521503] (-) TimerEvent: {}
+[46.622234] (-) TimerEvent: {}
+[46.722984] (-) TimerEvent: {}
+[46.824374] (-) TimerEvent: {}
+[46.925127] (-) TimerEvent: {}
+[47.025910] (-) TimerEvent: {}
+[47.126661] (-) TimerEvent: {}
+[47.227380] (-) TimerEvent: {}
+[47.328101] (-) TimerEvent: {}
+[47.428871] (-) TimerEvent: {}
+[47.529668] (-) TimerEvent: {}
+[47.630538] (-) TimerEvent: {}
+[47.731285] (-) TimerEvent: {}
+[47.832015] (-) TimerEvent: {}
+[47.932753] (-) TimerEvent: {}
+[48.033573] (-) TimerEvent: {}
+[48.134305] (-) TimerEvent: {}
+[48.235046] (-) TimerEvent: {}
+[48.335786] (-) TimerEvent: {}
+[48.436554] (-) TimerEvent: {}
+[48.537366] (-) TimerEvent: {}
+[48.638097] (-) TimerEvent: {}
+[48.738884] (-) TimerEvent: {}
+[48.839663] (-) TimerEvent: {}
+[48.940410] (-) TimerEvent: {}
+[49.041131] (-) TimerEvent: {}
+[49.141886] (-) TimerEvent: {}
+[49.242750] (-) TimerEvent: {}
+[49.343489] (-) TimerEvent: {}
+[49.444231] (-) TimerEvent: {}
+[49.544959] (-) TimerEvent: {}
+[49.645742] (-) TimerEvent: {}
+[49.746482] (-) TimerEvent: {}
+[49.847247] (-) TimerEvent: {}
+[49.948007] (-) TimerEvent: {}
+[50.048759] (-) TimerEvent: {}
+[50.149539] (-) TimerEvent: {}
+[50.250275] (-) TimerEvent: {}
+[50.351049] (-) TimerEvent: {}
+[50.451818] (-) TimerEvent: {}
+[50.552588] (-) TimerEvent: {}
+[50.653338] (-) TimerEvent: {}
+[50.754078] (-) TimerEvent: {}
+[50.854899] (-) TimerEvent: {}
+[50.955650] (-) TimerEvent: {}
+[51.056515] (-) TimerEvent: {}
+[51.157289] (-) TimerEvent: {}
+[51.258033] (-) TimerEvent: {}
+[51.358771] (-) TimerEvent: {}
+[51.459504] (-) TimerEvent: {}
+[51.560244] (-) TimerEvent: {}
+[51.660979] (-) TimerEvent: {}
+[51.761768] (-) TimerEvent: {}
+[51.862521] (-) TimerEvent: {}
+[51.963294] (-) TimerEvent: {}
+[52.064051] (-) TimerEvent: {}
+[52.164798] (-) TimerEvent: {}
+[52.265584] (-) TimerEvent: {}
+[52.366295] (-) TimerEvent: {}
+[52.466908] (-) TimerEvent: {}
+[52.567536] (-) TimerEvent: {}
+[52.668148] (-) TimerEvent: {}
+[52.768765] (-) TimerEvent: {}
+[52.869399] (-) TimerEvent: {}
+[52.967854] (bev_processor) StdoutLine: {'line': b'[100%] \x1b[32m\x1b[1mLinking CXX shared library libbev_processor_component.so\x1b[0m\n'}
+[52.969497] (-) TimerEvent: {}
+[53.070005] (-) TimerEvent: {}
+[53.170652] (-) TimerEvent: {}
+[53.271291] (-) TimerEvent: {}
+[53.371943] (-) TimerEvent: {}
+[53.472555] (-) TimerEvent: {}
+[53.541565] (bev_processor) StdoutLine: {'line': b'[100%] Built target bev_processor_component\n'}
+[53.566088] (bev_processor) CommandEnded: {'returncode': 0}
+[53.568698] (bev_processor) JobProgress: {'identifier': 'bev_processor', 'progress': 'install'}
+[53.569697] (bev_processor) Command: {'cmd': ['/usr/bin/cmake', '--install', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor'], 'cwd': '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor', 'env': OrderedDict([('OPENBLAS_CORETYPE', 'ARMV8'), ('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'autopilot03'), ('XDG_SESSION_TYPE', 'x11'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64'), ('HOME', '/home/autopilot03'), ('OLDPWD', '/home/autopilot03/Desktop/f1tenth_test0804'), ('DESKTOP_SESSION', 'ubuntu'), ('ROS_PYTHON_VERSION', '3'), ('GNOME_SHELL_SESSION_MODE', 'ubuntu'), ('GTK_MODULES', 'gail:atk-bridge'), ('DBUS_STARTER_BUS_TYPE', 'session'), ('SYSTEMD_EXEC_PID', '3625'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('COLORTERM', 'truecolor'), ('IM_CONFIG_PHASE', '1'), ('COLCON_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install'), ('ROS_DISTRO', 'humble'), ('GTK_IM_MODULE', 'ibus'), ('LOGNAME', 'autopilot03'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('XDG_SESSION_CLASS', 'user'), ('USERNAME', 'autopilot03'), ('TERM', 'xterm-256color'), ('GNOME_DESKTOP_SESSION_ID', 'this-is-deprecated'), ('ROS_LOCALHOST_ONLY', '0'), ('WINDOWPATH', '2'), ('PATH', '/opt/ros/humble/bin:/usr/local/cuda/bin:/home/autopilot03/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin'), ('SESSION_MANAGER', 'local/autopilot03-desktop:@/tmp/.ICE-unix/3625,unix/autopilot03-desktop:/tmp/.ICE-unix/3625'), ('XDG_MENU_PREFIX', 'gnome-'), ('GNOME_TERMINAL_SCREEN', '/org/gnome/Terminal/screen/bfbe520d_0ebe_4561_ad60_d63b61313ae1'), ('XDG_RUNTIME_DIR', '/run/user/1000'), ('DISPLAY', ':1'), ('LANG', 'en_US.UTF-8'), ('XDG_CURRENT_DESKTOP', 'ubuntu:GNOME'), ('XMODIFIERS', '@im=ibus'), ('XDG_SESSION_DESKTOP', 'ubuntu'), ('XAUTHORITY', '/run/user/1000/gdm/Xauthority'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.webp=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('GNOME_TERMINAL_SERVICE', ':1.93'), ('SSH_AGENT_LAUNCHER', 'gnome-keyring'), ('SSH_AUTH_SOCK', '/run/user/1000/keyring/ssh'), ('AMENT_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble'), ('SHELL', '/bin/bash'), ('QT_ACCESSIBILITY', '1'), ('GDMSESSION', 'ubuntu'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('GPG_AGENT_INFO', '/run/user/1000/gnupg/S.gpg-agent:0:1'), ('QT_IM_MODULE', 'ibus'), ('PWD', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor'), ('LC_ALL', 'en_US.UTF-8'), ('XDG_CONFIG_DIRS', '/etc/xdg/xdg-ubuntu:/etc/xdg'), ('DBUS_STARTER_ADDRESS', 'unix:path=/run/user/1000/bus,guid=0ef7eba7120ff60171aa42a96a71ae4d'), ('XDG_DATA_DIRS', '/usr/share/ubuntu:/usr/share/gnome:/home/autopilot03/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share/:/usr/share/:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages'), ('COLCON', '1'), ('VTE_VERSION', '6800'), ('CMAKE_PREFIX_PATH', '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor:/opt/ros/humble')]), 'shell': False}
+[53.572629] (-) TimerEvent: {}
+[53.587503] (bev_processor) StdoutLine: {'line': b'-- Install configuration: "Release"\n'}
+[53.588155] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_geometry.a\n'}
+[53.588637] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_lane_reconstructor.a\n'}
+[53.588989] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_ground_plane.a\n'}
+[53.589309] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_startup_attitude.a\n'}
+[53.589585] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_startup_measurement.a\n'}
+[53.589840] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_processor_component.so\n'}
+[53.593722] (bev_processor) StdoutLine: {'line': b'-- Set runtime path of "/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_processor_component.so" to ""\n'}
+[53.594207] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include\n'}
+[53.594742] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor\n'}
+[53.595040] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/bev_geometry.hpp\n'}
+[53.595418] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/bev_lane_reconstructor.hpp\n'}
+[53.595787] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/ground_plane_estimator.hpp\n'}
+[53.596055] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/startup_attitude.hpp\n'}
+[53.596437] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/cuda_bev_processor.hpp\n'}
+[53.596732] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/oak_startup_measurement.hpp\n'}
+[53.597220] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/config\n'}
+[53.597551] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/config/bev_config.yaml\n'}
+[53.597798] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/launch\n'}
+[53.598367] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/launch/bev_processor.launch.py\n'}
+[53.598622] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/package_run_dependencies/bev_processor\n'}
+[53.598858] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/parent_prefix_path/bev_processor\n'}
+[53.599114] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/ament_prefix_path.sh\n'}
+[53.599355] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/ament_prefix_path.dsv\n'}
+[53.599580] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/path.sh\n'}
+[53.599804] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/path.dsv\n'}
+[53.600024] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.bash\n'}
+[53.600432] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.sh\n'}
+[53.600744] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.zsh\n'}
+[53.601605] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.dsv\n'}
+[53.602146] (bev_processor) StdoutLine: {'line': b'-- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.dsv\n'}
+[53.607221] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/packages/bev_processor\n'}
+[53.607681] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/rclcpp_components/bev_processor\n'}
+[53.607922] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/ament_cmake_export_include_directories-extras.cmake\n'}
+[53.608141] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/ament_cmake_export_dependencies-extras.cmake\n'}
+[53.608326] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/bev_processorConfig.cmake\n'}
+[53.608527] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/bev_processorConfig-version.cmake\n'}
+[53.608733] (bev_processor) StdoutLine: {'line': b'-- Up-to-date: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.xml\n'}
+[53.608986] (bev_processor) CommandEnded: {'returncode': 0}
+[53.660646] (bev_processor) JobEnded: {'identifier': 'bev_processor', 'rc': 0}
+[53.662504] (-) EventReactorShutdown: {}

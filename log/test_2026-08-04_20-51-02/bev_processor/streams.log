@@ -1,0 +1,49 @@
+[0.069s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor': LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/ctest -C Release -D ExperimentalTest --no-compress-output -V --force-new-ctest-process
+[0.088s] UpdateCTestConfiguration  from :/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/CTestConfiguration.ini
+[0.088s] Parse Config file:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/CTestConfiguration.ini
+[0.089s]    Site: autopilot03-desktop
+[0.089s]    Build name: (empty)
+[0.089s]  Add coverage exclude regular expressions.
+[0.089s] Create new tag: 20260804-1151 - Experimental
+[0.089s] UpdateCTestConfiguration  from :/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/CTestConfiguration.ini
+[0.090s] Parse Config file:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/CTestConfiguration.ini
+[0.090s] Test project /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor
+[0.090s] Constructing a list of tests
+[0.090s] Done constructing a list of tests
+[0.090s] Updating test list for fixtures
+[0.090s] Added 0 tests to meet fixture requirements
+[0.090s] Checking test dependency graph...
+[0.090s] Checking test dependency graph end
+[0.091s] test 1
+[0.091s]     Start 1: bev_geometry_test
+[0.091s] 
+[0.091s] 1: Test command: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/bev_geometry_test
+[0.091s] 1: Test timeout computed to be: 10000000
+[0.106s] 1: BEV geometry test passed; valid LUT ratio=90.977%, driving ratio=88.6361%
+[0.107s] 1/4 Test #1: bev_geometry_test ................   Passed    0.02 sec
+[0.107s] test 2
+[0.107s]     Start 2: bev_lane_reconstructor_test
+[0.107s] 
+[0.107s] 2: Test command: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/bev_lane_reconstructor_test
+[0.108s] 2: Test timeout computed to be: 10000000
+[0.135s] 2: BEV sliding-window lane tests passed
+[0.136s] 2/4 Test #2: bev_lane_reconstructor_test ......   Passed    0.03 sec
+[0.136s] test 3
+[0.137s]     Start 3: ground_plane_estimator_test
+[0.137s] 
+[0.137s] 3: Test command: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/ground_plane_estimator_test
+[0.137s] 3: Test timeout computed to be: 10000000
+[0.146s] 3: ground_plane_estimator_test passed
+[0.147s] 3/4 Test #3: ground_plane_estimator_test ......   Passed    0.01 sec
+[0.147s] test 4
+[0.147s]     Start 4: startup_attitude_test
+[0.147s] 
+[0.147s] 4: Test command: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor/startup_attitude_test
+[0.148s] 4: Test timeout computed to be: 10000000
+[0.156s] 4: startup_attitude_test passed
+[0.156s] 4/4 Test #4: startup_attitude_test ............   Passed    0.01 sec
+[0.157s] 
+[0.157s] [0;32m100% tests passed[0;0m, 0 tests failed[0;0m out of 4
+[0.157s] 
+[0.157s] Total Test time (real) =   0.07 sec
+[0.168s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor' returned '0': LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/ctest -C Release -D ExperimentalTest --no-compress-output -V --force-new-ctest-process

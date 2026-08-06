@@ -1,0 +1,3 @@
+[console_scripts]
+vesc_initialize_node = vesc_initializer.vesc_initialize_node:main
+

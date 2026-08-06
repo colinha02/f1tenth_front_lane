@@ -1,0 +1,22 @@
+running develop
+running egg_info
+creating vesc_initializer.egg-info
+writing vesc_initializer.egg-info/PKG-INFO
+writing dependency_links to vesc_initializer.egg-info/dependency_links.txt
+writing entry points to vesc_initializer.egg-info/entry_points.txt
+writing requirements to vesc_initializer.egg-info/requires.txt
+writing top-level names to vesc_initializer.egg-info/top_level.txt
+writing manifest file 'vesc_initializer.egg-info/SOURCES.txt'
+reading manifest file 'vesc_initializer.egg-info/SOURCES.txt'
+writing manifest file 'vesc_initializer.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/python3.10/site-packages/vesc-initializer.egg-link (link to .)
+Installing vesc_initialize_node script to /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/lib/vesc_initializer
+
+Installed /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer
+running symlink_data
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/ament_index
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/ament_index/resource_index
+creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/ament_index/resource_index/packages
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/resource/vesc_initializer -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/ament_index/resource_index/packages
+symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vesc_initializer/package.xml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vesc_initializer/share/vesc_initializer

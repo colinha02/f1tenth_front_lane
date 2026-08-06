@@ -1,0 +1,17 @@
+package.xml
+setup.cfg
+setup.py
+manual_control/__init__.py
+manual_control/actuator_commander_node.py
+manual_control/button_debouncer.py
+manual_control/duty_command_profile.py
+manual_control/joy_params_converter_node.py
+manual_control/safety_limiter.py
+manual_control.egg-info/PKG-INFO
+manual_control.egg-info/SOURCES.txt
+manual_control.egg-info/dependency_links.txt
+manual_control.egg-info/entry_points.txt
+manual_control.egg-info/requires.txt
+manual_control.egg-info/top_level.txt
+manual_control.egg-info/zip-safe
+resource/manual_control

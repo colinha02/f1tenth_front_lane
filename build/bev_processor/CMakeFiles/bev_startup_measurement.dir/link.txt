@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbev_startup_measurement.a CMakeFiles/bev_startup_measurement.dir/src/oak_startup_measurement.cpp.o
+/usr/bin/ranlib libbev_startup_measurement.a

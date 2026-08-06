@@ -133,8 +133,8 @@ Sobel, 미분 필터, 대비 강화, 밝기 임계값, morphology, 차선 추출
 - `/camera/image_bev` (`bgr8`): 변경하지 않은 원본 컬러 BEV
 - `/camera/image_bev_lane` (`mono8`): 검은 배경에 흰색 좌·우 차선만 다시 그린 결과
 
-GUI 프리뷰는 기본적으로 원본 BEV 위에 검출 차선을 옅은 파란색, 투명도
-`0.35`로만 합성한다. 이 오버레이는 위 두 발행 토픽에는 들어가지 않는다.
+GUI 프리뷰는 기본적으로 원본 BEV 위에 검출 차선을 불투명한 빨간색, 투명도
+`1.0`으로 합성한다. 이 오버레이는 위 두 발행 토픽에는 들어가지 않는다.
 `lane_preview_enabled:=false`로 실행하면 프리뷰도 원본 BEV만 표시한다.
 
 재구성 단계는 다음 순서로 동작한다.
@@ -174,7 +174,7 @@ ros2 launch bev_processor bev_processor.launch.py \
   lane_sliding_window_measurement_weight:=0.90 \
   lane_expected_width_m:=0.625 \
   lane_output_line_thickness_m:=0.02 \
-  lane_preview_overlay_alpha:=0.35
+  lane_preview_overlay_alpha:=1.0
 ```
 
 시간 연속성과 한쪽 가림 보완을 조절하는 예시는 다음과 같다.

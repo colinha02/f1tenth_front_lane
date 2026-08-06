@@ -1,0 +1,12 @@
+package.xml
+setup.py
+launch/joy_test.launch.py
+launch/manual_drive.launch.py
+launch/vesc_only.launch.py
+resource/vehicle_launcher
+vehicle_launcher.egg-info/PKG-INFO
+vehicle_launcher.egg-info/SOURCES.txt
+vehicle_launcher.egg-info/dependency_links.txt
+vehicle_launcher.egg-info/requires.txt
+vehicle_launcher.egg-info/top_level.txt
+vehicle_launcher.egg-info/zip-safe

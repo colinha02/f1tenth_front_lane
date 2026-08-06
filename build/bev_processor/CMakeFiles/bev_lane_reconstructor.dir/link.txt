@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbev_lane_reconstructor.a CMakeFiles/bev_lane_reconstructor.dir/src/bev_lane_reconstructor.cpp.o
+/usr/bin/ranlib libbev_lane_reconstructor.a

@@ -1,0 +1,139 @@
+[0.009s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/bev_processor -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor
+[0.152s] -- The CXX compiler identification is GNU 11.4.0
+[2.644s] -- The CUDA compiler identification is NVIDIA 12.6.68
+[2.662s] -- Detecting CXX compiler ABI info
+[2.826s] -- Detecting CXX compiler ABI info - done
+[2.849s] -- Check for working CXX compiler: /usr/bin/c++ - skipped
+[2.850s] -- Detecting CXX compile features
+[2.852s] -- Detecting CXX compile features - done
+[2.861s] -- Detecting CUDA compiler ABI info
+[5.132s] -- Detecting CUDA compiler ABI info - done
+[5.209s] -- Check for working CUDA compiler: /usr/local/cuda/bin/nvcc - skipped
+[5.209s] -- Detecting CUDA compile features
+[5.210s] -- Detecting CUDA compile features - done
+[5.214s] -- Found ament_cmake: 1.3.14 (/opt/ros/humble/share/ament_cmake/cmake)
+[5.579s] -- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+[5.805s] -- Found CUDAToolkit: /usr/local/cuda/include (found version "12.6.68") 
+[5.840s] -- Looking for C++ include pthread.h
+[6.026s] -- Looking for C++ include pthread.h - found
+[6.028s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+[6.242s] -- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+[6.244s] -- Found Threads: TRUE  
+[6.350s] -- Found OpenCV: /usr (found suitable version "4.8.0", minimum required is "4") found components: core highgui imgproc 
+[6.353s] -- Found rclcpp: 16.0.19 (/opt/ros/humble/share/rclcpp/cmake)
+[6.425s] -- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+[6.435s] -- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+[6.453s] -- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+[6.478s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[6.511s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[6.602s] -- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+[6.607s] -- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+[6.798s] -- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+[6.867s] -- Found FastRTPS: /opt/ros/humble/include  
+[6.968s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[7.096s] -- Found rclcpp_components: 16.0.19 (/opt/ros/humble/share/rclcpp_components/cmake)
+[7.155s] -- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)
+[7.252s] -- Performing Test arch_native_supported
+[7.426s] -- Performing Test arch_native_supported - Success
+[7.628s] -- Configuring done
+[7.702s] -- Generating done
+[7.724s] -- Build files have been written to: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor
+[7.761s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/bev_processor -DCMAKE_BUILD_TYPE=Release -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc -DCMAKE_INSTALL_PREFIX=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor
+[7.765s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor -- -j6 -l6
+[7.886s] [  4%] [32mBuilding CXX object CMakeFiles/bev_geometry.dir/src/bev_geometry.cpp.o[0m
+[7.887s] [  9%] [32mBuilding CXX object CMakeFiles/bev_startup_attitude.dir/src/startup_attitude.cpp.o[0m
+[7.887s] [ 13%] [32mBuilding CXX object CMakeFiles/bev_ground_plane.dir/src/ground_plane_estimator.cpp.o[0m
+[7.889s] [ 18%] [32mBuilding CXX object CMakeFiles/bev_lane_reconstructor.dir/src/bev_lane_reconstructor.cpp.o[0m
+[7.890s] [ 22%] [32mBuilding CUDA object CMakeFiles/bev_cuda.dir/src/cuda_bev_processor.cu.o[0m
+[10.924s] [ 27%] [32m[1mLinking CXX static library libbev_startup_attitude.a[0m
+[10.999s] [ 27%] Built target bev_startup_attitude
+[11.055s] [ 31%] [32mBuilding CXX object CMakeFiles/startup_attitude_test.dir/test/startup_attitude_test.cpp.o[0m
+[11.195s] [ 36%] [32m[1mLinking CXX static library libbev_geometry.a[0m
+[11.298s] [ 36%] Built target bev_geometry
+[11.362s] [ 40%] [32mBuilding CXX object CMakeFiles/bev_geometry_test.dir/test/bev_geometry_test.cpp.o[0m
+[11.881s] [ 45%] [32m[1mLinking CXX static library libbev_ground_plane.a[0m
+[11.965s] [ 45%] Built target bev_ground_plane
+[12.073s] [ 50%] [32mBuilding CXX object CMakeFiles/ground_plane_estimator_test.dir/test/ground_plane_estimator_test.cpp.o[0m
+[12.097s] [ 54%] [32mBuilding CXX object CMakeFiles/bev_startup_measurement.dir/src/oak_startup_measurement.cpp.o[0m
+[13.774s] [ 59%] [32m[1mLinking CXX static library libbev_lane_reconstructor.a[0m
+[13.878s] [ 59%] Built target bev_lane_reconstructor
+[13.936s] [ 63%] [32mBuilding CXX object CMakeFiles/bev_lane_reconstructor_test.dir/test/bev_lane_reconstructor_test.cpp.o[0m
+[14.180s] [ 68%] [32m[1mLinking CXX executable startup_attitude_test[0m
+[14.413s] [ 68%] Built target startup_attitude_test
+[15.449s] [ 72%] [32m[1mLinking CXX executable bev_geometry_test[0m
+[15.730s] [ 72%] Built target bev_geometry_test
+[15.940s] [ 77%] [32m[1mLinking CXX executable ground_plane_estimator_test[0m
+[16.153s] [ 77%] Built target ground_plane_estimator_test
+[17.648s] [ 81%] [32m[1mLinking CXX executable bev_lane_reconstructor_test[0m
+[17.865s] [ 81%] Built target bev_lane_reconstructor_test
+[18.414s] [ 86%] [32m[1mLinking CUDA static library libbev_cuda.a[0m
+[18.485s] [ 86%] Built target bev_cuda
+[51.291s] In file included from [01m[K/usr/local/include/depthai/utility/Serialization.hpp:6[m[K,
+[51.291s]                  from [01m[K/usr/local/include/depthai/common/Point3f.hpp:7[m[K,
+[51.292s]                  from [01m[K/usr/local/include/depthai/common/Extrinsics.hpp:9[m[K,
+[51.292s]                  from [01m[K/usr/local/include/depthai/common/CameraInfo.hpp:4[m[K,
+[51.292s]                  from [01m[K/usr/local/include/depthai/common/EepromData.hpp:7[m[K,
+[51.293s]                  from [01m[K/usr/local/include/depthai/device/CalibrationHandler.hpp:11[m[K,
+[51.293s]                  from [01m[K/usr/local/include/depthai/depthai.hpp:11[m[K,
+[51.293s]                  from [01m[K/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/src/bev_processor/src/oak_startup_measurement.cpp:18[m[K:
+[51.293s] /usr/local/include/nlohmann/json.hpp: In instantiation of ‘[01m[Kconstexpr decltype (declval<const basic_json_t&>().get_impl<ValueType>(nlohmann::json_abi_v3_12_0::detail::priority_tag<4>{})) nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get() const [with ValueTypeCV = std::pair<float, float>; ValueType = std::pair<float, float>; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void; decltype (declval<const basic_json_t&>().get_impl<ValueType>(nlohmann::json_abi_v3_12_0::detail::priority_tag<4>{})) = std::pair<float, float>; nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::basic_json_t = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’:
+[51.294s] [01m[K/usr/local/include/depthai/common/variant.hpp:16:66:[m[K   required from ‘[01m[Kvoid dai::internal::VariantSwitch<N>::operator()(int, const json&, Variant&) const [with Variant = std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > >; long unsigned int N = 1; json = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’
+[51.294s] [01m[K/usr/local/include/depthai/common/variant.hpp:18:35:[m[K   required from ‘[01m[Kvoid dai::internal::VariantSwitch<N>::operator()(int, const json&, Variant&) const [with Variant = std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > >; long unsigned int N = 2; json = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’
+[51.294s] [01m[K/usr/local/include/depthai/common/variant.hpp:50:62:[m[K   required from ‘[01m[Kstatic void nlohmann::json_abi_v3_12_0::adl_serializer<std::variant<_Types ...> >::from_json(const json&, std::variant<_Types ...>&) [with Args = {float, std::pair<float, float>, std::vector<float, std::allocator<float> >}; nlohmann::json_abi_v3_12_0::json = nlohmann::json_abi_v3_12_0::basic_json<>][m[K’
+[51.295s] [01m[K/usr/local/include/nlohmann/json.hpp:1637:45:[m[K   required from ‘[01m[KValueType nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get_impl(nlohmann::json_abi_v3_12_0::detail::priority_tag<0>) const [with ValueType = std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > >; typename std::enable_if<(nlohmann::json_abi_v3_12_0::detail::is_default_constructible<ValueType>::value && nlohmann::json_abi_v3_12_0::detail::has_from_json<nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>, ValueType>::value), int>::type <anonymous> = 0; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void][m[K’
+[51.295s] [01m[K/usr/local/include/nlohmann/json.hpp:1780:35:[m[K   [ skipping 2 instantiation contexts, use -ftemplate-backtrace-limit=0 to disable ]
+[51.295s] [01m[K/usr/local/include/nlohmann/json.hpp:1828:45:[m[K   required from ‘[01m[KValueType& nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get_to(ValueType&) const [with ValueType = std::optional<std::variant<float, std::pair<float, float>, std::vector<float, std::allocator<float> > > >; typename std::enable_if<((! nlohmann::json_abi_v3_12_0::detail::is_basic_json<BasicJsonType>::value) && nlohmann::json_abi_v3_12_0::detail::has_from_json<nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>, ValueType>::value), int>::type <anonymous> = 0; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void][m[K’
+[51.296s] [01m[K/usr/local/include/depthai/capabilities/CapabilityRange.hpp:33:5:[m[K   required from ‘[01m[Kvoid dai::from_json(const json&, dai::CapabilityRange<float>&)[m[K’
+[51.296s] [01m[K/usr/local/include/nlohmann/detail/conversions/from_json.hpp:558:25:[m[K   required from ‘[01m[Kdecltype (nlohmann::json_abi_v3_12_0::detail::from_json(j, forward<T>(val))) nlohmann::json_abi_v3_12_0::detail::from_json_fn::operator()(const BasicJsonType&, T&&) const [with BasicJsonType = nlohmann::json_abi_v3_12_0::basic_json<>; T = dai::CapabilityRange<float>&; decltype (nlohmann::json_abi_v3_12_0::detail::from_json(j, forward<T>(val))) = void][m[K’
+[51.296s] [01m[K/usr/local/include/nlohmann/adl_serializer.hpp:31:30:[m[K   required from ‘[01m[Kstatic decltype ((nlohmann::json_abi_v3_12_0::from_json(forward<BasicJsonType>(j), val), void())) nlohmann::json_abi_v3_12_0::adl_serializer<T, SFINAE>::from_json(BasicJsonType&&, TargetType&) [with BasicJsonType = const nlohmann::json_abi_v3_12_0::basic_json<>&; TargetType = dai::CapabilityRange<float>; ValueType = dai::CapabilityRange<float>; <template-parameter-1-2> = void; decltype ((nlohmann::json_abi_v3_12_0::from_json(forward<BasicJsonType>(j), val), void())) = void][m[K’
+[51.296s] [01m[K/usr/local/include/nlohmann/json.hpp:1828:45:[m[K   required from ‘[01m[KValueType& nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>::get_to(ValueType&) const [with ValueType = dai::CapabilityRange<float>; typename std::enable_if<((! nlohmann::json_abi_v3_12_0::detail::is_basic_json<BasicJsonType>::value) && nlohmann::json_abi_v3_12_0::detail::has_from_json<nlohmann::json_abi_v3_12_0::basic_json<ObjectType, ArrayType, StringType, BooleanType, NumberIntegerType, NumberUnsignedType, NumberFloatType, AllocatorType, JSONSerializer, BinaryType, CustomBaseClass>, ValueType>::value), int>::type <anonymous> = 0; ObjectType = std::map; ArrayType = std::vector; StringType = std::__cxx11::basic_string<char>; BooleanType = bool; NumberIntegerType = long int; NumberUnsignedType = long unsigned int; NumberFloatType = double; AllocatorType = std::allocator; JSONSerializer = nlohmann::json_abi_v3_12_0::adl_serializer; BinaryType = std::vector<unsigned char>; CustomBaseClass = void][m[K’
+[51.297s] [01m[K/usr/local/include/depthai/capabilities/ImgFrameCapability.hpp:55:5:[m[K   required from here
+[51.297s] [01m[K/usr/local/include/nlohmann/json.hpp:1771:10:[m[K [01;36m[Knote: [m[Kparameter passing for argument of type ‘[01m[Kstd::pair<float, float>[m[K’ when C++17 is enabled changed to match C++14 ]8;;https://gcc.gnu.org/gcc-10/changes.html#empty_basein GCC 10.1]8;;
+[51.297s]  1771 |     auto [01;36m[Kget[m[K() const noexcept(
+[51.297s]       |          [01;36m[K^~~[m[K
+[69.396s] [ 90%] [32m[1mLinking CXX static library libbev_startup_measurement.a[0m
+[69.472s] [ 90%] Built target bev_startup_measurement
+[69.519s] [ 95%] [32mBuilding CXX object CMakeFiles/bev_processor_component.dir/src/bev_processor_node.cpp.o[0m
+[106.436s] [100%] [32m[1mLinking CXX shared library libbev_processor_component.so[0m
+[107.013s] [100%] Built target bev_processor_component
+[107.040s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --build /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor -- -j6 -l6
+[107.046s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor
+[107.062s] -- Install configuration: "Release"
+[107.062s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_geometry.a
+[107.063s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_lane_reconstructor.a
+[107.064s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_ground_plane.a
+[107.065s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_startup_attitude.a
+[107.065s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_startup_measurement.a
+[107.066s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_processor_component.so
+[107.073s] -- Set runtime path of "/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/lib/libbev_processor_component.so" to ""
+[107.073s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include
+[107.074s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor
+[107.074s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/bev_geometry.hpp
+[107.074s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/bev_lane_reconstructor.hpp
+[107.074s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/ground_plane_estimator.hpp
+[107.075s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/startup_attitude.hpp
+[107.075s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/cuda_bev_processor.hpp
+[107.075s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/include/bev_processor/oak_startup_measurement.hpp
+[107.076s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/config
+[107.076s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/config/bev_config.yaml
+[107.076s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/launch
+[107.076s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/launch/bev_processor.launch.py
+[107.076s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/package_run_dependencies/bev_processor
+[107.077s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/parent_prefix_path/bev_processor
+[107.077s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/ament_prefix_path.sh
+[107.077s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/ament_prefix_path.dsv
+[107.078s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/path.sh
+[107.078s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/environment/path.dsv
+[107.078s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.bash
+[107.079s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.sh
+[107.079s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.zsh
+[107.079s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/local_setup.dsv
+[107.080s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.dsv
+[107.080s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/packages/bev_processor
+[107.080s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/ament_index/resource_index/rclcpp_components/bev_processor
+[107.080s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/ament_cmake_export_include_directories-extras.cmake
+[107.080s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/ament_cmake_export_dependencies-extras.cmake
+[107.080s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/bev_processorConfig.cmake
+[107.081s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/cmake/bev_processorConfig-version.cmake
+[107.081s] -- Installing: /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/bev_processor/share/bev_processor/package.xml
+[107.086s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor' returned '0': AMENT_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:${AMENT_PREFIX_PATH} CMAKE_PREFIX_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver:/opt/ros/humble LD_LIBRARY_PATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/camera_driver/lib:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/aarch64-linux-gnu:/opt/ros/humble/lib:/usr/local/cuda/lib64 /usr/bin/cmake --install /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/bev_processor

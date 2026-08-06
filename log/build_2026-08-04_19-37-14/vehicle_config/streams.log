@@ -1,0 +1,28 @@
+[4.642s] Invoking command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/build --no-deps symlink_data
+[5.660s] running develop
+[6.148s] running egg_info
+[6.148s] creating vehicle_config.egg-info
+[6.149s] writing vehicle_config.egg-info/PKG-INFO
+[6.150s] writing dependency_links to vehicle_config.egg-info/dependency_links.txt
+[6.150s] writing requirements to vehicle_config.egg-info/requires.txt
+[6.151s] writing top-level names to vehicle_config.egg-info/top_level.txt
+[6.152s] writing manifest file 'vehicle_config.egg-info/SOURCES.txt'
+[6.154s] reading manifest file 'vehicle_config.egg-info/SOURCES.txt'
+[6.156s] writing manifest file 'vehicle_config.egg-info/SOURCES.txt'
+[6.160s] running build_ext
+[6.163s] Creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages/vehicle-config.egg-link (link to .)
+[6.166s] 
+[6.166s] Installed /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config
+[6.167s] running symlink_data
+[6.168s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/ament_index
+[6.169s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/ament_index/resource_index
+[6.169s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/ament_index/resource_index/packages
+[6.169s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/resource/vehicle_config -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/ament_index/resource_index/packages
+[6.169s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/package.xml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config
+[6.169s] creating /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/config
+[6.170s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/config/auto_vesc_config.yaml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/config
+[6.170s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/config/joy.yaml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/config
+[6.171s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/config/manual_vesc_config.yaml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/config
+[6.171s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/config/controller_keymap.yaml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/config
+[6.171s] symbolically linking /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/config/vesc_config.yaml -> /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/share/vehicle_config/config
+[6.310s] Invoked command in '/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config' returned '0': PYTHONPATH=/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/install/vehicle_config/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/autopilot03/Desktop/f1tenth_test0804/f1tenth_project_repo/build/vehicle_config/build --no-deps symlink_data

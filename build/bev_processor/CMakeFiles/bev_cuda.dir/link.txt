@@ -1,0 +1,2 @@
+/usr/bin/ar qc libbev_cuda.a CMakeFiles/bev_cuda.dir/src/cuda_bev_processor.cu.o
+/usr/bin/ranlib libbev_cuda.a

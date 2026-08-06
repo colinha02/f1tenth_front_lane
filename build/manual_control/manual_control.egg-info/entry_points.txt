@@ -1,0 +1,4 @@
+[console_scripts]
+actuator_commander_node = manual_control.actuator_commander_node:main
+joy_params_converter_node = manual_control.joy_params_converter_node:main
+
