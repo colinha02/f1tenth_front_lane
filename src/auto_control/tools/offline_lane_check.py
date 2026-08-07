@@ -59,8 +59,11 @@ def candidate_mask(
 
 
 def seed(histogram: np.ndarray, left: bool) -> int | None:
-    midpoint = histogram.size // 2
-    section = histogram[:midpoint] if left else histogram[midpoint:]
+    smoothed = cv2.GaussianBlur(
+        histogram.astype(np.float32).reshape(1, -1), (31, 1), 0
+    ).reshape(-1)
+    midpoint = smoothed.size // 2
+    section = smoothed[:midpoint] if left else smoothed[midpoint:]
     if section.size == 0 or int(section.max()) == 0:
         return None
     return int(np.argmax(section)) + (0 if left else midpoint)
@@ -357,6 +360,17 @@ def smooth_centerline(centers: np.ndarray, top: int, bottom: int, bin_height: in
     return np.column_stack((np.polyval(fit, ys), ys)).astype(np.int32)
 
 
+def lane_x_near_row(points: np.ndarray, row: int, maximum_distance: int = 180) -> float | None:
+    if points.size == 0:
+        return None
+    distances = np.abs(points[:, 0] - row)
+    nearest = float(np.min(distances))
+    if nearest > maximum_distance:
+        return None
+    values = points[distances <= nearest + 4.0, 1]
+    return float(np.median(values)) if values.size else None
+
+
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
     top = height // 2
@@ -380,8 +394,9 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     left_edges, left_centers = tape_edge_centers(gray, left_selected, top, bottom)
     right_edges, right_centers = tape_edge_centers(gray, right_selected, top, bottom)
-    centers = row_centerline(left_centers, right_centers, top, bottom)
-    smoothed_centers = smooth_centerline(centers, top, bottom)
+    left_roi_x = lane_x_near_row(left_centers, top)
+    right_roi_x = lane_x_near_row(right_centers, top)
+    roi_center_x = 0.5 * (left_roi_x + right_roi_x) if left_roi_x is not None and right_roi_x is not None else None
     ys = np.linspace(bottom - 1, top, 80)
     left_fit = fit_curve(left_centers, bottom - top)
     right_fit = fit_curve(right_centers, bottom - top)
@@ -412,8 +427,12 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     for edges in (left_edges, right_edges):
         if edges.size:
             overlay[edges[:, 0].astype(np.int32), edges[:, 1].astype(np.int32)] = (255, 255, 0)
-    if smoothed_centers.size:
-        cv2.polylines(overlay, [smoothed_centers], False, (0, 255, 0), 4)
+    if roi_center_x is not None:
+        bottom_anchor = (width // 2, bottom - 14)
+        roi_anchor = (int(round(roi_center_x)), top)
+        cv2.line(overlay, bottom_anchor, roi_anchor, (0, 255, 0), 4)
+        cv2.circle(overlay, bottom_anchor, 8, (0, 255, 0), -1)
+        cv2.circle(overlay, roi_anchor, 8, (0, 255, 0), -1)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)

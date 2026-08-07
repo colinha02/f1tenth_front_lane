@@ -71,6 +71,7 @@ class FrontLaneDetector(Node):
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
             "window_margin_px": 85,
+            "seed_histogram_smoothing_px": 31,
             "window_prediction_max_step_px": 55,
             "candidate_path_count": 16,
             "minimum_component_pixels": 8,
@@ -122,6 +123,11 @@ class FrontLaneDetector(Node):
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
         self.window_margin_px = max(10, int(parameter("window_margin_px")))
+        self.seed_histogram_smoothing_px = max(
+            3, int(parameter("seed_histogram_smoothing_px"))
+        )
+        if self.seed_histogram_smoothing_px % 2 == 0:
+            self.seed_histogram_smoothing_px += 1
         self.window_prediction_max_step_px = max(
             1, int(parameter("window_prediction_max_step_px"))
         )
@@ -535,6 +541,21 @@ class FrontLaneDetector(Node):
         return np.column_stack((np.polyval(fit, ys), ys)).astype(np.int32)
 
     @staticmethod
+    def _lane_x_near_row(
+        points: np.ndarray, row: int, maximum_distance_px: int = 180
+    ) -> Optional[float]:
+        if points.size == 0:
+            return None
+        distances = np.abs(points[:, 0] - row)
+        nearest = float(np.min(distances))
+        if nearest > maximum_distance_px:
+            return None
+        # Use the nearest observed row band; the sliding path may end a few
+        # pixels below the orange ROI line on a tight bend.
+        values = points[distances <= nearest + 4.0, 1]
+        return float(np.median(values)) if values.size else None
+
+    @staticmethod
     def _fit(
         points: np.ndarray,
         minimum_pixels: int,
@@ -553,17 +574,21 @@ class FrontLaneDetector(Node):
         previous: Optional[np.ndarray],
         bottom: int,
     ) -> Optional[int]:
-        midpoint = histogram.size // 2
-        section = histogram[:midpoint] if left else histogram[midpoint:]
+        smoothed = cv2.GaussianBlur(
+            histogram.astype(np.float32).reshape(1, -1),
+            (self.seed_histogram_smoothing_px, 1), 0,
+        ).reshape(-1)
+        midpoint = smoothed.size // 2
+        section = smoothed[:midpoint] if left else smoothed[midpoint:]
         offset = 0 if left else midpoint
         if previous is not None:
             # Once a lane was found, continue from its predicted position
             # instead of allowing a bright background object to replace it.
-            expected_x = int(np.clip(np.polyval(previous, bottom - 1), 0, histogram.size - 1))
+            expected_x = int(np.clip(np.polyval(previous, bottom - 1), 0, smoothed.size - 1))
             search_radius = self.window_margin_px
             lo = max(offset, expected_x - search_radius)
             hi = min(offset + section.size, expected_x + search_radius + 1)
-            nearby = histogram[lo:hi]
+            nearby = smoothed[lo:hi]
             if nearby.size and int(nearby.max()) > 0:
                 return int(np.argmax(nearby)) + lo
             return expected_x
@@ -673,10 +698,13 @@ class FrontLaneDetector(Node):
                 np.column_stack((right_tape_centers[:, 1], right_tape_centers[:, 0]))
                 if right_tape_centers.size else np.empty((0, 2), dtype=np.float64)
             )
-            row_centers = self._row_centerline(
-                left_center_points, right_center_points, top, bottom
+            left_roi_x = self._lane_x_near_row(left_center_points, top)
+            right_roi_x = self._lane_x_near_row(right_center_points, top)
+            roi_center_x = (
+                0.5 * (left_roi_x + right_roi_x)
+                if left_roi_x is not None and right_roi_x is not None
+                else None
             )
-            smoothed_centers = self._smooth_centerline(row_centers, top, bottom)
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
             )
@@ -742,8 +770,12 @@ class FrontLaneDetector(Node):
                     pixel_y = edge_points[:, 0].astype(np.int32)
                     pixel_x = edge_points[:, 1].astype(np.int32)
                     overlay[pixel_y, pixel_x] = (255, 255, 0)
-            if smoothed_centers.size:
-                cv2.polylines(overlay, [smoothed_centers], False, (0, 255, 0), 4)
+            if roi_center_x is not None:
+                bottom_anchor = (width // 2, bottom - 14)
+                roi_anchor = (int(round(roi_center_x)), top)
+                cv2.line(overlay, bottom_anchor, roi_anchor, (0, 255, 0), 4)
+                cv2.circle(overlay, bottom_anchor, 8, (0, 255, 0), -1)
+                cv2.circle(overlay, roi_anchor, 8, (0, 255, 0), -1)
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
