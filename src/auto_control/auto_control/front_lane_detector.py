@@ -63,6 +63,8 @@ class FrontLaneDetector(Node):
             "show_extracted_lane_mask": True,
             "extracted_lane_mask_alpha": 0.55,
             "show_model_paths": False,
+            "minimum_displayed_lane_vertical_coverage": 0.20,
+            "displayed_lane_trace_thickness_px": 7,
             "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
@@ -103,6 +105,12 @@ class FrontLaneDetector(Node):
         self.show_extracted_lane_mask = bool(parameter("show_extracted_lane_mask"))
         self.extracted_lane_mask_alpha = float(parameter("extracted_lane_mask_alpha"))
         self.show_model_paths = bool(parameter("show_model_paths"))
+        self.minimum_displayed_lane_vertical_coverage = float(
+            parameter("minimum_displayed_lane_vertical_coverage")
+        )
+        self.displayed_lane_trace_thickness_px = max(
+            1, int(parameter("displayed_lane_trace_thickness_px"))
+        )
         self.roi_top_ratio = float(parameter("roi_top_ratio"))
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
@@ -204,6 +212,25 @@ class FrontLaneDetector(Node):
             skeleton = cv2.bitwise_or(skeleton, cv2.subtract(work, opened))
             work = cv2.erode(work, element)
         return skeleton
+
+    def _displayable_lane_skeleton(
+        self, skeleton: np.ndarray, top: int, bottom: int
+    ) -> np.ndarray:
+        labels_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+            skeleton, connectivity=8
+        )
+        kept = np.zeros_like(skeleton)
+        minimum_span = self.minimum_displayed_lane_vertical_coverage * (bottom - top)
+        for label in range(1, labels_count):
+            y = stats[label, cv2.CC_STAT_TOP]
+            height = stats[label, cv2.CC_STAT_HEIGHT]
+            bottom_y = y + height - 1
+            # A lane must be long in the ROI and reach its lower part.  Short
+            # horizontal wall/tile fragments therefore remain candidates for
+            # tracking but are not presented as detected lane lines.
+            if height >= minimum_span and bottom_y >= top + 0.45 * (bottom - top):
+                kept[labels == label] = 255
+        return kept
 
     def _sliding_window_points(
         self,
@@ -391,6 +418,9 @@ class FrontLaneDetector(Node):
             bottom = int(np.clip(self.roi_bottom_ratio * height, top + 2, height))
             mask = self._candidate_mask(bgr, top, bottom)
             lane_skeleton = self._skeletonize(mask)
+            displayed_skeleton = self._displayable_lane_skeleton(
+                lane_skeleton, top, bottom
+            )
             histogram = np.sum(mask[max(top, bottom - 80):bottom] > 0, axis=0)
             sample_y = np.linspace(bottom - 1, top, 8)
             left_seed = self._initial_seed(
@@ -453,15 +483,15 @@ class FrontLaneDetector(Node):
                 right_inferred = right_fit is not None
 
             overlay = bgr.copy()
-            if self.show_extracted_lane_mask:
-                extracted = np.zeros_like(overlay)
-                extracted[mask > 0] = (0, 0, 180)
-                overlay = cv2.addWeighted(
-                    overlay, 1.0, extracted, self.extracted_lane_mask_alpha, 0.0
-                )
-            # The blue trace is the center of the extracted white tape itself;
-            # it is never extrapolated away from the observed pixels.
-            overlay[lane_skeleton > 0] = (0, 255, 255)
+            trace = cv2.dilate(
+                displayed_skeleton,
+                cv2.getStructuringElement(
+                    cv2.MORPH_ELLIPSE,
+                    (self.displayed_lane_trace_thickness_px,) * 2,
+                ),
+            )
+            overlay[trace > 0] = (0, 0, 180)
+            overlay[displayed_skeleton > 0] = (0, 255, 255)
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)

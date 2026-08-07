@@ -144,6 +144,20 @@ def skeletonize(mask: np.ndarray) -> np.ndarray:
     return skeleton
 
 
+def displayed_lane_skeleton(skeleton: np.ndarray, top: int, bottom: int) -> np.ndarray:
+    labels_count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        skeleton, connectivity=8
+    )
+    kept = np.zeros_like(skeleton)
+    minimum_span = 0.20 * (bottom - top)
+    for label in range(1, labels_count):
+        y = stats[label, cv2.CC_STAT_TOP]
+        height = stats[label, cv2.CC_STAT_HEIGHT]
+        if height >= minimum_span and y + height - 1 >= top + 0.45 * (bottom - top):
+            kept[labels == label] = 255
+    return kept
+
+
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
     top = height // 2
@@ -178,10 +192,12 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
         right_inferred = True
 
     overlay = image.copy()
-    extracted = np.zeros_like(overlay)
-    extracted[mask > 0] = (0, 0, 180)
-    overlay = cv2.addWeighted(overlay, 1.0, extracted, 0.55, 0.0)
-    overlay[skeletonize(mask) > 0] = (0, 255, 255)
+    skeleton = displayed_lane_skeleton(skeletonize(mask), top, bottom)
+    trace = cv2.dilate(
+        skeleton, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    )
+    overlay[trace > 0] = (0, 0, 180)
+    overlay[skeleton > 0] = (0, 255, 255)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)

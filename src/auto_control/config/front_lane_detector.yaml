@@ -7,10 +7,12 @@ front_lane_detector:
     preview_enabled: true
     preview_window_name: "Front lane detection"
     preview_fps: 30.0
-    # Dark-red transparent rendering of the raw white-tape extraction.  Its
-    # actual skeleton center is drawn in yellow.
+    # Only long, lower-ROI-reaching lane skeletons are displayed: solid dark
+    # red trace with a yellow actual center.  Raw white candidates are hidden.
     show_extracted_lane_mask: true
     extracted_lane_mask_alpha: 0.55
+    minimum_displayed_lane_vertical_coverage: 0.20
+    displayed_lane_trace_thickness_px: 7
     # Keep false while tuning extraction: the blue trace then follows only
     # observed white-tape pixels, not an extrapolated polynomial fit.
     show_model_paths: false
