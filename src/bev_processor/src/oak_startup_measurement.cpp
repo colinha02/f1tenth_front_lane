@@ -15,6 +15,9 @@
 #include <utility>
 #include <vector>
 
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "depthai/depthai.hpp"
 #include "bev_processor/ground_plane_estimator.hpp"
 #include "bev_processor/startup_attitude.hpp"
@@ -36,6 +39,157 @@ struct PlaneCandidate
 {
   GroundPlaneEstimate plane;
   double median_depth_m{0.0};
+};
+
+int roiStart(
+  const int image_extent,
+  const int roi_extent,
+  const int configured_center)
+{
+  if (configured_center < 0) {
+    return (image_extent - roi_extent) / 2;
+  }
+  return configured_center - roi_extent / 2;
+}
+
+cv::Rect measurementRoi(const OakStartupMeasurementConfig & config)
+{
+  return cv::Rect(
+    roiStart(config.stereo_width, config.roi_width, config.roi_center_x),
+    roiStart(config.stereo_height, config.roi_height, config.roi_center_y),
+    config.roi_width,
+    config.roi_height);
+}
+
+class StartupDepthPreview final
+{
+public:
+  explicit StartupDepthPreview(const OakStartupMeasurementConfig & config)
+  : enabled_(
+      config.depth_preview_enabled &&
+      !config.manual_camera_height_enabled),
+    window_name_(config.depth_preview_window_name)
+  {
+  }
+
+  ~StartupDepthPreview()
+  {
+    close();
+  }
+
+  StartupDepthPreview(const StartupDepthPreview &) = delete;
+  StartupDepthPreview & operator=(const StartupDepthPreview &) = delete;
+
+  void show(
+    dai::ImgFrame & packet,
+    const OakStartupMeasurementConfig & config) noexcept
+  {
+    if (!enabled_) {
+      return;
+    }
+
+    try {
+      const auto & bytes = packet.getData();
+      const std::size_t minimum_stride =
+        static_cast<std::size_t>(config.stereo_width) *
+        sizeof(std::uint16_t);
+      const std::size_t stride = std::max(
+        minimum_stride, static_cast<std::size_t>(packet.getStride()));
+      if (
+        packet.getType() != dai::ImgFrame::Type::RAW16 ||
+        static_cast<int>(packet.getWidth()) != config.stereo_width ||
+        static_cast<int>(packet.getHeight()) != config.stereo_height ||
+        bytes.size() <
+        stride * static_cast<std::size_t>(config.stereo_height))
+      {
+        return;
+      }
+
+      if (!window_created_) {
+        cv::namedWindow(window_name_, cv::WINDOW_NORMAL);
+        cv::resizeWindow(
+          window_name_, config.stereo_width, config.stereo_height);
+        window_created_ = true;
+      }
+
+      cv::Mat depth_mm(
+        config.stereo_height,
+        config.stereo_width,
+        CV_16UC1,
+        const_cast<std::uint8_t *>(bytes.data()),
+        stride);
+      cv::Mat valid_mask;
+      cv::inRange(
+        depth_mm,
+        cv::Scalar(config.minimum_depth_m * 1000.0),
+        cv::Scalar(config.maximum_depth_m * 1000.0),
+        valid_mask);
+
+      const double minimum_depth_mm = config.minimum_depth_m * 1000.0;
+      const double maximum_depth_mm = config.maximum_depth_m * 1000.0;
+      const double scale =
+        -255.0 / (maximum_depth_mm - minimum_depth_mm);
+      const double offset = -scale * maximum_depth_mm;
+      cv::Mat depth_gray;
+      depth_mm.convertTo(depth_gray, CV_8UC1, scale, offset);
+      cv::Mat invalid_mask;
+      cv::bitwise_not(valid_mask, invalid_mask);
+      depth_gray.setTo(0, invalid_mask);
+
+      cv::Mat preview;
+      cv::cvtColor(depth_gray, preview, cv::COLOR_GRAY2BGR);
+      const cv::Rect roi = measurementRoi(config);
+      cv::rectangle(preview, roi, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+      const int center_x = roi.x + roi.width / 2;
+      const int center_y = roi.y + roi.height / 2;
+      const std::string label =
+        "ROI center=(" + std::to_string(center_x) + "," +
+        std::to_string(center_y) + ") size=" +
+        std::to_string(roi.width) + "x" + std::to_string(roi.height);
+      cv::putText(
+        preview,
+        label,
+        cv::Point(std::max(4, roi.x), std::max(18, roi.y - 6)),
+        cv::FONT_HERSHEY_SIMPLEX,
+        0.5,
+        cv::Scalar(0, 0, 255),
+        1,
+        cv::LINE_AA);
+      cv::imshow(window_name_, preview);
+      const int key = cv::waitKey(1);
+      if (
+        key == 27 || key == 'q' || key == 'Q' ||
+        cv::getWindowProperty(window_name_, cv::WND_PROP_VISIBLE) < 1.0)
+      {
+        enabled_ = false;
+        close();
+      }
+    } catch (const cv::Exception &) {
+      enabled_ = false;
+      close();
+    } catch (...) {
+      enabled_ = false;
+      close();
+    }
+  }
+
+private:
+  void close() noexcept
+  {
+    if (!window_created_) {
+      return;
+    }
+    try {
+      cv::destroyWindow(window_name_);
+      cv::waitKey(1);
+    } catch (...) {
+    }
+    window_created_ = false;
+  }
+
+  bool enabled_{false};
+  bool window_created_{false};
+  std::string window_name_;
 };
 
 cv::Matx33d matrix3x3FromCalibration(
@@ -119,6 +273,123 @@ double median(std::vector<double> values)
   return 0.5 * (*lower + upper);
 }
 
+double angleDegrees(const cv::Vec3d & first, const cv::Vec3d & second)
+{
+  return std::acos(std::clamp(first.dot(second), -1.0, 1.0)) *
+         kRadiansToDegrees;
+}
+
+cv::Vec3d medianDirection(const std::vector<cv::Vec3d> & directions)
+{
+  if (directions.empty()) {
+    throw std::invalid_argument(
+            "median direction requires at least one vector");
+  }
+  std::vector<double> x_values;
+  std::vector<double> y_values;
+  std::vector<double> z_values;
+  x_values.reserve(directions.size());
+  y_values.reserve(directions.size());
+  z_values.reserve(directions.size());
+  for (const cv::Vec3d & direction : directions) {
+    x_values.push_back(direction[0]);
+    y_values.push_back(direction[1]);
+    z_values.push_back(direction[2]);
+  }
+  return normalized(cv::Vec3d(
+    median(std::move(x_values)),
+    median(std::move(y_values)),
+    median(std::move(z_values))));
+}
+
+double directionRmsDegrees(
+  const std::vector<cv::Vec3d> & directions,
+  const cv::Vec3d & reference)
+{
+  if (directions.empty()) {
+    throw std::invalid_argument(
+            "direction RMS requires at least one vector");
+  }
+  double squared_angle_sum = 0.0;
+  for (const cv::Vec3d & direction : directions) {
+    const double angle_deg = angleDegrees(direction, reference);
+    squared_angle_sum += angle_deg * angle_deg;
+  }
+  return std::sqrt(
+    squared_angle_sum / static_cast<double>(directions.size()));
+}
+
+double standardDeviation(const std::vector<double> & values)
+{
+  if (values.empty()) {
+    throw std::invalid_argument(
+            "standard deviation requires at least one value");
+  }
+  double mean = 0.0;
+  for (const double value : values) {
+    mean += value;
+  }
+  mean /= static_cast<double>(values.size());
+  double squared_error_sum = 0.0;
+  for (const double value : values) {
+    const double error = value - mean;
+    squared_error_sum += error * error;
+  }
+  return std::sqrt(
+    squared_error_sum / static_cast<double>(values.size()));
+}
+
+std::vector<cv::Vec3d> imuBlockDirections(
+  const std::deque<std::array<double, 3>> & samples,
+  const int block_count)
+{
+  const std::size_t block_size = samples.size() /
+    static_cast<std::size_t>(block_count);
+  std::vector<cv::Vec3d> result;
+  result.reserve(static_cast<std::size_t>(block_count));
+  for (int block = 0; block < block_count; ++block) {
+    cv::Vec3d sum(0.0, 0.0, 0.0);
+    const std::size_t begin = static_cast<std::size_t>(block) * block_size;
+    const std::size_t end = begin + block_size;
+    for (std::size_t index = begin; index < end; ++index) {
+      sum += cv::Vec3d(
+        samples[index][0], samples[index][1], samples[index][2]);
+    }
+    result.push_back(normalized(sum));
+  }
+  return result;
+}
+
+struct PlaneBlockSummary
+{
+  cv::Vec3d normal{0.0, -1.0, 0.0};
+  double median_height_m{0.0};
+};
+
+std::vector<PlaneBlockSummary> planeBlockSummaries(
+  const std::deque<PlaneCandidate> & samples,
+  const int block_count)
+{
+  const std::size_t block_size = samples.size() /
+    static_cast<std::size_t>(block_count);
+  std::vector<PlaneBlockSummary> result;
+  result.reserve(static_cast<std::size_t>(block_count));
+  for (int block = 0; block < block_count; ++block) {
+    cv::Vec3d normal_sum(0.0, 0.0, 0.0);
+    std::vector<double> heights;
+    heights.reserve(block_size);
+    const std::size_t begin = static_cast<std::size_t>(block) * block_size;
+    const std::size_t end = begin + block_size;
+    for (std::size_t index = begin; index < end; ++index) {
+      normal_sum += samples[index].plane.up_camera;
+      heights.push_back(samples[index].plane.height_m);
+    }
+    result.push_back(PlaneBlockSummary{
+      normalized(normal_sum), median(std::move(heights))});
+  }
+  return result;
+}
+
 void validateConfig(const OakStartupMeasurementConfig & config)
 {
   if (
@@ -150,6 +421,8 @@ void validateConfig(const OakStartupMeasurementConfig & config)
     config.roi_width <= 0 || config.roi_height <= 0 ||
     config.roi_width > config.stereo_width ||
     config.roi_height > config.stereo_height ||
+    config.roi_center_x < -1 || config.roi_center_y < -1 ||
+    config.depth_preview_window_name.empty() ||
     config.point_sample_step <= 0 ||
     config.minimum_valid_points <= 0 ||
     !std::isfinite(config.minimum_depth_m) ||
@@ -180,8 +453,13 @@ void validateConfig(const OakStartupMeasurementConfig & config)
     !std::isfinite(config.imu_roll_bias_deg) ||
     !std::isfinite(config.imu_pitch_bias_deg) ||
     config.imu_sample_count <= 0 ||
+    config.imu_block_count <= 0 ||
+    config.imu_block_count > config.imu_sample_count ||
+    config.imu_sample_count % config.imu_block_count != 0 ||
     !std::isfinite(config.imu_max_direction_rms_deg) ||
     config.imu_max_direction_rms_deg <= 0.0 ||
+    !std::isfinite(config.imu_maximum_block_normal_rms_deg) ||
+    config.imu_maximum_block_normal_rms_deg <= 0.0 ||
     !std::isfinite(config.imu_accel_min_mps2) ||
     config.imu_accel_min_mps2 <= 0.0 ||
     !std::isfinite(config.imu_accel_max_mps2) ||
@@ -191,14 +469,31 @@ void validateConfig(const OakStartupMeasurementConfig & config)
     !std::isfinite(config.imu_gyroscope_stddev_maximum_degps) ||
     config.imu_gyroscope_stddev_maximum_degps <= 0.0 ||
     config.stable_plane_frame_count <= 0 ||
+    config.plane_block_count <= 0 ||
+    config.plane_block_count > config.stable_plane_frame_count ||
+    config.stable_plane_frame_count % config.plane_block_count != 0 ||
     !std::isfinite(config.maximum_height_stddev_m) ||
     config.maximum_height_stddev_m <= 0.0 ||
     !std::isfinite(config.maximum_plane_normal_rms_deg) ||
     config.maximum_plane_normal_rms_deg <= 0.0 ||
+    !std::isfinite(config.maximum_plane_block_height_stddev_m) ||
+    config.maximum_plane_block_height_stddev_m <= 0.0 ||
+    !std::isfinite(config.maximum_plane_block_normal_rms_deg) ||
+    config.maximum_plane_block_normal_rms_deg <= 0.0 ||
     !std::isfinite(config.timeout_sec) || config.timeout_sec <= 0.0 ||
     config.warmup_sec >= config.timeout_sec)
   {
     throw std::invalid_argument("invalid OAK startup measurement parameter");
+  }
+
+  const cv::Rect roi = measurementRoi(config);
+  if (
+    roi.x < 0 || roi.y < 0 ||
+    roi.x + roi.width > config.stereo_width ||
+    roi.y + roi.height > config.stereo_height)
+  {
+    throw std::invalid_argument(
+            "ground-plane ROI extends outside the stereo depth image");
   }
 
   const int sampled_width =
@@ -266,8 +561,9 @@ std::optional<PlaneCandidate> estimateGroundPlane(
     throw std::runtime_error("DepthAI returned an undersized depth frame");
   }
 
-  const int start_u = (config.stereo_width - config.roi_width) / 2;
-  const int start_v = (config.stereo_height - config.roi_height) / 2;
+  const cv::Rect roi = measurementRoi(config);
+  const int start_u = roi.x;
+  const int start_v = roi.y;
   const int sampled_width =
     (config.roi_width + config.point_sample_step - 1) /
     config.point_sample_step;
@@ -378,6 +674,7 @@ OakStartupMeasurement measureOakStartupExtrinsics(
   std::unique_ptr<dai::Pipeline> pipeline;
   std::shared_ptr<dai::MessageQueue> depth_queue;
   std::shared_ptr<dai::MessageQueue> imu_queue;
+  StartupDepthPreview depth_preview(config);
 
   try {
     device = std::make_shared<dai::Device>(dai::UsbSpeed::SUPER);
@@ -510,8 +807,11 @@ OakStartupMeasurement measureOakStartupExtrinsics(
     double imu_roll_deg = 0.0;
     double imu_pitch_down_deg = 0.0;
     double imu_direction_rms_deg = 0.0;
+    double imu_block_normal_rms_deg = 0.0;
     double imu_gyroscope_mean_degps = 0.0;
     double imu_gyroscope_stddev_degps = 0.0;
+    std::vector<double> imu_block_roll_deg;
+    std::vector<double> imu_block_pitch_down_deg;
     bool imu_fixed = false;
     std::string last_rejection = "waiting for stable IMU samples";
 
@@ -583,20 +883,21 @@ OakStartupMeasurement measureOakStartupExtrinsics(
           static_cast<int>(imu_direction_samples.size()) >=
           config.imu_sample_count)
         {
-          std::array<double, 3> mean{0.0, 0.0, 0.0};
-          for (const auto & sample : imu_direction_samples) {
-            for (std::size_t axis = 0; axis < 3U; ++axis) {
-              mean[axis] += sample[axis];
-            }
-          }
-          mean = normalized(mean);
+          const std::vector<cv::Vec3d> block_directions =
+            imuBlockDirections(
+            imu_direction_samples, config.imu_block_count);
+          const cv::Vec3d robust_mean = medianDirection(block_directions);
+          const std::array<double, 3> mean{
+            robust_mean[0], robust_mean[1], robust_mean[2]};
+          imu_block_normal_rms_deg = directionRmsDegrees(
+            block_directions, robust_mean);
 
           double squared_angle_sum = 0.0;
           for (const auto & sample : imu_direction_samples) {
             const double cosine = std::clamp(
-              sample[0] * mean[0] +
-              sample[1] * mean[1] +
-              sample[2] * mean[2],
+              sample[0] * robust_mean[0] +
+              sample[1] * robust_mean[1] +
+              sample[2] * robust_mean[2],
               -1.0, 1.0);
             const double angle_deg =
               std::acos(cosine) * kRadiansToDegrees;
@@ -626,12 +927,28 @@ OakStartupMeasurement measureOakStartupExtrinsics(
           if (
             imu_direction_rms_deg <=
             config.imu_max_direction_rms_deg &&
+            imu_block_normal_rms_deg <=
+            config.imu_maximum_block_normal_rms_deg &&
             imu_gyroscope_mean_degps <=
             config.imu_gyroscope_mean_maximum_degps &&
             imu_gyroscope_stddev_degps <=
             config.imu_gyroscope_stddev_maximum_degps)
           {
             frozen_specific_force = mean;
+            imu_block_roll_deg.clear();
+            imu_block_pitch_down_deg.clear();
+            imu_block_roll_deg.reserve(block_directions.size());
+            imu_block_pitch_down_deg.reserve(block_directions.size());
+            for (const cv::Vec3d & direction : block_directions) {
+              imu_block_roll_deg.push_back(
+                std::atan2(-direction[0], -direction[1]) *
+                kRadiansToDegrees - config.imu_roll_bias_deg);
+              imu_block_pitch_down_deg.push_back(
+                std::atan2(
+                  -direction[2],
+                  std::hypot(direction[0], direction[1])) *
+                kRadiansToDegrees - config.imu_pitch_bias_deg);
+            }
             imu_roll_deg =
               std::atan2(-mean[0], -mean[1]) * kRadiansToDegrees;
             imu_pitch_down_deg = std::atan2(
@@ -657,10 +974,15 @@ OakStartupMeasurement measureOakStartupExtrinsics(
               result.corrected_imu_pitch_down_deg =
                 result.pitch_down_deg;
               result.imu_direction_rms_deg = imu_direction_rms_deg;
+              result.imu_block_normal_rms_deg =
+                imu_block_normal_rms_deg;
               result.imu_gyroscope_mean_degps =
                 imu_gyroscope_mean_degps;
               result.imu_gyroscope_stddev_degps =
                 imu_gyroscope_stddev_degps;
+              result.imu_block_roll_deg = imu_block_roll_deg;
+              result.imu_block_pitch_down_deg =
+                imu_block_pitch_down_deg;
               stopPipeline(depth_queue, imu_queue, pipeline, device);
               return result;
             }
@@ -675,6 +997,7 @@ OakStartupMeasurement measureOakStartupExtrinsics(
       } else {
         auto packet = depth_queue->tryGet<dai::ImgFrame>();
         if (packet) {
+          depth_preview.show(*packet, config);
           auto candidate = estimateGroundPlane(
             *packet, corrected_specific_force, config, &last_rejection);
           if (!candidate) {
@@ -694,19 +1017,30 @@ OakStartupMeasurement measureOakStartupExtrinsics(
           static_cast<int>(stable_plane_samples.size()) >=
           config.stable_plane_frame_count)
         {
-          std::vector<double> height_values;
-          height_values.reserve(stable_plane_samples.size());
           double mean_height_m = 0.0;
-          cv::Vec3d mean_normal(0.0, 0.0, 0.0);
           for (const auto & sample : stable_plane_samples) {
             mean_height_m += sample.plane.height_m;
-            height_values.push_back(sample.plane.height_m);
-            mean_normal += sample.plane.up_camera;
           }
           mean_height_m /=
             static_cast<double>(stable_plane_samples.size());
-          mean_normal = normalized(mean_normal);
-          const double median_height_m = median(std::move(height_values));
+
+          const std::vector<PlaneBlockSummary> block_summaries =
+            planeBlockSummaries(
+            stable_plane_samples, config.plane_block_count);
+          std::vector<cv::Vec3d> block_normals;
+          std::vector<double> block_heights;
+          block_normals.reserve(block_summaries.size());
+          block_heights.reserve(block_summaries.size());
+          for (const PlaneBlockSummary & summary : block_summaries) {
+            block_normals.push_back(summary.normal);
+            block_heights.push_back(summary.median_height_m);
+          }
+          const cv::Vec3d mean_normal = medianDirection(block_normals);
+          const double median_height_m = median(block_heights);
+          const double plane_block_height_stddev_m =
+            standardDeviation(block_heights);
+          const double plane_block_normal_rms_deg =
+            directionRmsDegrees(block_normals, mean_normal);
 
           double squared_error_sum = 0.0;
           double squared_normal_angle_sum = 0.0;
@@ -728,7 +1062,11 @@ OakStartupMeasurement measureOakStartupExtrinsics(
           if (
             height_stddev_m <= config.maximum_height_stddev_m &&
             plane_normal_rms_deg <=
-            config.maximum_plane_normal_rms_deg)
+            config.maximum_plane_normal_rms_deg &&
+            plane_block_height_stddev_m <=
+            config.maximum_plane_block_height_stddev_m &&
+            plane_block_normal_rms_deg <=
+            config.maximum_plane_block_normal_rms_deg)
           {
             const cv::Vec3d raw_imu_up(
               frozen_specific_force[0],
@@ -776,12 +1114,18 @@ OakStartupMeasurement measureOakStartupExtrinsics(
             result.depth_roll_deg = attitude.depth_roll_deg;
             result.depth_pitch_down_deg = attitude.depth_pitch_down_deg;
             result.imu_direction_rms_deg = imu_direction_rms_deg;
+            result.imu_block_normal_rms_deg =
+              imu_block_normal_rms_deg;
             result.imu_gyroscope_mean_degps =
               imu_gyroscope_mean_degps;
             result.imu_gyroscope_stddev_degps =
               imu_gyroscope_stddev_degps;
             result.height_stddev_m = height_stddev_m;
             result.plane_normal_rms_deg = plane_normal_rms_deg;
+            result.plane_block_height_stddev_m =
+              plane_block_height_stddev_m;
+            result.plane_block_normal_rms_deg =
+              plane_block_normal_rms_deg;
             result.median_depth_m =
               median(std::move(median_depth_values));
             result.plane_residual_mad_m =
@@ -790,6 +1134,24 @@ OakStartupMeasurement measureOakStartupExtrinsics(
               median(std::move(inlier_ratio_values));
             result.plane_imu_difference_deg =
               attitude.imu_depth_difference_deg;
+            result.imu_block_roll_deg = imu_block_roll_deg;
+            result.imu_block_pitch_down_deg =
+              imu_block_pitch_down_deg;
+            result.depth_block_height_m.reserve(block_summaries.size());
+            result.depth_block_roll_deg.reserve(block_summaries.size());
+            result.depth_block_pitch_down_deg.reserve(block_summaries.size());
+            for (const PlaneBlockSummary & summary : block_summaries) {
+              result.depth_block_height_m.push_back(
+                summary.median_height_m);
+              result.depth_block_roll_deg.push_back(
+                std::atan2(-summary.normal[0], -summary.normal[1]) *
+                kRadiansToDegrees);
+              result.depth_block_pitch_down_deg.push_back(
+                std::atan2(
+                  -summary.normal[2],
+                  std::hypot(summary.normal[0], summary.normal[1])) *
+                kRadiansToDegrees);
+            }
             result.valid_point_count = minimum_point_count;
             result.plane_inlier_count = minimum_inlier_count;
             stopPipeline(depth_queue, imu_queue, pipeline, device);
@@ -797,7 +1159,7 @@ OakStartupMeasurement measureOakStartupExtrinsics(
           } else {
             stable_plane_samples.clear();
             last_rejection =
-              "ground-plane height or normal is not temporally stable";
+              "ground-plane frame or repeated-block estimates are not stable";
           }
         }
       }

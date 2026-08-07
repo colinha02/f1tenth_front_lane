@@ -15,6 +15,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(OpenCV 4 REQUIRED COMPONENTS core highgui imgproc)
 find_package(depthai 3 CONFIG QUIET)
 if(NOT depthai_FOUND)
@@ -27,6 +28,11 @@ if(NOT depthai_FOUND)
   )
 endif()
 find_package(Threads REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/DeferredStabilizedNv12.msg"
+  DEPENDENCIES sensor_msgs
+)
 
 add_library(camera_imu_stabilizer STATIC
   src/imu_image_stabilizer.cpp
@@ -63,6 +69,9 @@ target_link_libraries(camera_driver_component
   ${OpenCV_LIBS}
   Threads::Threads
 )
+rosidl_get_typesupport_target(
+  camera_driver_typesupport ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(camera_driver_component ${camera_driver_typesupport})
 
 rclcpp_components_register_nodes(
   camera_driver_component
@@ -103,14 +112,18 @@ install(
   TARGETS
     camera_imu_stabilizer
     camera_driver_component
-    camera_driver_node
   EXPORT export_camera_driver
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+install(
+  TARGETS camera_driver_node
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
 
 ament_export_targets(export_camera_driver HAS_LIBRARY_TARGET)
-ament_export_dependencies(OpenCV rclcpp rclcpp_components sensor_msgs)
+ament_export_dependencies(
+  OpenCV rclcpp rclcpp_components sensor_msgs rosidl_default_runtime)
 
 ament_package()

@@ -187,7 +187,7 @@ def connected_lane_points(skeleton: np.ndarray, seed_x: int | None, reference_y:
 
 
 def row_centerline(left: np.ndarray, right: np.ndarray, top: int, bottom: int) -> np.ndarray:
-    centers, previous_center, previous_left, previous_right = [], None, None, None
+    centers, previous_center, previous_left, previous_right, previous_step = [], None, None, None, 0.0
     for y in range(bottom - 1, top - 1, -4):
         def row_x(points):
             values = points[np.abs(points[:, 0] - y) <= 2, 1] if points.size else []
@@ -200,10 +200,12 @@ def row_centerline(left: np.ndarray, right: np.ndarray, top: int, bottom: int) -
         elif rx is not None and previous_center is not None and previous_right is not None:
             center = previous_center + rx - previous_right
         else:
-            center = previous_center
+            center = previous_center + previous_step if previous_center is not None else None
         if center is not None: centers.append((int(round(center)), y))
         if lx is not None: previous_left = lx
         if rx is not None: previous_right = rx
+        if center is not None and previous_center is not None:
+            previous_step = center - previous_center
         previous_center = center
     return np.asarray(centers, dtype=np.int32)
 

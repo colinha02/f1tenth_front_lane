@@ -1,30 +1,33 @@
 # bev_processor
 
-`camera_driver`가 IMU로 안정화해 발행하는 전체 1280x720 NV12 영상을
-CUDA에서 컬러 BEV로 변환하는 ROS 2 C++ 패키지다. 실행 모드는 하나이며,
-시작할 때 카메라 높이·roll·하향 pitch를 반드시 측정한다.
+`camera_driver`가 원본 1280x720 NV12와 같은 프레임의 안정화 homography를
+묶어 발행하면, CUDA에서 안정화와 컬러 BEV 변환을 한 번에 수행하는 ROS 2
+C++ 패키지다. 시작할 때 카메라 높이·roll·하향 pitch를 반드시 측정한다.
 
 ## 작동 순서
 
 1. `bev_processor`가 OAK를 먼저 단독으로 연다.
 2. 차량이 정지한 상태에서 stereo depth 중앙 ROI의 노면 평면과 IMU 중력
    방향을 측정한다.
-3. depth RANSAC/PCA 노면 평면 법선에서 roll과 하향 pitch를 구한다.
-4. 같은 depth 노면 평면의 offset 높이를 구하고, 그 값의 시간
-   중앙값으로 카메라 높이를 구한다.
+3. IMU 1200개를 3개 독립 블록으로 나눠 중력 방향 roll과 하향 pitch의
+   반복성을 검사하고 블록 중앙 방향을 채택한다.
+4. depth RANSAC/PCA 노면 평면 45개도 3개 블록으로 나눠 offset 높이와
+   평면 법선의 반복성을 검사하고 블록 중앙 높이를 채택한다.
 5. 측정한 높이·roll·pitch와 설정 파일의 X/Y/yaw로 BEV LUT를 한 번 만든다.
 6. OAK 측정 파이프라인을 닫고 `camera_driver`를 시작한다.
-7. 카메라 드라이버가 roll/pitch 흔들림을 영상에서 보정하고,
-   `bev_processor`는 시작 LUT를 바꾸지 않은 채 컬러 BEV 변환만 수행한다.
+7. 카메라 드라이버가 프레임 시각의 roll/pitch 보정 homography를 계산한다.
+8. CUDA가 시작 LUT의 BEV 좌표를 homography로 원본 NV12에 역투영하여,
+   영상 하단 70%만 안정화와 BEV 변환을 한 번에 수행한다.
 
-높이와 roll/pitch는 origin과 동일하게 depth 노면 평면의 offset과 법선으로
-구한다. IMU는 평면 후보 검증과 정지 상태 판정에 사용한다. 시작 측정에 실패하면 임의의
+높이는 depth 노면 평면 offset으로 구하고, 지면이 수평이라는 전제에서
+roll/pitch는 IMU 중력 방향으로 구한다. Depth 법선은 평면 후보 품질을
+검증하고 IMU와의 차이도 함께 기록한다. 시작 측정에 실패하면 임의의
 수동 외부 파라미터로 계속하지 않고 노드 시작을 중단한다. LUT 생성 후에는
 BEV 노드가 IMU를 구독하거나 자세 변화에 따라 LUT를 다시 만들지 않는다.
 
 카메라 X/Y 위치와 yaw는 시작 측정으로 구하지 않으므로 실제 장착값을
 `config/bev_config.yaml`에 입력해야 한다. 높이·roll·pitch 입력 항목은 없고
-시작 측정 결과만 사용한다. 자동 모드의 roll/pitch 출처는 `depth`다.
+시작 측정 결과만 사용한다. 자동 모드의 roll/pitch 출처는 기본 `imu`다.
 
 ## 실행
 
@@ -49,12 +52,12 @@ ros2 launch bev_processor bev_processor.launch.py \
 터미널에 출력된다.
 
 ```text
-[PERF][CAMERA] capture_fps=110.0 stabilized_fps=109.8 \
-stabilized_compute_ms(avg/max)=.../... \
+[PERF][CAMERA] capture_fps=110.0 camera_output_fps=109.8 \
+frame_prepare_ms(avg/max)=.../... \
 latency_ms(depthai_to_host_avg/max=.../...,\
-host_to_stabilized_avg/max=.../...,\
-depthai_to_stabilized_avg/max=.../...) ...
-[PERF][PIPELINE] stabilized_fps=109.8 bev_ready_fps=109.6 \
+host_to_camera_output_avg/max=.../...,\
+depthai_to_camera_output_avg/max=.../...) ...
+[PERF][PIPELINE] camera_input_fps=109.8 bev_ready_fps=109.6 \
 processed_fps=109.6 \
 latency_ms(depthai_to_bev_input_avg/max=.../...,\
 depthai_to_bev_ready_avg/max=.../...,\
@@ -62,16 +65,16 @@ bev_input_to_ready_avg/max=.../...) \
 bev_compute_ms(avg/max)=... skipped=0 errors(...)=0/0/0
 ```
 
-- `CAMERA.stabilized_fps`: 흔들림 보정된 NV12 프레임의 발행 속도
-- `stabilized_compute_ms`: 흔들림 보정 homography 적용과 NV12 출력
-  메시지 준비까지의 평균/최대 시간
+- `CAMERA.camera_output_fps`: 원본 NV12+homography 결합 프레임 발행 속도
+- `frame_prepare_ms`: 프레임별 homography 계산과 NV12 메시지 준비까지의
+  평균/최대 시간
 - `depthai_to_host`: DepthAI 프레임의 `getTimestamp()`부터 Jetson의
   카메라 캡처 스레드가 패킷을 꺼낸 시점까지의 평균/최대 시간
-- `host_to_stabilized`: Jetson 패킷 수신부터 흔들림 보정된 NV12
+- `host_to_camera_output`: Jetson 패킷 수신부터 원본 NV12+homography
   메시지 준비까지의 평균/최대 시간. 발행 스레드 대기 시간도 포함한다.
-- `depthai_to_stabilized`: 같은 DepthAI timestamp부터 흔들림 보정
-  메시지 준비까지의 전체 평균/최대 시간
-- `PIPELINE.stabilized_fps`: 흔들림 보정 프레임이 BEV 입력
+- `depthai_to_camera_output`: 같은 DepthAI timestamp부터 결합 메시지
+  준비까지의 전체 평균/최대 시간
+- `PIPELINE.camera_input_fps`: 결합 프레임이 BEV 입력
   콜백에 도착한 속도
 - `bev_ready_fps`: BEV BGR8 결과가 다음 알고리즘용 ROS 출력으로
   발행 완료된 속도
@@ -89,9 +92,9 @@ bev_compute_ms(avg/max)=... skipped=0 errors(...)=0/0/0
 
 - `depthai_to_host`가 크면 OAK 내부 출력, USB/XLink 또는 DepthAI
   출력 큐 구간을 우선 확인한다.
-- `host_to_stabilized`가 크면 Jetson 발행 스레드 대기와 흔들림 보정
-  경로를 확인한다.
-- `depthai_to_stabilized`는 작은데 `depthai_to_bev_input`만 크면
+- `host_to_camera_output`이 크면 Jetson 발행 스레드 대기와 프레임
+  준비 경로를 확인한다.
+- `depthai_to_camera_output`은 작은데 `depthai_to_bev_input`만 크면
   카메라 ROS 발행부터 BEV 콜백 디스패치 구간을 확인한다.
 - `bev_input_to_ready`가 크면 BEV 큐, 변환 또는 출력 메시지 준비
   구간을 확인한다.
@@ -116,11 +119,12 @@ intra-process 통신을 사용한다. BEV 시작 측정이 OAK 장치를 반환�
 
 ## 변환 로직
 
-`CudaBevProcessor`는 다음 처리만 수행한다.
+`CudaBevProcessor`는 다음 처리를 한 커널에서 수행한다.
 
-1. BEV LUT 좌표에서 NV12 Y/UV 값을 bilinear 보간한다.
-2. YUV를 BGR로 변환한다.
-3. LUT 기반 BEV 워핑 결과를 `bgr8`로 발행한다.
+1. BEV LUT 좌표 중 안정화 영상 하단 70%(`y>=216`)만 유지한다.
+2. 프레임별 안정화 homography의 역행렬로 원본 NV12 좌표를 구한다.
+3. 원본 NV12 Y/UV 값을 한 번만 bilinear 보간한다.
+4. YUV를 BGR로 변환하고 `bgr8` BEV를 발행한다.
 
 Sobel, 미분 필터, 대비 강화, 밝기 임계값, morphology, 차선 추출과 상단
 크롭은 CUDA 변환에는 적용하지 않는다. CUDA 변환 뒤의 선택적 CPU 단계인
@@ -218,12 +222,35 @@ CUDA BEV 변환, ROS 발행, GUI 프리뷰 시간을 포함하지 않는다. Jet
 
 ## 시작 측정
 
-OAK stereo depth의 중앙 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier를
-찾는다. 정지 상태의 calibrated accel/gyro 1200개를 400Hz로 측정해
-노면 후보와 정지 상태를 검증한다. roll/pitch는 depth 노면 법선에서, 높이는 각 depth
-프레임에서 RANSAC/PCA로 정밀화한 노면 평면 offset을 구하고, 그 값의
-시간 중앙값을 사용한다. 45개 평면의 시간 안정성까지 통과해야 성공한다.
+OAK stereo depth의 설정된 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier를
+찾는다. 정지 상태의 calibrated accel/gyro 1200개를 400Hz로 측정하고
+400개씩 3개 블록의 중력 방향을 독립 계산한다. roll/pitch는 세 블록의
+중앙 방향을 사용하며, 블록 간 방향 RMS가 기준을 통과해야 한다.
+높이는 45개 depth 평면을 15개씩 3개 블록으로 나눠 블록별 중앙 offset과
+평균 법선을 구한 뒤 중앙값을 사용한다. 전체 프레임 안정성과 블록 간
+높이·법선 반복성 조건을 모두 통과해야 성공한다.
 Pro-series OAK의 IR dot projector는 시작 측정 동안 `1.0`으로 사용한다.
+
+초기 Depth 평면 측정 중에는 `Startup depth ROI` 프리뷰가 잠시 열리고,
+실제 평면 추정에 사용하는 영역을 빨간색 1px 사각형으로 표시한다. 측정이
+끝나면 창은 자동으로 닫힌다. Depth 영상 좌상단이 `(0, 0)`이며 x는
+오른쪽, y는 아래쪽으로 증가한다. ROI 위치는 다음 파라미터로 조절한다.
+
+```yaml
+measurement_roi_width: 456
+measurement_roi_height: 228
+measurement_roi_center_x: -1
+measurement_roi_center_y: -1
+measurement_depth_preview_enabled: true
+measurement_depth_preview_window_name: "Startup depth ROI"
+```
+
+중심 좌표가 `-1`이면 해당 축의 영상 중앙을 자동 사용한다. 예를 들어
+1280x800 Depth에서 ROI를 아래쪽으로 옮기려면
+`measurement_roi_center_y: 500`처럼 지정한다. ROI가 영상 경계를 벗어나면
+측정을 시작하지 않고 파라미터 오류를 출력한다. `q`, `Q`, `Esc`로 프리뷰만
+닫을 수 있으며 Depth 측정은 계속된다. `performance_measurement_enabled`가
+켜졌거나 그래픽 디스플레이가 없으면 시작 프리뷰도 자동으로 꺼진다.
 
 높이를 수동으로 쓰려면 `config/bev_config.yaml`에서 다음과 같이
 설정한다. 높이는 지면에서 카메라 광학 중심까지의 수직 거리다.
@@ -259,7 +286,7 @@ shift는 0으로 고정한다. Extended disparity도 사용하지 않는다. Dep
 [bev_processor] Startup IMU: ...
 [bev_processor] Startup attitude selection: selected=..., ...
 [bev_processor] Startup ground-plane diagnostics: ...
-[bev_processor] BEV LUT installed from depth-plane attitude + depth-plane offset height: ...
+[bev_processor] BEV LUT installed from IMU attitude + depth-plane offset height: ...
 ```
 
 상태 로그의 `extrinsics=startup_measured, fixed_lut=true`는 시작 측정 자세의

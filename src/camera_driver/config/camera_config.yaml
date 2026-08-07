@@ -24,6 +24,10 @@ camera_driver:
     frame_id: "camera_optical_frame"
     # Raw NV12: Y plane followed by interleaved UV plane.
     image_topic: "/camera/image_rect"
+    # BEV launch overrides this to publish raw NV12 plus the synchronized
+    # source-to-stabilized homography without a full-frame CPU warp.
+    deferred_stabilization_enabled: false
+    deferred_image_topic: "/camera/image_rect_deferred"
 
     # IMU 토픽 발행은 선택 사항이며 영상 안정화는 내부 IMU를 직접 사용한다.
     imu_bridge_enabled: false
@@ -50,6 +54,10 @@ camera_driver:
     imu_stabilization_accelerometer_direction_gate_deg: 4.3 # 4.3
     imu_stabilization_roll_accelerometer_time_constant_sec: 6.0 # 6.0
     imu_stabilization_roll_accelerometer_direction_gate_deg: 4.3 # 4.3
+    # true면 1초 동안 IMU상 동역학이 조용하다고 확인된 구간에서만
+    # 가속도계로 roll/pitch를 되돌린다. 일정 속도 직진은 허용되지만
+    # 가감속, 조향, 충격 중에는 gyro 자세를 가속도계가 끌고 가지 않는다.
+    imu_stabilization_accelerometer_correction_requires_stationary: true
     imu_stabilization_online_gyroscope_tilt_bias_enabled: true
     imu_stabilization_online_gyroscope_tilt_bias_time_constant_sec: 10.0
     imu_stabilization_stationary_detection_window_sec: 1.0
@@ -62,9 +70,12 @@ camera_driver:
     imu_stabilization_pitch_correction_enabled: true
     imu_stabilization_roll_correction_enabled: true
     imu_stabilization_maximum_correction_deg: 12.0
-    imu_stabilization_maximum_frame_imu_wait_sec: 0.001
+    # 영상 노출 중앙 시각보다 뒤의 IMU가 올 때까지 기다린 뒤 앞뒤 자세를
+    # 보간한다. 400Hz IMU의 2.5ms 주기와 호스트 스케줄링 여유를 포함한다.
+    imu_stabilization_maximum_frame_imu_wait_sec: 0.008
     imu_stabilization_maximum_frame_imu_age_sec: 0.006
-    imu_stabilization_maximum_prediction_sec: 0.015
+    # 0이면 과거 gyro로 영상 시각의 미래 자세를 예측하지 않는다.
+    imu_stabilization_maximum_prediction_sec: 0.0
 
     # 광학 중심 기준 고정 FOV. 이 crop으로 원본 경계를 채울 수 없는 자세의
     # 프레임은 검은 영역을 섞지 않고 폐기한다.

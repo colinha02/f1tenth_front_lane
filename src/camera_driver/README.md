@@ -14,6 +14,8 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
   가속도+각속도 발행
 - 영상 안정화: 기본 활성화, 시작 pitch/roll 기준을 유지하는 고정 초점
   짐벌 방식
+- BEV 결합 모드: 전체 프레임을 warp하지 않고 원본 NV12와 프레임별
+  homography를 `DeferredStabilizedNv12`로 함께 발행
 - QoS: sensor data, best effort, keep-last 1
 - 호스트 큐: 크기 1, non-blocking
 - 프리뷰: 캡처와 분리된 최신 프레임 방식
@@ -266,6 +268,8 @@ ros2 topic info /camera/image_rect --verbose
 | `queue_blocking` | `false` | 큐가 찼을 때 캡처 차단 여부 |
 | `publish_enabled` | `false` | ROS 이미지 발행 |
 | `publish_fps` | `120.0` | ROS 발행 목표 최대 FPS |
+| `deferred_stabilization_enabled` | `false` | 전체 warp를 BEV CUDA 단계로 지연 |
+| `deferred_image_topic` | `/camera/image_rect_deferred` | 원본 NV12+homography 결합 토픽 |
 | `imu_bridge_enabled` | `false` | 가속도+자이로 ROS 발행 |
 | `imu_rate_hz` | `400.0` | calibrated accel+gyro 요청/발행 rate |
 | `imu_max_batch_reports` | `5` | 장치측 IMU 묶음 전송 상한 |
@@ -274,7 +278,9 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_stabilization_startup_discard_duration_sec` | `1.0` | 전원 직후 IMU 과도값 폐기 시간 |
 | `imu_stabilization_reference_calibration_duration_sec` | `4.0` | 정지 기준 자세 측정 시간 |
 | `imu_stabilization_maximum_correction_deg` | `12.0` | 축별 최대 영상 보정각 |
-| `imu_stabilization_maximum_prediction_sec` | `0.015` | 마지막 gyro 기반 최대 예측 시간 |
+| `imu_stabilization_accelerometer_correction_requires_stationary` | `true` | IMU상 조용한 구간에서만 가속도계 roll/pitch 보정 |
+| `imu_stabilization_maximum_frame_imu_wait_sec` | `0.008` | 영상 시각 뒤 IMU를 기다리는 최대 시간 |
+| `imu_stabilization_maximum_prediction_sec` | `0.0` | 마지막 gyro 기반 최대 예측 시간 (`0`이면 예측 금지) |
 | `fixed_view_zoom` | `1.25` | 고정 출력 FOV 줌 배율 |
 | `fixed_view_border_margin_px` | `1.5` | 원본 경계 bilinear 안전 여백 |
 | `output_crop_top_px` | `0` | 안정화 후 제거할 상단 행 수 (`0`이면 원본) |

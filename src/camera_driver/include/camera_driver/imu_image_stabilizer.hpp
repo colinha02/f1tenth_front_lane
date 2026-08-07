@@ -25,6 +25,7 @@ struct ImuImageStabilizerConfig
   double acceleration_correction_gate_deg{4.3};
   double roll_acceleration_correction_time_constant_sec{6.0};
   double roll_acceleration_direction_gate_deg{4.3};
+  bool acceleration_correction_requires_stationary{true};
   bool online_gyroscope_tilt_bias_enabled{true};
   double online_gyroscope_tilt_bias_time_constant_sec{10.0};
   double stationary_detection_window_sec{1.0};
@@ -39,9 +40,9 @@ struct ImuImageStabilizerConfig
   double maximum_correction_deg{12.0};
   double maximum_sample_interval_sec{0.1};
   double maximum_history_sec{2.0};
-  double maximum_frame_imu_wait_sec{0.001};
+  double maximum_frame_imu_wait_sec{0.008};
   double maximum_frame_imu_age_sec{0.006};
-  double maximum_frame_imu_prediction_sec{0.015};
+  double maximum_frame_imu_prediction_sec{0.0};
 };
 
 struct ImageStabilizationCorrection

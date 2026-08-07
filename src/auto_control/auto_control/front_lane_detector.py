@@ -372,7 +372,7 @@ class FrontLaneDetector(Node):
 
     @staticmethod
     def _row_centerline(left, right, top, bottom):
-        centers, previous_center, previous_left, previous_right = [], None, None, None
+        centers, previous_center, previous_left, previous_right, previous_step = [], None, None, None, 0.0
         for y in range(bottom - 1, top - 1, -4):
             def row_x(points):
                 if points.size == 0: return None
@@ -386,10 +386,12 @@ class FrontLaneDetector(Node):
             elif rx is not None and previous_center is not None and previous_right is not None:
                 center = previous_center + (rx - previous_right)
             else:
-                center = previous_center
+                center = previous_center + previous_step if previous_center is not None else None
             if center is not None: centers.append((int(round(center)), y))
             if lx is not None: previous_left = lx
             if rx is not None: previous_right = rx
+            if center is not None and previous_center is not None:
+                previous_step = center - previous_center
             previous_center = center
         return np.asarray(centers, dtype=np.int32)
 

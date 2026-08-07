@@ -313,7 +313,8 @@ bool validConfig(const ImuImageStabilizerConfig & config)
     positive_finite(config.maximum_history_sec) &&
     positive_finite(config.maximum_frame_imu_wait_sec) &&
     positive_finite(config.maximum_frame_imu_age_sec) &&
-    positive_finite(config.maximum_frame_imu_prediction_sec) &&
+    std::isfinite(config.maximum_frame_imu_prediction_sec) &&
+    config.maximum_frame_imu_prediction_sec >= 0.0 &&
     config.maximum_frame_imu_prediction_sec <= 0.050;
 }
 
@@ -490,7 +491,13 @@ public:
 
     double roll_acceleration_confidence = 0.0;
     double pitch_acceleration_confidence = 0.0;
-    if (acceleration_available && acceleration_confidence > 0.0) {
+    const bool acceleration_correction_allowed =
+      !config_.acceleration_correction_requires_stationary ||
+      stationary_confirmed_;
+    if (
+      acceleration_available && acceleration_confidence > 0.0 &&
+      acceleration_correction_allowed)
+    {
       const cv::Vec3d measured_up =
         *acceleration_camera_mps2 / acceleration_magnitude;
       const cv::Vec3d predicted_up = normalized(rotateVector(
@@ -629,6 +636,7 @@ public:
       const TimedOrientation & latest = history_.back();
       prediction_horizon_sec = timestamp_sec - latest.timestamp_sec;
       if (
+        config_.maximum_frame_imu_prediction_sec <= 0.0 ||
         !std::isfinite(prediction_horizon_sec) ||
         prediction_horizon_sec < 0.0 ||
         prediction_horizon_sec > config_.maximum_frame_imu_prediction_sec)

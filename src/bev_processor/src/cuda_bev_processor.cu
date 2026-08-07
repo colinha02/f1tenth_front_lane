@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
@@ -14,6 +15,11 @@ namespace bev_processor
 
 namespace
 {
+
+struct Matrix3x3f
+{
+  float values[9];
+};
 
 void checkCuda(const cudaError_t result, const char * operation)
 {
@@ -96,6 +102,8 @@ __global__ void nv12ToBevKernel(
   const float * map_y,
   const int output_width,
   const int output_height,
+  const Matrix3x3f stabilized_to_source,
+  const float stabilized_roi_top_y,
   std::uint8_t * output_bgr)
 {
   const int output_x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -105,10 +113,40 @@ __global__ void nv12ToBevKernel(
   }
 
   const int output_index = output_y * output_width + output_x;
-  const float source_x = map_x[output_index];
-  const float source_y = map_y[output_index];
+  const float stabilized_x = map_x[output_index];
+  const float stabilized_y = map_y[output_index];
   std::uint8_t * destination = output_bgr + output_index * 3;
   if (
+    stabilized_x < 0.0F || stabilized_y < stabilized_roi_top_y)
+  {
+    destination[0] = 0U;
+    destination[1] = 0U;
+    destination[2] = 0U;
+    return;
+  }
+
+  const float homogeneous_x =
+    stabilized_to_source.values[0] * stabilized_x +
+    stabilized_to_source.values[1] * stabilized_y +
+    stabilized_to_source.values[2];
+  const float homogeneous_y =
+    stabilized_to_source.values[3] * stabilized_x +
+    stabilized_to_source.values[4] * stabilized_y +
+    stabilized_to_source.values[5];
+  const float homogeneous_w =
+    stabilized_to_source.values[6] * stabilized_x +
+    stabilized_to_source.values[7] * stabilized_y +
+    stabilized_to_source.values[8];
+  if (!isfinite(homogeneous_w) || fabsf(homogeneous_w) <= 1.0e-8F) {
+    destination[0] = 0U;
+    destination[1] = 0U;
+    destination[2] = 0U;
+    return;
+  }
+  const float source_x = homogeneous_x / homogeneous_w;
+  const float source_y = homogeneous_y / homogeneous_w;
+  if (
+    !isfinite(source_x) || !isfinite(source_y) ||
     source_x < 0.0F || source_y < 0.0F ||
     source_x >= input_width - 1.0F ||
     source_y >= input_height - 1.0F)
@@ -272,7 +310,9 @@ public:
   cv::Mat process(
     const std::uint8_t * nv12,
     const std::size_t data_size,
-    const std::size_t input_stride)
+    const std::size_t input_stride,
+    const cv::Matx33d & source_to_stabilized_homography,
+    const double stabilized_bottom_roi_ratio)
   {
     if (nv12 == nullptr || input_stride <
       static_cast<std::size_t>(input_width_))
@@ -284,6 +324,30 @@ public:
     if (data_size < input_stride * input_rows) {
       throw std::invalid_argument("host NV12 buffer is smaller than expected");
     }
+    if (
+      !cv::checkRange(cv::Mat(source_to_stabilized_homography)) ||
+      std::abs(cv::determinant(cv::Mat(source_to_stabilized_homography))) <
+      1.0e-12 ||
+      !std::isfinite(stabilized_bottom_roi_ratio) ||
+      stabilized_bottom_roi_ratio <= 0.0 ||
+      stabilized_bottom_roi_ratio > 1.0)
+    {
+      throw std::invalid_argument(
+              "invalid stabilization homography or bottom ROI ratio");
+    }
+
+    const cv::Matx33d stabilized_to_source =
+      source_to_stabilized_homography.inv();
+    Matrix3x3f stabilized_to_source_float{};
+    for (int row = 0; row < 3; ++row) {
+      for (int column = 0; column < 3; ++column) {
+        stabilized_to_source_float.values[row * 3 + column] =
+          static_cast<float>(stabilized_to_source(row, column));
+      }
+    }
+    const float stabilized_roi_top_y = static_cast<float>(
+      (1.0 - stabilized_bottom_roi_ratio) *
+      static_cast<double>(input_height_));
 
     std::lock_guard<std::mutex> lock(stream_mutex_);
     checkCuda(
@@ -310,6 +374,8 @@ public:
       device_map_y_,
       output_width_,
       output_height_,
+      stabilized_to_source_float,
+      stabilized_roi_top_y,
       device_output_);
     checkCuda(cudaGetLastError(), "launch NV12-to-BEV kernel");
 
@@ -387,9 +453,16 @@ CudaBevProcessor::~CudaBevProcessor() = default;
 cv::Mat CudaBevProcessor::process(
   const std::uint8_t * nv12,
   const std::size_t data_size,
-  const std::size_t input_stride)
+  const std::size_t input_stride,
+  const cv::Matx33d & source_to_stabilized_homography,
+  const double stabilized_bottom_roi_ratio)
 {
-  return impl_->process(nv12, data_size, input_stride);
+  return impl_->process(
+    nv12,
+    data_size,
+    input_stride,
+    source_to_stabilized_homography,
+    stabilized_bottom_roi_ratio);
 }
 
 const std::string & CudaBevProcessor::deviceName() const

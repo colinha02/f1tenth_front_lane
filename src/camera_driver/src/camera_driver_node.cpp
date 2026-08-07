@@ -1,5 +1,6 @@
 #include "camera_driver/camera_driver_node.hpp"
 #include "camera_driver/imu_image_stabilizer.hpp"
+#include "camera_driver/msg/deferred_stabilized_nv12.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -221,7 +222,7 @@ public:
       RCLCPP_INFO(
         node_.get_logger(),
         "Performance measurement mode enabled: camera GUI preview is off; "
-        "capture and stabilized-output FPS will be reported.");
+        "capture and camera-output FPS will be reported.");
     }
 
     if (preview_enabled_ && !graphical_display_available()) {
@@ -235,8 +236,14 @@ public:
     if (publish_enabled_) {
       auto qos = rclcpp::SensorDataQoS();
       qos.keep_last(1);
-      publisher_ = node_.create_publisher<sensor_msgs::msg::Image>(
-        image_topic_, qos);
+      if (deferred_stabilization_enabled_) {
+        deferred_publisher_ = node_.create_publisher<
+          camera_driver::msg::DeferredStabilizedNv12>(
+          deferred_image_topic_, qos);
+      } else {
+        publisher_ = node_.create_publisher<sensor_msgs::msg::Image>(
+          image_topic_, qos);
+      }
     }
     if (imu_bridge_enabled_) {
       auto qos = rclcpp::SensorDataQoS();
@@ -321,6 +328,10 @@ private:
       "frame_id", "camera_optical_frame");
     image_topic_ = node_.declare_parameter<std::string>(
       "image_topic", "/camera/image_rect");
+    deferred_stabilization_enabled_ = node_.declare_parameter<bool>(
+      "deferred_stabilization_enabled", false);
+    deferred_image_topic_ = node_.declare_parameter<std::string>(
+      "deferred_image_topic", "/camera/image_rect_deferred");
     imu_bridge_enabled_ =
       node_.declare_parameter<bool>("imu_bridge_enabled", false);
     imu_topic_ = node_.declare_parameter<std::string>(
@@ -370,6 +381,9 @@ private:
     imu_stabilizer_config_.roll_acceleration_direction_gate_deg =
       node_.declare_parameter<double>(
       "imu_stabilization_roll_accelerometer_direction_gate_deg", 4.3);
+    imu_stabilizer_config_.acceleration_correction_requires_stationary =
+      node_.declare_parameter<bool>(
+      "imu_stabilization_accelerometer_correction_requires_stationary", true);
     imu_stabilizer_config_.online_gyroscope_tilt_bias_enabled =
       node_.declare_parameter<bool>(
       "imu_stabilization_online_gyroscope_tilt_bias_enabled", true);
@@ -408,13 +422,13 @@ private:
       "imu_stabilization_maximum_correction_deg", 12.0);
     imu_stabilizer_config_.maximum_frame_imu_wait_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_maximum_frame_imu_wait_sec", 0.001);
+      "imu_stabilization_maximum_frame_imu_wait_sec", 0.008);
     imu_stabilizer_config_.maximum_frame_imu_age_sec =
       node_.declare_parameter<double>(
       "imu_stabilization_maximum_frame_imu_age_sec", 0.006);
     imu_stabilizer_config_.maximum_frame_imu_prediction_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_maximum_prediction_sec", 0.015);
+      "imu_stabilization_maximum_prediction_sec", 0.0);
     fixed_view_zoom_ =
       node_.declare_parameter<double>("fixed_view_zoom", 1.25);
     fixed_view_border_margin_px_ = node_.declare_parameter<double>(
@@ -515,9 +529,17 @@ private:
     }
     if (publish_enabled_) {
       require_positive(publish_fps_, "publish_fps");
-      if (image_topic_.empty()) {
+      if (
+        (!deferred_stabilization_enabled_ && image_topic_.empty()) ||
+        (deferred_stabilization_enabled_ && deferred_image_topic_.empty()))
+      {
         throw std::invalid_argument(
-                "image_topic must not be empty when publishing is enabled");
+                "the selected image topic must not be empty when publishing "
+                "is enabled");
+      }
+      if (deferred_stabilization_enabled_ && output_crop_top_px_ != 0) {
+        throw std::invalid_argument(
+                "deferred stabilization requires output_crop_top_px=0");
       }
     }
     if (preview_enabled_) {
@@ -668,7 +690,8 @@ private:
       node_.get_logger(),
       "Options: undistort=%s, publish=%s, preview=%s, "
       "preview_grid=%s/%dpx, imu_stabilization=%s, "
-      "fixed_view_zoom=%.2fx, output_crop=top %dpx -> %dx%d, queue=%d/%s",
+      "fixed_view_zoom=%.2fx, deferred_bev=%s, output_crop=top %dpx -> "
+      "%dx%d, queue=%d/%s",
       undistort_enabled_ ? "on" : "off",
       publish_enabled_ ? "on" : "off",
       preview_enabled_ ? "on" : "off",
@@ -676,6 +699,7 @@ private:
       preview_grid_spacing_px_,
       imu_stabilization_enabled_ ? "on" : "off",
       fixed_view_zoom_,
+      deferred_stabilization_enabled_ ? deferred_image_topic_.c_str() : "off",
       output_crop_top_px_,
       width_,
       height_ - output_crop_top_px_,
@@ -914,7 +938,7 @@ private:
       camera_matrix(0, 2), camera_matrix(1, 2), *correction);
     const cv::Matx33d output_homography =
       fixed_view_zoom_homography * stabilization_homography;
-    if (!outputIsCoveredBySource(
+    if (!deferred_stabilization_enabled_ && !outputIsCoveredBySource(
         output_homography,
         cv::Size(width_, height_),
         cv::Size(width_, height_),
@@ -932,7 +956,8 @@ private:
   bool copy_nv12_to_message(
     dai::ImgFrame & packet,
     const std::chrono::steady_clock::time_point & sensor_timestamp,
-    sensor_msgs::msg::Image & message)
+    sensor_msgs::msg::Image & message,
+    cv::Matx33d * source_to_stabilized_homography = nullptr)
   {
     const auto & nv12 = packet.getData();
     const auto stride =
@@ -972,7 +997,15 @@ private:
       stabilization_output_drops_total_.fetch_add(1U);
       return false;
     }
-    if (transform.homography) {
+    if (source_to_stabilized_homography != nullptr) {
+      *source_to_stabilized_homography = transform.homography.value_or(
+        cv::Matx33d::eye());
+    }
+    if (deferred_stabilization_enabled_) {
+      // The BEV CUDA kernel applies this homography while sampling only its
+      // output pixels. Keep the full-resolution NV12 frame unwarped here.
+      stabilized_frames_total_.fetch_add(1U);
+    } else if (transform.homography) {
       stabilized_y.create(frame_height, frame_width, CV_8UC1);
       stabilized_uv.create(frame_height / 2, frame_width / 2, CV_8UC2);
       cv::warpPerspective(
@@ -1179,19 +1212,22 @@ private:
         &latest_frame_, std::memory_order_acquire);
       if (snapshot && snapshot->generation != published_generation) {
         try {
-          auto message = std::make_unique<sensor_msgs::msg::Image>();
-          message->header.stamp = snapshot->ros_stamp;
-          message->header.frame_id = frame_id_;
-          message->height = snapshot->packet->getHeight();
-          message->width = snapshot->packet->getWidth();
-          message->encoding = "nv12";
-          message->is_bigendian = false;
+          auto image_message = std::make_unique<sensor_msgs::msg::Image>();
+          image_message->header.stamp = snapshot->ros_stamp;
+          image_message->header.frame_id = frame_id_;
+          image_message->height = snapshot->packet->getHeight();
+          image_message->width = snapshot->packet->getWidth();
+          image_message->encoding = "nv12";
+          image_message->is_bigendian = false;
+          cv::Matx33d source_to_stabilized = cv::Matx33d::eye();
           const auto stabilization_started_at =
             std::chrono::steady_clock::now();
           const bool output_available = copy_nv12_to_message(
             *snapshot->packet,
             snapshot->sensor_timestamp,
-            *message);
+            *image_message,
+            deferred_stabilization_enabled_ ?
+            &source_to_stabilized : nullptr);
           published_generation = snapshot->generation;
           if (output_available && performance_measurement_enabled_) {
             const auto stabilization_finished_at =
@@ -1218,7 +1254,21 @@ private:
           }
 
           if (output_available) {
-            publisher_->publish(std::move(message));
+            if (deferred_stabilization_enabled_) {
+              auto deferred_message = std::make_unique<
+                camera_driver::msg::DeferredStabilizedNv12>();
+              deferred_message->image = std::move(*image_message);
+              for (int row = 0; row < 3; ++row) {
+                for (int column = 0; column < 3; ++column) {
+                  deferred_message->source_to_stabilized_homography[
+                    static_cast<std::size_t>(row * 3 + column)] =
+                    source_to_stabilized(row, column);
+                }
+              }
+              deferred_publisher_->publish(std::move(deferred_message));
+            } else {
+              publisher_->publish(std::move(image_message));
+            }
             published_total_.fetch_add(1);
             published_interval_.fetch_add(1);
           }
@@ -1571,11 +1621,11 @@ private:
       if (performance_measurement_enabled_) {
         RCLCPP_INFO(
           node_.get_logger(),
-          "[PERF][CAMERA] capture_fps=%.1f stabilized_fps=%.1f "
-          "stabilized_compute_ms(avg/max)=%.3f/%.3f "
+          "[PERF][CAMERA] capture_fps=%.1f camera_output_fps=%.1f "
+          "frame_prepare_ms(avg/max)=%.3f/%.3f "
           "latency_ms(depthai_to_host_avg/max=%.2f/%.2f,"
-          "host_to_stabilized_avg/max=%.2f/%.2f,"
-          "depthai_to_stabilized_avg/max=%.2f/%.2f) "
+          "host_to_camera_output_avg/max=%.2f/%.2f,"
+          "depthai_to_camera_output_avg/max=%.2f/%.2f) "
           "imu_fps=%.1f stabilizer=%s warps=%lu misses=%lu predicted=%lu "
           "reject(angle/crop/output/accel)=%lu/%lu/%lu/%lu "
           "max_imu_pair_skew_ms=%.3f dropped=%lu "
@@ -1731,6 +1781,8 @@ private:
   double fixed_view_zoom_{1.25};
   double fixed_view_border_margin_px_{1.5};
   int output_crop_top_px_{0};
+  bool deferred_stabilization_enabled_{false};
+  std::string deferred_image_topic_{"/camera/image_rect_deferred"};
   bool publish_enabled_{false};
   double publish_fps_{120.0};
   bool preview_enabled_{false};
@@ -1754,6 +1806,8 @@ private:
   std::shared_ptr<dai::MessageQueue> imu_queue_;
   std::unique_ptr<ImuImageStabilizer> imu_stabilizer_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
+  rclcpp::Publisher<
+    camera_driver::msg::DeferredStabilizedNv12>::SharedPtr deferred_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_publisher_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 

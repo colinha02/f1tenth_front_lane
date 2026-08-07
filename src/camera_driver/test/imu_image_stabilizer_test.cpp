@@ -1,7 +1,9 @@
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
+#include <thread>
 
 #include <opencv2/core.hpp>
 
@@ -27,9 +29,9 @@ camera_driver::ImuImageStabilizerConfig fastConfig()
   config.startup_discard_duration_sec = 0.0;
   config.reference_calibration_duration_sec = 0.01;
   config.stationary_detection_window_sec = 0.01;
-  config.maximum_frame_imu_wait_sec = 0.0001;
+  config.maximum_frame_imu_wait_sec = 0.02;
   config.maximum_frame_imu_age_sec = 0.006;
-  config.maximum_frame_imu_prediction_sec = 0.015;
+  config.maximum_frame_imu_prediction_sec = 0.0;
   return config;
 }
 
@@ -76,25 +78,84 @@ void verifyStartupSamplesAreDiscarded()
     "discarded startup gyro contaminated the learned bias");
 }
 
-void verifyLateralAccelerationDoesNotCreateRoll()
+void verifyDynamicAccelerationDoesNotMoveTilt()
+{
+  const auto config = fastConfig();
+  camera_driver::ImuImageStabilizer lateral_stabilizer(config);
+  calibrate(lateral_stabilizer);
+
+  double timestamp_sec = 0.01;
+  for (int index = 1; index <= 800; ++index) {
+    timestamp_sec = 0.01 + 0.0025 * static_cast<double>(index);
+    lateral_stabilizer.update(
+      cv::Vec3d(0.5, -9.80665, 0.0),
+      cv::Vec3d(0.0, 0.0, 0.0),
+      timestamp_sec);
+  }
+  const auto lateral_correction = lateral_stabilizer.correctionAt(
+    timestamp_sec);
+  require(
+    lateral_correction.has_value(), "lateral-acceleration lookup failed");
+  require(
+    std::abs(lateral_correction->roll_error_deg) < 1.0e-9,
+    "sub-gate lateral acceleration was accumulated as roll");
+  require(
+    !lateral_stabilizer.stationaryConfirmed(),
+    "lateral acceleration was incorrectly classified as quiet motion");
+
+  camera_driver::ImuImageStabilizer longitudinal_stabilizer(config);
+  calibrate(longitudinal_stabilizer);
+  for (int index = 1; index <= 800; ++index) {
+    timestamp_sec = 0.01 + 0.0025 * static_cast<double>(index);
+    longitudinal_stabilizer.update(
+      cv::Vec3d(0.0, -9.80665, 0.5),
+      cv::Vec3d(0.0, 0.0, 0.0),
+      timestamp_sec);
+  }
+  const auto longitudinal_correction = longitudinal_stabilizer.correctionAt(
+    timestamp_sec);
+  require(
+    longitudinal_correction.has_value(),
+    "longitudinal-acceleration lookup failed");
+  require(
+    std::abs(longitudinal_correction->pitch_error_deg) < 1.0e-9,
+    "sub-gate longitudinal acceleration was accumulated as pitch");
+  require(
+    !longitudinal_stabilizer.stationaryConfirmed(),
+    "longitudinal acceleration was incorrectly classified as quiet motion");
+}
+
+void verifyFrameWaitsForBracketingImuWithoutPrediction()
 {
   const auto config = fastConfig();
   camera_driver::ImuImageStabilizer stabilizer(config);
   calibrate(stabilizer);
 
-  double timestamp_sec = 0.01;
-  for (int index = 1; index <= 800; ++index) {
-    timestamp_sec = 0.01 + 0.0025 * static_cast<double>(index);
-    stabilizer.update(
-      cv::Vec3d(1.0, -9.80665, 0.0),
-      cv::Vec3d(0.0, 0.0, 0.0),
-      timestamp_sec);
-  }
-  const auto correction = stabilizer.correctionAt(timestamp_sec);
-  require(correction.has_value(), "lateral-acceleration lookup failed");
+  stabilizer.update(
+    cv::Vec3d(0.0, -9.80665, 0.0),
+    cv::Vec3d(0.0, 0.0, 1.0),
+    0.0125);
+  std::thread future_imu([&stabilizer]() {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      stabilizer.update(
+        cv::Vec3d(0.0, -9.80665, 0.0),
+        cv::Vec3d(0.0, 0.0, 1.0),
+        0.0175);
+    });
+
+  const auto interpolated = stabilizer.correctionAt(0.0150);
+  future_imu.join();
+  require(interpolated.has_value(), "bracketing IMU wait failed");
   require(
-    std::abs(correction->roll_error_deg) < 1.0e-9,
-    "lateral acceleration was incorrectly accumulated as roll");
+    !interpolated->predicted,
+    "bracketed frame was incorrectly marked as predicted");
+  require(
+    std::abs(std::abs(interpolated->nearest_imu_delta_sec) - 0.0025) < 1.0e-9,
+    "frame did not use the nearest bracketing IMU timestamps");
+
+  require(
+    !stabilizer.correctionAt(0.0300).has_value(),
+    "future frame was predicted while prediction was disabled");
 }
 
 }  // namespace
@@ -102,7 +163,8 @@ void verifyLateralAccelerationDoesNotCreateRoll()
 int main()
 {
   verifyStartupSamplesAreDiscarded();
-  verifyLateralAccelerationDoesNotCreateRoll();
+  verifyDynamicAccelerationDoesNotMoveTilt();
+  verifyFrameWaitsForBracketingImuWithoutPrediction();
 
   const auto config = fastConfig();
   camera_driver::ImuImageStabilizer stabilizer(config);
@@ -121,15 +183,9 @@ int main()
     !roll_correction->predicted,
     "exact timestamp was incorrectly marked as predicted");
 
-  const auto predicted = stabilizer.correctionAt(0.0200);
-  require(predicted.has_value(), "short gyro prediction failed");
-  require(predicted->predicted, "future frame did not use gyro prediction");
   require(
-    std::abs(predicted->prediction_horizon_sec - 0.0075) < 1.0e-9,
-    "prediction horizon is incorrect");
-  require(
-    !stabilizer.correctionAt(0.0300).has_value(),
-    "prediction exceeded its configured time limit");
+    !stabilizer.correctionAt(0.0200).has_value(),
+    "future frame was predicted while prediction was disabled");
 
   const auto homography = camera_driver::makeImageStabilizationHomography(
     500.0, 500.0, 640.0, 360.0, *roll_correction);
