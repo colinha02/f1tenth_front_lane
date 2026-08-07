@@ -381,6 +381,9 @@ private:
     imu_stabilizer_config_.roll_acceleration_direction_gate_deg =
       node_.declare_parameter<double>(
       "imu_stabilization_roll_accelerometer_direction_gate_deg", 4.3);
+    imu_stabilizer_config_.acceleration_correction_requires_stationary =
+      node_.declare_parameter<bool>(
+      "imu_stabilization_accelerometer_correction_requires_stationary", true);
     imu_stabilizer_config_.online_gyroscope_tilt_bias_enabled =
       node_.declare_parameter<bool>(
       "imu_stabilization_online_gyroscope_tilt_bias_enabled", true);

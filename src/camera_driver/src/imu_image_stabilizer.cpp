@@ -491,7 +491,13 @@ public:
 
     double roll_acceleration_confidence = 0.0;
     double pitch_acceleration_confidence = 0.0;
-    if (acceleration_available && acceleration_confidence > 0.0) {
+    const bool acceleration_correction_allowed =
+      !config_.acceleration_correction_requires_stationary ||
+      stationary_confirmed_;
+    if (
+      acceleration_available && acceleration_confidence > 0.0 &&
+      acceleration_correction_allowed)
+    {
       const cv::Vec3d measured_up =
         *acceleration_camera_mps2 / acceleration_magnitude;
       const cv::Vec3d predicted_up = normalized(rotateVector(

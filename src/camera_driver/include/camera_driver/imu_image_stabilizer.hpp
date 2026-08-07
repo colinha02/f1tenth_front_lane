@@ -25,6 +25,7 @@ struct ImuImageStabilizerConfig
   double acceleration_correction_gate_deg{4.3};
   double roll_acceleration_correction_time_constant_sec{6.0};
   double roll_acceleration_direction_gate_deg{4.3};
+  bool acceleration_correction_requires_stationary{true};
   bool online_gyroscope_tilt_bias_enabled{true};
   double online_gyroscope_tilt_bias_time_constant_sec{10.0};
   double stationary_detection_window_sec{1.0};

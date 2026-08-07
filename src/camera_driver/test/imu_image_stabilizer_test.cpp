@@ -78,25 +78,51 @@ void verifyStartupSamplesAreDiscarded()
     "discarded startup gyro contaminated the learned bias");
 }
 
-void verifyLateralAccelerationDoesNotCreateRoll()
+void verifyDynamicAccelerationDoesNotMoveTilt()
 {
   const auto config = fastConfig();
-  camera_driver::ImuImageStabilizer stabilizer(config);
-  calibrate(stabilizer);
+  camera_driver::ImuImageStabilizer lateral_stabilizer(config);
+  calibrate(lateral_stabilizer);
 
   double timestamp_sec = 0.01;
   for (int index = 1; index <= 800; ++index) {
     timestamp_sec = 0.01 + 0.0025 * static_cast<double>(index);
-    stabilizer.update(
-      cv::Vec3d(1.0, -9.80665, 0.0),
+    lateral_stabilizer.update(
+      cv::Vec3d(0.5, -9.80665, 0.0),
       cv::Vec3d(0.0, 0.0, 0.0),
       timestamp_sec);
   }
-  const auto correction = stabilizer.correctionAt(timestamp_sec);
-  require(correction.has_value(), "lateral-acceleration lookup failed");
+  const auto lateral_correction = lateral_stabilizer.correctionAt(
+    timestamp_sec);
   require(
-    std::abs(correction->roll_error_deg) < 1.0e-9,
-    "lateral acceleration was incorrectly accumulated as roll");
+    lateral_correction.has_value(), "lateral-acceleration lookup failed");
+  require(
+    std::abs(lateral_correction->roll_error_deg) < 1.0e-9,
+    "sub-gate lateral acceleration was accumulated as roll");
+  require(
+    !lateral_stabilizer.stationaryConfirmed(),
+    "lateral acceleration was incorrectly classified as quiet motion");
+
+  camera_driver::ImuImageStabilizer longitudinal_stabilizer(config);
+  calibrate(longitudinal_stabilizer);
+  for (int index = 1; index <= 800; ++index) {
+    timestamp_sec = 0.01 + 0.0025 * static_cast<double>(index);
+    longitudinal_stabilizer.update(
+      cv::Vec3d(0.0, -9.80665, 0.5),
+      cv::Vec3d(0.0, 0.0, 0.0),
+      timestamp_sec);
+  }
+  const auto longitudinal_correction = longitudinal_stabilizer.correctionAt(
+    timestamp_sec);
+  require(
+    longitudinal_correction.has_value(),
+    "longitudinal-acceleration lookup failed");
+  require(
+    std::abs(longitudinal_correction->pitch_error_deg) < 1.0e-9,
+    "sub-gate longitudinal acceleration was accumulated as pitch");
+  require(
+    !longitudinal_stabilizer.stationaryConfirmed(),
+    "longitudinal acceleration was incorrectly classified as quiet motion");
 }
 
 void verifyFrameWaitsForBracketingImuWithoutPrediction()
@@ -137,7 +163,7 @@ void verifyFrameWaitsForBracketingImuWithoutPrediction()
 int main()
 {
   verifyStartupSamplesAreDiscarded();
-  verifyLateralAccelerationDoesNotCreateRoll();
+  verifyDynamicAccelerationDoesNotMoveTilt();
   verifyFrameWaitsForBracketingImuWithoutPrediction();
 
   const auto config = fastConfig();

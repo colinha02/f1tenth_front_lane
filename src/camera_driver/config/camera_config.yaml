@@ -54,6 +54,10 @@ camera_driver:
     imu_stabilization_accelerometer_direction_gate_deg: 4.3 # 4.3
     imu_stabilization_roll_accelerometer_time_constant_sec: 6.0 # 6.0
     imu_stabilization_roll_accelerometer_direction_gate_deg: 4.3 # 4.3
+    # true면 1초 동안 IMU상 동역학이 조용하다고 확인된 구간에서만
+    # 가속도계로 roll/pitch를 되돌린다. 일정 속도 직진은 허용되지만
+    # 가감속, 조향, 충격 중에는 gyro 자세를 가속도계가 끌고 가지 않는다.
+    imu_stabilization_accelerometer_correction_requires_stationary: true
     imu_stabilization_online_gyroscope_tilt_bias_enabled: true
     imu_stabilization_online_gyroscope_tilt_bias_time_constant_sec: 10.0
     imu_stabilization_stationary_detection_window_sec: 1.0
