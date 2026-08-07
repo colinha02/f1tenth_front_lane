@@ -439,6 +439,17 @@ private:
       node_.declare_parameter<bool>("preview_grid_enabled", true);
     preview_grid_spacing_px_ =
       node_.declare_parameter<int>("preview_grid_spacing_px", 20);
+    comparison_preview_enabled_ = node_.declare_parameter<bool>(
+      "comparison_preview_enabled", false);
+    comparison_preview_fps_ = node_.declare_parameter<double>(
+      "comparison_preview_fps", 30.0);
+    comparison_preview_window_name_ = node_.declare_parameter<std::string>(
+      "comparison_preview_window_name", "OAK correction comparison");
+    if (comparison_preview_enabled_) {
+      // The middle panel must use the OAK factory-calibrated undistortion.
+      undistort_enabled_ = true;
+      preview_enabled_ = true;
+    }
     startup_timeout_sec_ =
       node_.declare_parameter<double>("startup_timeout_sec", 5.0);
     status_log_interval_sec_ =
@@ -516,6 +527,13 @@ private:
                 "preview_window_name must not be empty when preview is enabled");
       }
     }
+    if (comparison_preview_enabled_) {
+      require_positive(comparison_preview_fps_, "comparison_preview_fps");
+      if (comparison_preview_window_name_.empty()) {
+        throw std::invalid_argument(
+                "comparison_preview_window_name must not be empty");
+      }
+    }
     if (preview_max_width_ < 0 || preview_max_height_ < 0) {
       throw std::invalid_argument(
               "preview maximum dimensions must not be negative");
@@ -551,6 +569,18 @@ private:
 
     output_queue_ = output->createOutputQueue(
       static_cast<unsigned int>(queue_size_), queue_blocking_);
+    dai::Node::Output * raw_comparison_output = nullptr;
+    if (comparison_preview_enabled_) {
+      raw_comparison_output = camera->requestOutput(
+        std::make_pair(
+          static_cast<std::uint32_t>(width_),
+          static_cast<std::uint32_t>(height_)),
+        dai::ImgFrame::Type::NV12,
+        resize_mode_,
+        static_cast<float>(comparison_preview_fps_),
+        false);
+      raw_comparison_queue_ = raw_comparison_output->createOutputQueue(1U, false);
+    }
 
     if (imu_stream_enabled_) {
       try {
@@ -617,6 +647,15 @@ private:
     }
     xlink_bridge->xLinkOut->input.setMaxSize(1);
     xlink_bridge->xLinkOut->input.setBlocking(false);
+    if (raw_comparison_output != nullptr) {
+      const auto raw_bridge = raw_comparison_output->getXLinkBridge();
+      if (!raw_bridge || !raw_bridge->xLinkOut) {
+        throw std::runtime_error(
+                "DepthAI did not create the raw comparison XLink bridge");
+      }
+      raw_bridge->xLinkOut->input.setMaxSize(1);
+      raw_bridge->xLinkOut->input.setBlocking(false);
+    }
 
     pipeline_->start();
 
@@ -1262,8 +1301,10 @@ private:
 
   void preview_loop()
   {
+    const std::string & display_window_name = comparison_preview_enabled_ ?
+      comparison_preview_window_name_ : preview_window_name_;
     try {
-      cv::namedWindow(preview_window_name_, cv::WINDOW_NORMAL);
+      cv::namedWindow(display_window_name, cv::WINDOW_NORMAL);
     } catch (const std::exception & exception) {
       preview_active_.store(false);
       RCLCPP_ERROR(
@@ -1274,10 +1315,12 @@ private:
 
     const auto period = std::chrono::duration_cast<
       std::chrono::steady_clock::duration>(
-      std::chrono::duration<double>(1.0 / preview_fps_));
+      std::chrono::duration<double>(1.0 /
+      (comparison_preview_enabled_ ? comparison_preview_fps_ : preview_fps_)));
     auto next_deadline = std::chrono::steady_clock::now();
     std::uint64_t previewed_generation = 0;
     bool window_was_visible = false;
+    cv::Mat latest_raw_comparison_frame;
 
     while (!stop_requested_.load(std::memory_order_relaxed)) {
       {
@@ -1305,11 +1348,12 @@ private:
           if (!transform.frame_usable) {
             stabilization_output_drops_total_.fetch_add(1U);
           } else {
-            auto preview_frame = snapshot->packet->getCvFrame();
-            if (preview_frame.empty() || preview_frame.type() != CV_8UC3) {
+            const auto calibrated_frame = snapshot->packet->getCvFrame();
+            if (calibrated_frame.empty() || calibrated_frame.type() != CV_8UC3) {
               throw std::runtime_error(
                       "DepthAI could not convert the NV12 preview to BGR");
             }
+            auto preview_frame = calibrated_frame;
             if (transform.homography) {
               cv::Mat stabilized;
               cv::warpPerspective(
@@ -1331,11 +1375,48 @@ private:
                   preview_frame.cols,
                   preview_frame.rows - output_crop_top_px_)).clone();
             }
-            if (preview_grid_enabled_) {
+            if (preview_grid_enabled_ && !comparison_preview_enabled_) {
               draw_preview_grid(preview_frame);
             }
-            resize_preview_window(preview_frame);
-            cv::imshow(preview_window_name_, preview_frame);
+            if (comparison_preview_enabled_) {
+              if (raw_comparison_queue_) {
+                const auto raw_packet =
+                  raw_comparison_queue_->tryGet<dai::ImgFrame>();
+                if (raw_packet) {
+                  // Keep a copy because the DepthAI packet is released at the
+                  // end of this scope, while this is also used on later frames.
+                  latest_raw_comparison_frame = raw_packet->getCvFrame().clone();
+                }
+              }
+              if (!latest_raw_comparison_frame.empty() &&
+                latest_raw_comparison_frame.type() == CV_8UC3)
+              {
+                cv::Mat raw_tile;
+                cv::Mat calibrated_tile;
+                cv::Mat stabilized_tile;
+                const cv::Size tile_size(426, 240);
+                cv::resize(latest_raw_comparison_frame, raw_tile, tile_size);
+                cv::resize(calibrated_frame, calibrated_tile, tile_size);
+                cv::resize(preview_frame, stabilized_tile, tile_size);
+                cv::putText(raw_tile, "1. Raw (no correction)",
+                  cv::Point(12, 28), cv::FONT_HERSHEY_SIMPLEX, 0.65,
+                  cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+                cv::putText(calibrated_tile, "2. Factory undistortion only",
+                  cv::Point(12, 28), cv::FONT_HERSHEY_SIMPLEX, 0.55,
+                  cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+                cv::putText(stabilized_tile, "3. Undistortion + IMU tilt",
+                  cv::Point(12, 28), cv::FONT_HERSHEY_SIMPLEX, 0.55,
+                  cv::Scalar(0, 255, 255), 2, cv::LINE_AA);
+                cv::Mat comparison;
+                cv::hconcat(
+                  std::vector<cv::Mat>{raw_tile, calibrated_tile, stabilized_tile},
+                  comparison);
+                cv::imshow(display_window_name, comparison);
+              }
+            } else {
+              resize_preview_window(preview_frame);
+              cv::imshow(display_window_name, preview_frame);
+            }
             previewed_total_.fetch_add(1);
             previewed_interval_.fetch_add(1);
           }
@@ -1343,7 +1424,7 @@ private:
 
         const auto key = cv::waitKey(1) & 0xff;
         const auto visible = cv::getWindowProperty(
-          preview_window_name_, cv::WND_PROP_VISIBLE);
+          display_window_name, cv::WND_PROP_VISIBLE);
         if (visible >= 1.0) {
           window_was_visible = true;
         }
@@ -1369,7 +1450,9 @@ private:
 
     preview_active_.store(false);
     try {
-      cv::destroyWindow(preview_window_name_);
+      cv::destroyWindow(
+        comparison_preview_enabled_ ?
+        comparison_preview_window_name_ : preview_window_name_);
       cv::waitKey(1);
     } catch (const std::exception &) {
       // The GUI backend may already have destroyed the window.
@@ -1657,6 +1740,9 @@ private:
   int preview_max_height_{720};
   bool preview_grid_enabled_{true};
   int preview_grid_spacing_px_{20};
+  bool comparison_preview_enabled_{false};
+  double comparison_preview_fps_{30.0};
+  std::string comparison_preview_window_name_;
   double startup_timeout_sec_{5.0};
   double status_log_interval_sec_{1.0};
   dai::CameraBoardSocket camera_socket_{dai::CameraBoardSocket::CAM_A};
@@ -1664,6 +1750,7 @@ private:
 
   std::unique_ptr<dai::Pipeline> pipeline_;
   std::shared_ptr<dai::MessageQueue> output_queue_;
+  std::shared_ptr<dai::MessageQueue> raw_comparison_queue_;
   std::shared_ptr<dai::MessageQueue> imu_queue_;
   std::unique_ptr<ImuImageStabilizer> imu_stabilizer_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;

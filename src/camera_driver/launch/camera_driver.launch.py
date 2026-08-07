@@ -17,6 +17,7 @@ def generate_launch_description():
         "imu_stabilization_enabled"
     )
     publish_enabled = LaunchConfiguration("publish_enabled")
+    comparison_preview_enabled = LaunchConfiguration("comparison_preview_enabled")
 
     return LaunchDescription(
         [
@@ -48,6 +49,11 @@ def generate_launch_description():
                 default_value="false",
                 description="Publish sensor_msgs/Image frames.",
             ),
+            DeclareLaunchArgument(
+                "comparison_preview_enabled",
+                default_value="false",
+                description="Show raw, undistorted, and IMU-stabilized views.",
+            ),
             ComposableNodeContainer(
                 name="camera_container",
                 namespace="",
@@ -68,6 +74,7 @@ def generate_launch_description():
                                     imu_stabilization_enabled
                                 ),
                                 "publish_enabled": publish_enabled,
+                                "comparison_preview_enabled": comparison_preview_enabled,
                                 # Standalone launch does not publish IMU;
                                 # stabilization can still use it internally.
                                 "imu_bridge_enabled": False,

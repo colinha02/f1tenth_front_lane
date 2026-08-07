@@ -89,5 +89,9 @@ camera_driver:
     preview_grid_enabled: true
     preview_grid_spacing_px: 20
 
+    comparison_preview_enabled: false
+    comparison_preview_fps: 30.0
+    comparison_preview_window_name: "OAK correction comparison"
+
     startup_timeout_sec: 5.0
     status_log_interval_sec: 1.0
