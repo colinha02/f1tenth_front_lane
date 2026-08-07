@@ -65,7 +65,7 @@ class FrontLaneDetector(Node):
             "show_model_paths": False,
             "minimum_displayed_lane_vertical_coverage": 0.20,
             "displayed_lane_trace_thickness_px": 7,
-            "roi_top_ratio": 0.4,
+            "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
             "window_margin_px": 85,

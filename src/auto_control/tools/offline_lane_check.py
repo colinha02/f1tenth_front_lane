@@ -187,7 +187,7 @@ def displayed_lane_skeleton(skeleton: np.ndarray, top: int, bottom: int) -> np.n
 
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
-    top = int(0.4 * height)
+    top = height // 2
     bottom = height
     mask = candidate_mask(
         image, top, bottom, lightness, saturation, dark_max, dark_adjacency
