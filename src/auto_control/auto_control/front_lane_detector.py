@@ -84,6 +84,8 @@ class FrontLaneDetector(Node):
             "expected_lane_width_px": 360.0,
             "minimum_lane_width_px": 180.0,
             "maximum_lane_width_px": 650.0,
+            "lane_width_temporal_alpha": 0.25,
+            "control_reference_y_ratio": 0.67,
             "lookahead_ratio": 0.48,
         }.items():
             self.declare_parameter(name, value)
@@ -137,6 +139,8 @@ class FrontLaneDetector(Node):
         self.expected_lane_width_px = float(parameter("expected_lane_width_px"))
         self.minimum_lane_width_px = float(parameter("minimum_lane_width_px"))
         self.maximum_lane_width_px = float(parameter("maximum_lane_width_px"))
+        self.lane_width_temporal_alpha = float(parameter("lane_width_temporal_alpha"))
+        self.control_reference_y_ratio = float(parameter("control_reference_y_ratio"))
         self.lookahead_ratio = float(parameter("lookahead_ratio"))
         self._next_preview_at = 0.0
 
@@ -404,15 +408,34 @@ class FrontLaneDetector(Node):
                 width_fit = right_fit - left_fit
                 lane_widths = np.polyval(width_fit, sample_y)
                 if np.all((lane_widths >= self.minimum_lane_width_px) & (lane_widths <= self.maximum_lane_width_px)):
-                    self._width_fit = width_fit
+                    if self._width_fit is None:
+                        self._width_fit = width_fit
+                    else:
+                        self._width_fit = (
+                            self.lane_width_temporal_alpha * width_fit
+                            + (1.0 - self.lane_width_temporal_alpha) * self._width_fit
+                        )
 
             width_fit = self._width_fit
             if width_fit is None:
                 width_fit = np.array([0.0, 0.0, self.expected_lane_width_px])
-            if left_fit is None and right_fit is not None:
+            # Use the currently observed boundary immediately.  A held fit on
+            # the missing side is less useful than a virtual boundary made
+            # from the visible tape and the learned width profile.
+            left_inferred = False
+            right_inferred = False
+            if right_detected and not left_detected:
                 left_fit = right_fit - width_fit
+                left_inferred = left_fit is not None
+            elif left_detected and not right_detected:
+                right_fit = left_fit + width_fit
+                right_inferred = right_fit is not None
+            elif left_fit is None and right_fit is not None:
+                left_fit = right_fit - width_fit
+                left_inferred = left_fit is not None
             elif right_fit is None and left_fit is not None:
                 right_fit = left_fit + width_fit
+                right_inferred = right_fit is not None
 
             overlay = bgr.copy()
             if self.show_extracted_lane_mask:
@@ -426,9 +449,15 @@ class FrontLaneDetector(Node):
             left_curve = self._points_for_fit(left_fit, ys, width)
             right_curve = self._points_for_fit(right_fit, ys, width)
             if left_curve is not None:
-                cv2.polylines(overlay, [left_curve], False, (255, 0, 0), 5)
+                cv2.polylines(
+                    overlay, [left_curve], False,
+                    (255, 255, 0) if left_inferred else (255, 0, 0), 5,
+                )
             if right_curve is not None:
-                cv2.polylines(overlay, [right_curve], False, (255, 0, 0), 5)
+                cv2.polylines(
+                    overlay, [right_curve], False,
+                    (255, 255, 0) if right_inferred else (255, 0, 0), 5,
+                )
 
             valid_sides = int(left_fit is not None) + int(right_fit is not None)
             confidence = 0.0
@@ -440,11 +469,22 @@ class FrontLaneDetector(Node):
                 center_curve = self._points_for_fit(center_fit, ys, width)
                 if center_curve is not None:
                     cv2.polylines(overlay, [center_curve], False, (0, 255, 0), 3)
+                reference_y = float(np.clip(
+                    self.control_reference_y_ratio * height, top, bottom - 1
+                ))
                 lookahead_y = top + self.lookahead_ratio * (bottom - top)
-                bottom_x = float(np.polyval(center_fit, bottom - 1))
+                reference_x = float(np.polyval(center_fit, reference_y))
                 lookahead_x = float(np.polyval(center_fit, lookahead_y))
-                lateral_error = (bottom_x - 0.5 * width) / (0.5 * width)
+                lateral_error = (reference_x - 0.5 * width) / (0.5 * width)
                 lookahead_offset = (lookahead_x - 0.5 * width) / (0.5 * width)
+                cv2.circle(
+                    overlay, (int(round(reference_x)), int(round(reference_y))),
+                    7, (255, 0, 255), -1,
+                )
+                cv2.circle(
+                    overlay, (width // 2, int(round(reference_y))),
+                    6, (0, 255, 255), 2,
+                )
                 a, b, _ = center_fit
                 slope = 2.0 * a * lookahead_y + b
                 curvature = float(2.0 * a / ((1.0 + slope * slope) ** 1.5))

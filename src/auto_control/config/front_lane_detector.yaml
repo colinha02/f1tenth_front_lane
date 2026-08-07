@@ -47,4 +47,9 @@ front_lane_detector:
     expected_lane_width_px: 720.0
     minimum_lane_width_px: 100.0
     maximum_lane_width_px: 1400.0
+    # Smoothly learn the width profile only when both boundaries are observed.
+    lane_width_temporal_alpha: 0.25
+    # Control/reference row: around the lower third of the full image.  The
+    # magenta center point should approach the yellow image-center target.
+    control_reference_y_ratio: 0.67
     lookahead_ratio: 0.48
