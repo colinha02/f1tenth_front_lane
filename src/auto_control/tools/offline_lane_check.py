@@ -305,6 +305,37 @@ def displayed_lane_skeleton(skeleton: np.ndarray, top: int, bottom: int) -> np.n
     return kept
 
 
+def points_mask(points: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    result = np.zeros(shape, dtype=np.uint8)
+    if points.size:
+        ys = np.clip(points[:, 0].astype(np.int32), 0, shape[0] - 1)
+        xs = np.clip(points[:, 1].astype(np.int32), 0, shape[1] - 1)
+        result[ys, xs] = 255
+    return result
+
+
+def tape_edge_centers(gray: np.ndarray, selected: np.ndarray, top: int, bottom: int, threshold: int = 55):
+    if cv2.countNonZero(selected) == 0:
+        return np.empty((0, 2), dtype=np.float64), np.empty((0, 2), dtype=np.float64)
+    gradient = cv2.convertScaleAbs(cv2.Sobel(gray, cv2.CV_16S, 1, 0, ksize=3))
+    search = cv2.dilate(selected, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)))
+    edge_mask = np.where((gradient >= threshold) & (search > 0), 255, 0).astype(np.uint8)
+    centers = []
+    for y in range(bottom - 1, top - 1, -2):
+        tape_x = np.flatnonzero(selected[y])
+        if tape_x.size < 2:
+            continue
+        left_limit, right_limit = int(tape_x.min()), int(tape_x.max())
+        edge_x = np.flatnonzero(edge_mask[y])
+        left_options = edge_x[np.abs(edge_x - left_limit) <= 5]
+        right_options = edge_x[np.abs(edge_x - right_limit) <= 5]
+        left_edge = int(left_options[np.argmin(np.abs(left_options - left_limit))]) if left_options.size else left_limit
+        right_edge = int(right_options[np.argmin(np.abs(right_options - right_limit))]) if right_options.size else right_limit
+        if right_edge - left_edge >= 2:
+            centers.append((float(y), 0.5 * (left_edge + right_edge)))
+    return np.column_stack(np.nonzero(edge_mask)).astype(np.float64), np.asarray(centers, dtype=np.float64)
+
+
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
     top = height // 2
@@ -323,10 +354,15 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     right_points = reference_seeded_sliding_points(
         mask, seed(histogram, False), reference_row, top, bottom, False
     )
-    centers = row_centerline(left_points, right_points, top, bottom)
+    left_selected = points_mask(left_points, mask.shape)
+    right_selected = points_mask(right_points, mask.shape)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    left_edges, left_centers = tape_edge_centers(gray, left_selected, top, bottom)
+    right_edges, right_centers = tape_edge_centers(gray, right_selected, top, bottom)
+    centers = row_centerline(left_centers, right_centers, top, bottom)
     ys = np.linspace(bottom - 1, top, 80)
-    left_fit = fit_curve(left_points, bottom - top)
-    right_fit = fit_curve(right_points, bottom - top)
+    left_fit = fit_curve(left_centers, bottom - top)
+    right_fit = fit_curve(right_centers, bottom - top)
     width_fit = None
     if left_fit is not None and right_fit is not None:
         candidate_width = right_fit - left_fit
@@ -346,14 +382,14 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
         right_inferred = True
 
     overlay = image.copy()
-    tracked = np.zeros_like(mask)
-    for points in (left_points, right_points):
-        if points.size:
-            tracked[points[:, 0].astype(np.int32), points[:, 1].astype(np.int32)] = 255
+    tracked = cv2.bitwise_or(left_selected, right_selected)
     tracked_trace = cv2.dilate(
         tracked, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     )
     overlay[tracked_trace > 0] = (0, 0, 255)
+    for edges in (left_edges, right_edges):
+        if edges.size:
+            overlay[edges[:, 0].astype(np.int32), edges[:, 1].astype(np.int32)] = (255, 255, 0)
     if centers.size:
         cv2.polylines(overlay, [centers], False, (0, 255, 0), 3)
         for point in centers:

@@ -41,6 +41,9 @@ front_lane_detector:
     minimum_component_pixels: 8
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
+    # Within the selected white tape only, retain Sobel-X edges stronger than
+    # this value and use the midpoint of the two tape boundaries.
+    sobel_edge_threshold: 55
 
     # Preserve the white tape core, then require a nearby dark track region.
     white_lightness_min: 82

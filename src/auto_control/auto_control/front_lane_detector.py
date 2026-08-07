@@ -76,6 +76,7 @@ class FrontLaneDetector(Node):
             "minimum_component_pixels": 8,
             "minimum_window_pixels": 35,
             "minimum_fit_pixels": 180,
+            "sobel_edge_threshold": 55,
             "white_lightness_min": 82,
             "white_saturation_max": 179,
             "track_dark_lightness_max": 42,
@@ -128,6 +129,7 @@ class FrontLaneDetector(Node):
         )
         self.minimum_window_pixels = max(5, int(parameter("minimum_window_pixels")))
         self.minimum_fit_pixels = max(30, int(parameter("minimum_fit_pixels")))
+        self.sobel_edge_threshold = max(1, int(parameter("sobel_edge_threshold")))
         self.white_lightness_min = int(parameter("white_lightness_min"))
         self.white_saturation_max = int(parameter("white_saturation_max"))
         self.track_dark_lightness_max = int(parameter("track_dark_lightness_max"))
@@ -447,6 +449,52 @@ class FrontLaneDetector(Node):
         return np.asarray(centers, dtype=np.int32)
 
     @staticmethod
+    def _points_mask(points: np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+        selected = np.zeros(shape, dtype=np.uint8)
+        if points.size:
+            ys = np.clip(points[:, 0].astype(np.int32), 0, shape[0] - 1)
+            xs = np.clip(points[:, 1].astype(np.int32), 0, shape[1] - 1)
+            selected[ys, xs] = 255
+        return selected
+
+    def _tape_edge_centers(
+        self, gray: np.ndarray, selected: np.ndarray, top: int, bottom: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Return Sobel edge pixels and the midpoint between each edge pair."""
+        if cv2.countNonZero(selected) == 0:
+            return np.empty((0, 2), dtype=np.float64), np.empty((0, 2), dtype=np.int32)
+        gradient = cv2.convertScaleAbs(
+            cv2.Sobel(gray, cv2.CV_16S, 1, 0, ksize=3)
+        )
+        # Search only a few pixels around the already selected continuous tape
+        # path.  This prevents wall/tile edges from becoming lane boundaries.
+        search = cv2.dilate(
+            selected, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        )
+        edge_mask = np.where(
+            (gradient >= self.sobel_edge_threshold) & (search > 0), 255, 0
+        ).astype(np.uint8)
+        centers: list[tuple[float, float]] = []
+        for y in range(bottom - 1, top - 1, -2):
+            tape_x = np.flatnonzero(selected[y])
+            if tape_x.size < 2:
+                continue
+            left_limit, right_limit = int(tape_x.min()), int(tape_x.max())
+            edge_x = np.flatnonzero(edge_mask[y])
+            if edge_x.size:
+                left_candidates = edge_x[np.abs(edge_x - left_limit) <= 5]
+                right_candidates = edge_x[np.abs(edge_x - right_limit) <= 5]
+                left_edge = int(left_candidates[np.argmin(np.abs(left_candidates - left_limit))]) if left_candidates.size else left_limit
+                right_edge = int(right_candidates[np.argmin(np.abs(right_candidates - right_limit))]) if right_candidates.size else right_limit
+            else:
+                left_edge, right_edge = left_limit, right_limit
+            if right_edge - left_edge >= 2:
+                centers.append((float(y), 0.5 * (left_edge + right_edge)))
+        return np.column_stack(np.nonzero(edge_mask)).astype(np.float64), np.asarray(
+            [(int(round(x)), int(round(y))) for y, x in centers], dtype=np.int32
+        )
+
+    @staticmethod
     def _fit(
         points: np.ndarray,
         minimum_pixels: int,
@@ -566,18 +614,39 @@ class FrontLaneDetector(Node):
                 mask, right_seed, reference_row, top, bottom, False,
                 self._right_state.coefficients
             )
-            row_centers = self._row_centerline(left_points, right_points, top, bottom)
+            gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+            left_selected = self._points_mask(left_points, mask.shape)
+            right_selected = self._points_mask(right_points, mask.shape)
+            left_edge_points, left_tape_centers = self._tape_edge_centers(
+                gray, left_selected, top, bottom
+            )
+            right_edge_points, right_tape_centers = self._tape_edge_centers(
+                gray, right_selected, top, bottom
+            )
+            # Centerline is calculated from each tape's two Sobel boundaries,
+            # rather than from every filled white pixel in the tape strip.
+            left_center_points = (
+                np.column_stack((left_tape_centers[:, 1], left_tape_centers[:, 0]))
+                if left_tape_centers.size else np.empty((0, 2), dtype=np.float64)
+            )
+            right_center_points = (
+                np.column_stack((right_tape_centers[:, 1], right_tape_centers[:, 0]))
+                if right_tape_centers.size else np.empty((0, 2), dtype=np.float64)
+            )
+            row_centers = self._row_centerline(
+                left_center_points, right_center_points, top, bottom
+            )
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
             )
             left_fit, left_detected = self._accept_fit(
                 self._fit(
-                    left_points, self.minimum_fit_pixels, minimum_vertical_span_px
+                    left_center_points, self.minimum_fit_pixels, minimum_vertical_span_px
                 ), self._left_state, sample_y
             )
             right_fit, right_detected = self._accept_fit(
                 self._fit(
-                    right_points, self.minimum_fit_pixels, minimum_vertical_span_px
+                    right_center_points, self.minimum_fit_pixels, minimum_vertical_span_px
                 ), self._right_state, sample_y
             )
 
@@ -615,12 +684,7 @@ class FrontLaneDetector(Node):
                 right_inferred = right_fit is not None
 
             overlay = bgr.copy()
-            tracked_pixels = np.zeros_like(mask)
-            for points in (left_points, right_points):
-                if points.size:
-                    pixel_y = np.clip(points[:, 0].astype(np.int32), 0, height - 1)
-                    pixel_x = np.clip(points[:, 1].astype(np.int32), 0, width - 1)
-                    tracked_pixels[pixel_y, pixel_x] = 255
+            tracked_pixels = cv2.bitwise_or(left_selected, right_selected)
             # Solid red means this exact white-mask pixel was accepted by a
             # lane tracking path.  Unselected background candidates are not
             # painted on the source image.
@@ -629,6 +693,11 @@ class FrontLaneDetector(Node):
                 cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)),
             )
             overlay[tracked_trace > 0] = (0, 0, 255)
+            for edge_points in (left_edge_points, right_edge_points):
+                if edge_points.size:
+                    pixel_y = edge_points[:, 0].astype(np.int32)
+                    pixel_x = edge_points[:, 1].astype(np.int32)
+                    overlay[pixel_y, pixel_x] = (255, 255, 0)
             if row_centers.size:
                 cv2.polylines(overlay, [row_centers], False, (0, 255, 0), 3)
                 for point in row_centers:
