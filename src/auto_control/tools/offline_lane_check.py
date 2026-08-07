@@ -150,6 +150,9 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     )
 
     overlay = image.copy()
+    extracted = np.zeros_like(overlay)
+    extracted[mask > 0] = (255, 0, 0)
+    overlay = cv2.addWeighted(overlay, 1.0, extracted, 0.55, 0.0)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
     for fit in (left_fit, right_fit):
         points = curve_points(fit, ys, width)

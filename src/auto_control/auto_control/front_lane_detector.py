@@ -60,6 +60,8 @@ class FrontLaneDetector(Node):
             "preview_enabled": True,
             "preview_window_name": "Front lane detection",
             "preview_fps": 30.0,
+            "show_extracted_lane_mask": True,
+            "extracted_lane_mask_alpha": 0.55,
             "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
@@ -95,6 +97,8 @@ class FrontLaneDetector(Node):
         self.preview_enabled = bool(parameter("preview_enabled"))
         self.preview_window_name = str(parameter("preview_window_name"))
         self.preview_fps = max(1.0, float(parameter("preview_fps")))
+        self.show_extracted_lane_mask = bool(parameter("show_extracted_lane_mask"))
+        self.extracted_lane_mask_alpha = float(parameter("extracted_lane_mask_alpha"))
         self.roi_top_ratio = float(parameter("roi_top_ratio"))
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
@@ -411,6 +415,12 @@ class FrontLaneDetector(Node):
                 right_fit = left_fit + width_fit
 
             overlay = bgr.copy()
+            if self.show_extracted_lane_mask:
+                extracted = np.zeros_like(overlay)
+                extracted[mask > 0] = (255, 0, 0)
+                overlay = cv2.addWeighted(
+                    overlay, 1.0, extracted, self.extracted_lane_mask_alpha, 0.0
+                )
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)

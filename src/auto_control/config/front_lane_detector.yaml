@@ -7,6 +7,10 @@ front_lane_detector:
     preview_enabled: true
     preview_window_name: "Front lane detection"
     preview_fps: 30.0
+    # Blue transparent rendering of the raw white-tape extraction.  It is
+    # independent from the later blue curve/path fit.
+    show_extracted_lane_mask: true
+    extracted_lane_mask_alpha: 0.55
 
     # Lower half of the front image.  This removes the wall/background while
     # retaining the nearby track section used for lane tracking.
