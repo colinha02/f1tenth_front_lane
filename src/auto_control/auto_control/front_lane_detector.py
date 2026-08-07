@@ -324,6 +324,24 @@ class FrontLaneDetector(Node):
         # The best full path, rather than one greedy window decision, is used.
         return np.vstack(hypotheses[0][1]).astype(np.float64)
 
+    def _seeded_sliding_points(self, mask, seed_x, reference_y, top, bottom):
+        if seed_x is None:
+            return np.empty((0, 2), dtype=np.float64)
+        nonzero_y, nonzero_x = mask.nonzero()
+        result = []
+        for direction in (-1, 1):
+            current_x, y = int(seed_x), reference_y
+            while top <= y < bottom:
+                y0, y1 = (max(top, y - 24), y) if direction < 0 else (y, min(bottom, y + 24))
+                inside = ((nonzero_y >= y0) & (nonzero_y < y1) & (nonzero_x >= current_x - self.window_margin_px) & (nonzero_x <= current_x + self.window_margin_px))
+                ids = np.flatnonzero(inside)
+                if ids.size < self.minimum_window_pixels:
+                    break
+                result.append(np.column_stack((nonzero_y[ids], nonzero_x[ids])))
+                current_x = int(np.mean(nonzero_x[ids]))
+                y += direction * 24
+        return np.vstack(result).astype(np.float64) if result else np.empty((0, 2), dtype=np.float64)
+
     @staticmethod
     def _fit(
         points: np.ndarray,
@@ -421,20 +439,17 @@ class FrontLaneDetector(Node):
             displayed_skeleton = self._displayable_lane_skeleton(
                 lane_skeleton, top, bottom
             )
-            histogram = np.sum(mask[max(top, bottom - 80):bottom] > 0, axis=0)
+            reference_row = int(np.clip(0.67 * height, top, bottom - 1))
+            histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
             sample_y = np.linspace(bottom - 1, top, 8)
             left_seed = self._initial_seed(
-                histogram, True, self._left_state.coefficients, bottom
+                histogram, True, self._left_state.coefficients, reference_row
             )
             right_seed = self._initial_seed(
-                histogram, False, self._right_state.coefficients, bottom
+                histogram, False, self._right_state.coefficients, reference_row
             )
-            left_points = self._sliding_window_points(
-                mask, left_seed, top, bottom, True, self._left_state.coefficients
-            )
-            right_points = self._sliding_window_points(
-                mask, right_seed, top, bottom, False, self._right_state.coefficients
-            )
+            left_points = self._seeded_sliding_points(mask, left_seed, reference_row, top, bottom)
+            right_points = self._seeded_sliding_points(mask, right_seed, reference_row, top, bottom)
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
             )
@@ -483,6 +498,16 @@ class FrontLaneDetector(Node):
                 right_inferred = right_fit is not None
 
             overlay = bgr.copy()
+            tracked_pixels = np.zeros_like(mask)
+            for points in (left_points, right_points):
+                if points.size:
+                    pixel_y = np.clip(points[:, 0].astype(np.int32), 0, height - 1)
+                    pixel_x = np.clip(points[:, 1].astype(np.int32), 0, width - 1)
+                    tracked_pixels[pixel_y, pixel_x] = 255
+            # Solid red means this exact white-mask pixel was accepted by a
+            # lane tracking path.  Unselected background candidates are not
+            # painted on the source image.
+            overlay[tracked_pixels > 0] = (0, 0, 255)
             trace = cv2.dilate(
                 displayed_skeleton,
                 cv2.getStructuringElement(
