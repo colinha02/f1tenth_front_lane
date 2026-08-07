@@ -1,0 +1,29 @@
+front_lane_detector:
+  ros__parameters:
+    image_topic: "/camera/image_rect"
+    mask_topic: "/front_lane/mask"
+    overlay_topic: "/front_lane/overlay"
+    model_topic: "/front_lane/model"
+
+    # The lower part of the direct front image.  The upper portion remains in
+    # the ROI so a curve can be seen before the vehicle reaches it.
+    roi_top_ratio: 0.34
+    roi_bottom_ratio: 0.98
+    window_count: 12
+    window_margin_px: 85
+    minimum_window_pixels: 35
+    minimum_fit_pixels: 180
+
+    white_lightness_min: 165
+    white_saturation_max: 120
+    morphology_kernel_px: 5
+
+    # Per-frame polynomial changes beyond this are treated as background
+    # reacquisition.  The previous valid curve is held only briefly.
+    temporal_alpha: 0.70
+    temporal_maximum_jump_px: 95.0
+    temporal_hold_frames: 3
+    expected_lane_width_px: 360.0
+    minimum_lane_width_px: 180.0
+    maximum_lane_width_px: 650.0
+    lookahead_ratio: 0.48
