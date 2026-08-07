@@ -20,6 +20,9 @@ front_lane_detector:
     # Number of full lane-path candidates retained while scoring all connected
     # white components from the bottom window to the top window.
     candidate_path_count: 16
+    # A tape edge can be only a few pixels wide in one window.  Small pieces
+    # remain candidates and are judged by full-path continuity instead.
+    minimum_component_pixels: 8
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
 

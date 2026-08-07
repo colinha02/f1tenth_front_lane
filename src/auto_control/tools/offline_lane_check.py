@@ -74,7 +74,7 @@ def sliding_points(
         components: list[tuple[np.ndarray, float, float]] = []
         for label in range(1, labels_count):
             area = int(stats[label, cv2.CC_STAT_AREA])
-            if area < minimum_window_pixels:
+            if area < 8:
                 continue
             component_y, component_x = np.nonzero(labels == label)
             points = np.column_stack((component_y + y_low, component_x))
