@@ -21,26 +21,36 @@ def candidate_mask(
     bottom: int,
     lightness_min: int,
     saturation_max: int,
-    edge_low: int,
-    edge_high: int,
+    dark_lightness_max: int,
+    dark_adjacency_px: int,
 ) -> np.ndarray:
     hls = cv2.cvtColor(bgr, cv2.COLOR_BGR2HLS)
-    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     white = cv2.inRange(
         hls,
         np.array([0, lightness_min, 0], dtype=np.uint8),
         np.array([179, 255, saturation_max], dtype=np.uint8),
     )
-    edges = cv2.Canny(gray, edge_low, edge_high)
-    edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
-    mask = cv2.bitwise_and(white, edges)
+    dark = cv2.inRange(
+        hls,
+        np.array([0, 0, 0], dtype=np.uint8),
+        np.array([179, dark_lightness_max, 255], dtype=np.uint8),
+    )
+    near_dark = cv2.dilate(
+        dark, cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (max(1, dark_adjacency_px | 1),) * 2
+        )
+    )
+    mask = cv2.bitwise_and(white, near_dark)
     roi_mask = np.zeros_like(mask)
     roi_mask[top:bottom, :] = 255
     mask = cv2.bitwise_and(mask, roi_mask)
+    mask = cv2.morphologyEx(
+        mask, cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)),
+    )
     return cv2.morphologyEx(
-        mask,
-        cv2.MORPH_CLOSE,
-        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)),
+        mask, cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)),
     )
 
 
@@ -123,12 +133,12 @@ def curve_points(fit: np.ndarray | None, ys: np.ndarray, width: int) -> np.ndarr
     return np.column_stack((xs[inside], ys[inside])).astype(np.int32)
 
 
-def render(image: np.ndarray, lightness: int, saturation: int, edge_low: int, edge_high: int) -> np.ndarray:
+def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
     top = height // 2
     bottom = height
     mask = candidate_mask(
-        image, top, bottom, lightness, saturation, edge_low, edge_high
+        image, top, bottom, lightness, saturation, dark_max, dark_adjacency
     )
     histogram = np.sum(mask[max(top, bottom - 80):bottom] > 0, axis=0)
     ys = np.linspace(bottom - 1, top, 80)
@@ -167,7 +177,7 @@ def main() -> None:
     if image is None:
         raise SystemExit(f"Cannot read image: {args.image}")
 
-    values = {"lightness": 165, "saturation": 120, "edge low": 35, "edge high": 110}
+    values = {"lightness": 165, "saturation": 120, "dark max": 105, "dark range": 25}
     window = "Offline front-lane check"
 
     def current() -> np.ndarray:
@@ -175,8 +185,8 @@ def main() -> None:
             image,
             cv2.getTrackbarPos("lightness", window) if not args.no_gui else values["lightness"],
             cv2.getTrackbarPos("saturation", window) if not args.no_gui else values["saturation"],
-            cv2.getTrackbarPos("edge low", window) if not args.no_gui else values["edge low"],
-            cv2.getTrackbarPos("edge high", window) if not args.no_gui else values["edge high"],
+            cv2.getTrackbarPos("dark max", window) if not args.no_gui else values["dark max"],
+            cv2.getTrackbarPos("dark range", window) if not args.no_gui else values["dark range"],
         )
 
     if args.no_gui:
@@ -185,8 +195,8 @@ def main() -> None:
         cv2.namedWindow(window, cv2.WINDOW_NORMAL)
         cv2.createTrackbar("lightness", window, values["lightness"], 255, lambda _: None)
         cv2.createTrackbar("saturation", window, values["saturation"], 255, lambda _: None)
-        cv2.createTrackbar("edge low", window, values["edge low"], 255, lambda _: None)
-        cv2.createTrackbar("edge high", window, values["edge high"], 255, lambda _: None)
+        cv2.createTrackbar("dark max", window, values["dark max"], 255, lambda _: None)
+        cv2.createTrackbar("dark range", window, values["dark range"], 101, lambda _: None)
         while True:
             result = current()
             cv2.imshow(window, result)

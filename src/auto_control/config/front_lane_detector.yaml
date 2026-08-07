@@ -26,14 +26,13 @@ front_lane_detector:
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
 
-    # White tape on black track: retain bright, low-saturation pixels only
-    # when they touch a strong black/white intensity edge.
+    # Preserve the white tape core, then require a nearby dark track region.
     white_lightness_min: 165
     white_saturation_max: 120
-    edge_low_threshold: 35
-    edge_high_threshold: 110
-    edge_dilation_px: 3
-    morphology_kernel_px: 5
+    track_dark_lightness_max: 105
+    dark_adjacency_kernel_px: 25
+    morphology_kernel_px: 7
+    noise_opening_kernel_px: 3
     minimum_fit_vertical_coverage_ratio: 0.45
 
     # Per-frame polynomial changes beyond this are treated as background

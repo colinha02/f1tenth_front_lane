@@ -71,10 +71,10 @@ class FrontLaneDetector(Node):
             "minimum_fit_pixels": 180,
             "white_lightness_min": 165,
             "white_saturation_max": 120,
-            "edge_low_threshold": 35,
-            "edge_high_threshold": 110,
-            "edge_dilation_px": 3,
-            "morphology_kernel_px": 5,
+            "track_dark_lightness_max": 105,
+            "dark_adjacency_kernel_px": 25,
+            "morphology_kernel_px": 7,
+            "noise_opening_kernel_px": 3,
             "minimum_fit_vertical_coverage_ratio": 0.45,
             "temporal_alpha": 0.70,
             "temporal_maximum_jump_px": 95.0,
@@ -110,16 +110,20 @@ class FrontLaneDetector(Node):
         self.minimum_fit_pixels = max(30, int(parameter("minimum_fit_pixels")))
         self.white_lightness_min = int(parameter("white_lightness_min"))
         self.white_saturation_max = int(parameter("white_saturation_max"))
-        self.edge_low_threshold = max(0, int(parameter("edge_low_threshold")))
-        self.edge_high_threshold = max(
-            self.edge_low_threshold + 1, int(parameter("edge_high_threshold"))
+        self.track_dark_lightness_max = int(parameter("track_dark_lightness_max"))
+        self.dark_adjacency_kernel_px = max(
+            1, int(parameter("dark_adjacency_kernel_px"))
         )
-        self.edge_dilation_px = max(1, int(parameter("edge_dilation_px")))
-        if self.edge_dilation_px % 2 == 0:
-            self.edge_dilation_px += 1
+        if self.dark_adjacency_kernel_px % 2 == 0:
+            self.dark_adjacency_kernel_px += 1
         self.morphology_kernel_px = max(1, int(parameter("morphology_kernel_px")))
         if self.morphology_kernel_px % 2 == 0:
             self.morphology_kernel_px += 1
+        self.noise_opening_kernel_px = max(
+            1, int(parameter("noise_opening_kernel_px"))
+        )
+        if self.noise_opening_kernel_px % 2 == 0:
+            self.noise_opening_kernel_px += 1
         self.minimum_fit_vertical_coverage_ratio = float(
             parameter("minimum_fit_vertical_coverage_ratio")
         )
@@ -147,27 +151,36 @@ class FrontLaneDetector(Node):
 
     def _candidate_mask(self, bgr: np.ndarray, top: int, bottom: int) -> np.ndarray:
         hls = cv2.cvtColor(bgr, cv2.COLOR_BGR2HLS)
-        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         lower = np.array([0, self.white_lightness_min, 0], dtype=np.uint8)
         upper = np.array([179, 255, self.white_saturation_max], dtype=np.uint8)
         white_mask = cv2.inRange(hls, lower, upper)
-
-        # The track is black and its markings are white.  Keep only white
-        # pixels touching a strong intensity edge, which rejects broad bright
-        # background regions more reliably than a brightness threshold alone.
-        edges = cv2.Canny(gray, self.edge_low_threshold, self.edge_high_threshold)
-        edge_kernel = cv2.getStructuringElement(
-            cv2.MORPH_RECT, (self.edge_dilation_px, self.edge_dilation_px)
+        dark_mask = cv2.inRange(
+            hls,
+            np.array([0, 0, 0], dtype=np.uint8),
+            np.array([179, self.track_dark_lightness_max, 255], dtype=np.uint8),
         )
-        edges = cv2.dilate(edges, edge_kernel)
-        mask = cv2.bitwise_and(white_mask, edges)
+        dark_neighborhood = cv2.dilate(
+            dark_mask,
+            cv2.getStructuringElement(
+                cv2.MORPH_ELLIPSE,
+                (self.dark_adjacency_kernel_px, self.dark_adjacency_kernel_px),
+            ),
+        )
+        # Preserve the full white tape core.  Background white areas without
+        # nearby black track are removed before path scoring.
+        mask = cv2.bitwise_and(white_mask, dark_neighborhood)
         roi_mask = np.zeros_like(mask)
         roi_mask[top:bottom, :] = 255
         mask = cv2.bitwise_and(mask, roi_mask)
+        opening_kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE,
+            (self.noise_opening_kernel_px, self.noise_opening_kernel_px),
+        )
         kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE,
             (self.morphology_kernel_px, self.morphology_kernel_px),
         )
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, opening_kernel)
         return cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
     def _sliding_window_points(
