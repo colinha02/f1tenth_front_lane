@@ -37,5 +37,7 @@ Run the camera and detector together:
 ros2 launch auto_control front_lane.launch.py
 ```
 
-Use `rqt_image_view` and select `/front_lane/overlay` to inspect the blue
-lane overlay before any autonomous-control node is connected.
+The default configuration opens an OpenCV window named `Front lane detection`.
+It displays the blue lane overlay directly and is capped at 30 FPS. Set
+`preview_enabled: false` when operating headlessly, then inspect
+`/front_lane/overlay` with `rqt_image_view` if needed.

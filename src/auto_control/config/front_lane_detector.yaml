@@ -4,6 +4,9 @@ front_lane_detector:
     mask_topic: "/front_lane/mask"
     overlay_topic: "/front_lane/overlay"
     model_topic: "/front_lane/model"
+    preview_enabled: true
+    preview_window_name: "Front lane detection"
+    preview_fps: 30.0
 
     # The lower part of the direct front image.  The upper portion remains in
     # the ROI so a curve can be seen before the vehicle reaches it.

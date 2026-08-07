@@ -8,6 +8,7 @@ driver's rectified NV12 stream but does not calculate or consume a BEV image.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import time
 from typing import Optional
 
 import cv2
@@ -56,6 +57,9 @@ class FrontLaneDetector(Node):
             "mask_topic": "/front_lane/mask",
             "overlay_topic": "/front_lane/overlay",
             "model_topic": "/front_lane/model",
+            "preview_enabled": True,
+            "preview_window_name": "Front lane detection",
+            "preview_fps": 30.0,
             "roi_top_ratio": 0.34,
             "roi_bottom_ratio": 0.98,
             "window_count": 12,
@@ -81,6 +85,9 @@ class FrontLaneDetector(Node):
         self.mask_topic = str(parameter("mask_topic"))
         self.overlay_topic = str(parameter("overlay_topic"))
         self.model_topic = str(parameter("model_topic"))
+        self.preview_enabled = bool(parameter("preview_enabled"))
+        self.preview_window_name = str(parameter("preview_window_name"))
+        self.preview_fps = max(1.0, float(parameter("preview_fps")))
         self.roi_top_ratio = float(parameter("roi_top_ratio"))
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
@@ -99,6 +106,7 @@ class FrontLaneDetector(Node):
         self.minimum_lane_width_px = float(parameter("minimum_lane_width_px"))
         self.maximum_lane_width_px = float(parameter("maximum_lane_width_px"))
         self.lookahead_ratio = float(parameter("lookahead_ratio"))
+        self._next_preview_at = 0.0
 
     @staticmethod
     def _nv12_to_bgr(message: Image) -> np.ndarray:
@@ -297,12 +305,23 @@ class FrontLaneDetector(Node):
 
             self._publish_image(message, mask, "mono8")
             self._publish_image(message, overlay, "bgr8")
+            if self.preview_enabled:
+                now = time.monotonic()
+                if now >= self._next_preview_at:
+                    cv2.imshow(self.preview_window_name, overlay)
+                    cv2.waitKey(1)
+                    self._next_preview_at = now + 1.0 / self.preview_fps
             self._model_pub.publish(Float32MultiArray(data=[
                 float(confidence), float(lateral_error), float(lookahead_offset),
                 float(curvature), float(left_detected), float(right_detected),
             ]))
         except Exception as error:
             self.get_logger().error(f"Front lane frame rejected: {error}")
+
+    def destroy_node(self) -> bool:
+        if self.preview_enabled:
+            cv2.destroyWindow(self.preview_window_name)
+        return super().destroy_node()
 
 
 def main(args: list[str] | None = None) -> None:
