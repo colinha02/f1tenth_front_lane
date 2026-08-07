@@ -222,7 +222,7 @@ CUDA BEV 변환, ROS 발행, GUI 프리뷰 시간을 포함하지 않는다. Jet
 
 ## 시작 측정
 
-OAK stereo depth의 중앙 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier를
+OAK stereo depth의 설정된 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier를
 찾는다. 정지 상태의 calibrated accel/gyro 1200개를 400Hz로 측정하고
 400개씩 3개 블록의 중력 방향을 독립 계산한다. roll/pitch는 세 블록의
 중앙 방향을 사용하며, 블록 간 방향 RMS가 기준을 통과해야 한다.
@@ -230,6 +230,27 @@ OAK stereo depth의 중앙 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier�
 평균 법선을 구한 뒤 중앙값을 사용한다. 전체 프레임 안정성과 블록 간
 높이·법선 반복성 조건을 모두 통과해야 성공한다.
 Pro-series OAK의 IR dot projector는 시작 측정 동안 `1.0`으로 사용한다.
+
+초기 Depth 평면 측정 중에는 `Startup depth ROI` 프리뷰가 잠시 열리고,
+실제 평면 추정에 사용하는 영역을 빨간색 1px 사각형으로 표시한다. 측정이
+끝나면 창은 자동으로 닫힌다. Depth 영상 좌상단이 `(0, 0)`이며 x는
+오른쪽, y는 아래쪽으로 증가한다. ROI 위치는 다음 파라미터로 조절한다.
+
+```yaml
+measurement_roi_width: 456
+measurement_roi_height: 228
+measurement_roi_center_x: -1
+measurement_roi_center_y: -1
+measurement_depth_preview_enabled: true
+measurement_depth_preview_window_name: "Startup depth ROI"
+```
+
+중심 좌표가 `-1`이면 해당 축의 영상 중앙을 자동 사용한다. 예를 들어
+1280x800 Depth에서 ROI를 아래쪽으로 옮기려면
+`measurement_roi_center_y: 500`처럼 지정한다. ROI가 영상 경계를 벗어나면
+측정을 시작하지 않고 파라미터 오류를 출력한다. `q`, `Q`, `Esc`로 프리뷰만
+닫을 수 있으며 Depth 측정은 계속된다. `performance_measurement_enabled`가
+켜졌거나 그래픽 디스플레이가 없으면 시작 프리뷰도 자동으로 꺼진다.
 
 높이를 수동으로 쓰려면 `config/bev_config.yaml`에서 다음과 같이
 설정한다. 높이는 지면에서 카메라 광학 중심까지의 수직 거리다.

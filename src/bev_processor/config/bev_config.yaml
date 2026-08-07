@@ -81,10 +81,18 @@ bev_processor:
     # 자동 depth 높이 측정에만 사용하며 수동 높이 모드에서는 켜지 않는다.
     measurement_ir_dot_projector_intensity: 1.0
 
-    # 영상 중앙에서 평평한 노면만 포함하도록 ROI를 정한다.
+    # 평평한 노면만 포함하도록 ROI 크기와 중심 픽셀을 정한다.
+    # center_x/center_y가 -1이면 해당 영상 축의 정중앙을 자동으로 사용한다.
+    # 1280x800 영상 좌상단이 (0,0)이고 x는 오른쪽, y는 아래쪽으로 증가한다.
     # 너무 크면 차체·벽·장애물이 섞이고, 너무 작으면 평면 포인트가 부족해진다.
     measurement_roi_width: 456
     measurement_roi_height: 228
+    measurement_roi_center_x: -1
+    measurement_roi_center_y: -1
+    # 초기 Depth 평면을 측정하는 동안만 grayscale Depth 프리뷰를 띄운다.
+    # 빨간색 1px 사각형이 실제 평면 추정 ROI이며 측정 종료 시 창도 닫힌다.
+    measurement_depth_preview_enabled: true
+    measurement_depth_preview_window_name: "Startup depth ROI"
     # 1은 모든 픽셀, 2는 가로·세로 한 칸씩 건너뛴다. 작을수록 정확하지만 느리다.
     measurement_point_sample_step: 2
     # 유효 포인트 최소값은 ROI와 sample_step을 바꿀 때 함께 비례 조정한다.

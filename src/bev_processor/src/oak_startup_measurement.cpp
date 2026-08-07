@@ -15,6 +15,9 @@
 #include <utility>
 #include <vector>
 
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "depthai/depthai.hpp"
 #include "bev_processor/ground_plane_estimator.hpp"
 #include "bev_processor/startup_attitude.hpp"
@@ -36,6 +39,157 @@ struct PlaneCandidate
 {
   GroundPlaneEstimate plane;
   double median_depth_m{0.0};
+};
+
+int roiStart(
+  const int image_extent,
+  const int roi_extent,
+  const int configured_center)
+{
+  if (configured_center < 0) {
+    return (image_extent - roi_extent) / 2;
+  }
+  return configured_center - roi_extent / 2;
+}
+
+cv::Rect measurementRoi(const OakStartupMeasurementConfig & config)
+{
+  return cv::Rect(
+    roiStart(config.stereo_width, config.roi_width, config.roi_center_x),
+    roiStart(config.stereo_height, config.roi_height, config.roi_center_y),
+    config.roi_width,
+    config.roi_height);
+}
+
+class StartupDepthPreview final
+{
+public:
+  explicit StartupDepthPreview(const OakStartupMeasurementConfig & config)
+  : enabled_(
+      config.depth_preview_enabled &&
+      !config.manual_camera_height_enabled),
+    window_name_(config.depth_preview_window_name)
+  {
+  }
+
+  ~StartupDepthPreview()
+  {
+    close();
+  }
+
+  StartupDepthPreview(const StartupDepthPreview &) = delete;
+  StartupDepthPreview & operator=(const StartupDepthPreview &) = delete;
+
+  void show(
+    dai::ImgFrame & packet,
+    const OakStartupMeasurementConfig & config) noexcept
+  {
+    if (!enabled_) {
+      return;
+    }
+
+    try {
+      const auto & bytes = packet.getData();
+      const std::size_t minimum_stride =
+        static_cast<std::size_t>(config.stereo_width) *
+        sizeof(std::uint16_t);
+      const std::size_t stride = std::max(
+        minimum_stride, static_cast<std::size_t>(packet.getStride()));
+      if (
+        packet.getType() != dai::ImgFrame::Type::RAW16 ||
+        static_cast<int>(packet.getWidth()) != config.stereo_width ||
+        static_cast<int>(packet.getHeight()) != config.stereo_height ||
+        bytes.size() <
+        stride * static_cast<std::size_t>(config.stereo_height))
+      {
+        return;
+      }
+
+      if (!window_created_) {
+        cv::namedWindow(window_name_, cv::WINDOW_NORMAL);
+        cv::resizeWindow(
+          window_name_, config.stereo_width, config.stereo_height);
+        window_created_ = true;
+      }
+
+      cv::Mat depth_mm(
+        config.stereo_height,
+        config.stereo_width,
+        CV_16UC1,
+        const_cast<std::uint8_t *>(bytes.data()),
+        stride);
+      cv::Mat valid_mask;
+      cv::inRange(
+        depth_mm,
+        cv::Scalar(config.minimum_depth_m * 1000.0),
+        cv::Scalar(config.maximum_depth_m * 1000.0),
+        valid_mask);
+
+      const double minimum_depth_mm = config.minimum_depth_m * 1000.0;
+      const double maximum_depth_mm = config.maximum_depth_m * 1000.0;
+      const double scale =
+        -255.0 / (maximum_depth_mm - minimum_depth_mm);
+      const double offset = -scale * maximum_depth_mm;
+      cv::Mat depth_gray;
+      depth_mm.convertTo(depth_gray, CV_8UC1, scale, offset);
+      cv::Mat invalid_mask;
+      cv::bitwise_not(valid_mask, invalid_mask);
+      depth_gray.setTo(0, invalid_mask);
+
+      cv::Mat preview;
+      cv::cvtColor(depth_gray, preview, cv::COLOR_GRAY2BGR);
+      const cv::Rect roi = measurementRoi(config);
+      cv::rectangle(preview, roi, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
+      const int center_x = roi.x + roi.width / 2;
+      const int center_y = roi.y + roi.height / 2;
+      const std::string label =
+        "ROI center=(" + std::to_string(center_x) + "," +
+        std::to_string(center_y) + ") size=" +
+        std::to_string(roi.width) + "x" + std::to_string(roi.height);
+      cv::putText(
+        preview,
+        label,
+        cv::Point(std::max(4, roi.x), std::max(18, roi.y - 6)),
+        cv::FONT_HERSHEY_SIMPLEX,
+        0.5,
+        cv::Scalar(0, 0, 255),
+        1,
+        cv::LINE_AA);
+      cv::imshow(window_name_, preview);
+      const int key = cv::waitKey(1);
+      if (
+        key == 27 || key == 'q' || key == 'Q' ||
+        cv::getWindowProperty(window_name_, cv::WND_PROP_VISIBLE) < 1.0)
+      {
+        enabled_ = false;
+        close();
+      }
+    } catch (const cv::Exception &) {
+      enabled_ = false;
+      close();
+    } catch (...) {
+      enabled_ = false;
+      close();
+    }
+  }
+
+private:
+  void close() noexcept
+  {
+    if (!window_created_) {
+      return;
+    }
+    try {
+      cv::destroyWindow(window_name_);
+      cv::waitKey(1);
+    } catch (...) {
+    }
+    window_created_ = false;
+  }
+
+  bool enabled_{false};
+  bool window_created_{false};
+  std::string window_name_;
 };
 
 cv::Matx33d matrix3x3FromCalibration(
@@ -267,6 +421,8 @@ void validateConfig(const OakStartupMeasurementConfig & config)
     config.roi_width <= 0 || config.roi_height <= 0 ||
     config.roi_width > config.stereo_width ||
     config.roi_height > config.stereo_height ||
+    config.roi_center_x < -1 || config.roi_center_y < -1 ||
+    config.depth_preview_window_name.empty() ||
     config.point_sample_step <= 0 ||
     config.minimum_valid_points <= 0 ||
     !std::isfinite(config.minimum_depth_m) ||
@@ -328,6 +484,16 @@ void validateConfig(const OakStartupMeasurementConfig & config)
     config.warmup_sec >= config.timeout_sec)
   {
     throw std::invalid_argument("invalid OAK startup measurement parameter");
+  }
+
+  const cv::Rect roi = measurementRoi(config);
+  if (
+    roi.x < 0 || roi.y < 0 ||
+    roi.x + roi.width > config.stereo_width ||
+    roi.y + roi.height > config.stereo_height)
+  {
+    throw std::invalid_argument(
+            "ground-plane ROI extends outside the stereo depth image");
   }
 
   const int sampled_width =
@@ -395,8 +561,9 @@ std::optional<PlaneCandidate> estimateGroundPlane(
     throw std::runtime_error("DepthAI returned an undersized depth frame");
   }
 
-  const int start_u = (config.stereo_width - config.roi_width) / 2;
-  const int start_v = (config.stereo_height - config.roi_height) / 2;
+  const cv::Rect roi = measurementRoi(config);
+  const int start_u = roi.x;
+  const int start_v = roi.y;
   const int sampled_width =
     (config.roi_width + config.point_sample_step - 1) /
     config.point_sample_step;
@@ -507,6 +674,7 @@ OakStartupMeasurement measureOakStartupExtrinsics(
   std::unique_ptr<dai::Pipeline> pipeline;
   std::shared_ptr<dai::MessageQueue> depth_queue;
   std::shared_ptr<dai::MessageQueue> imu_queue;
+  StartupDepthPreview depth_preview(config);
 
   try {
     device = std::make_shared<dai::Device>(dai::UsbSpeed::SUPER);
@@ -829,6 +997,7 @@ OakStartupMeasurement measureOakStartupExtrinsics(
       } else {
         auto packet = depth_queue->tryGet<dai::ImgFrame>();
         if (packet) {
+          depth_preview.show(*packet, config);
           auto candidate = estimateGroundPlane(
             *packet, corrected_specific_force, config, &last_rejection);
           if (!candidate) {

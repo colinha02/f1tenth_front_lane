@@ -179,18 +179,27 @@ public:
         startup_measurement_config_.imu_sample_count,
         startup_measurement_config_.imu_block_count);
     } else {
+      const int measurement_roi_center_x =
+        startup_measurement_config_.roi_center_x < 0 ?
+        startup_measurement_config_.stereo_width / 2 :
+        startup_measurement_config_.roi_center_x;
+      const int measurement_roi_center_y =
+        startup_measurement_config_.roi_center_y < 0 ?
+        startup_measurement_config_.stereo_height / 2 :
+        startup_measurement_config_.roi_center_y;
       RCLCPP_INFO(
         get_logger(),
         "Measuring startup camera height from the OAK stereo ground plane "
         "and roll/pitch from the configured '%s' source. "
-        "Keep the vehicle stationary and the center view on flat ground.",
+        "Keep the vehicle stationary and the configured ROI on flat ground.",
         startupAttitudeSourceName(startup_measurement_config_.attitude_source));
       RCLCPP_INFO(
         get_logger(),
         "Measurement quality: warmup=%.1fs, IR-dot=%.2f, "
         "IMU=%d samples/%d blocks, "
         "stereo=%dx%d@%.1fHz/5-bit-subpixel/shift=%d, "
-        "depth ROI=%dx%d step=%d (%d valid points minimum), "
+        "depth ROI=%dx%d center=(%d,%d) step=%d "
+        "(%d valid points minimum), preview=%s, "
         "RANSAC=%d iterations, stable planes=%d frames/%d blocks, "
         "attitude=%s.",
         startup_measurement_config_.warmup_sec,
@@ -203,8 +212,11 @@ public:
         startup_measurement_config_.stereo_disparity_shift,
         startup_measurement_config_.roi_width,
         startup_measurement_config_.roi_height,
+        measurement_roi_center_x,
+        measurement_roi_center_y,
         startup_measurement_config_.point_sample_step,
         startup_measurement_config_.minimum_valid_points,
+        startup_measurement_config_.depth_preview_enabled ? "on" : "off",
         startup_measurement_config_.plane_ransac_iterations,
         startup_measurement_config_.stable_plane_frame_count,
         startup_measurement_config_.plane_block_count,
@@ -533,6 +545,12 @@ private:
     declare_parameter<double>("manual_camera_height_m", 0.20);
     declare_parameter<int>("measurement_roi_width", 456);
     declare_parameter<int>("measurement_roi_height", 228);
+    // -1 keeps the ROI centered in the corresponding stereo dimension.
+    declare_parameter<int>("measurement_roi_center_x", -1);
+    declare_parameter<int>("measurement_roi_center_y", -1);
+    declare_parameter<bool>("measurement_depth_preview_enabled", true);
+    declare_parameter<std::string>(
+      "measurement_depth_preview_window_name", "Startup depth ROI");
     declare_parameter<int>("measurement_point_sample_step", 2);
     declare_parameter<int>("measurement_minimum_valid_points", 5080);
     declare_parameter<double>("measurement_minimum_depth_m", 0.30);
@@ -745,6 +763,20 @@ private:
       get_parameter("measurement_roi_width").as_int());
     startup_measurement_config_.roi_height = static_cast<int>(
       get_parameter("measurement_roi_height").as_int());
+    startup_measurement_config_.roi_center_x = static_cast<int>(
+      get_parameter("measurement_roi_center_x").as_int());
+    startup_measurement_config_.roi_center_y = static_cast<int>(
+      get_parameter("measurement_roi_center_y").as_int());
+    startup_measurement_config_.depth_preview_enabled =
+      get_parameter("measurement_depth_preview_enabled").as_bool();
+    startup_measurement_config_.depth_preview_window_name =
+      get_parameter("measurement_depth_preview_window_name").as_string();
+    if (
+      performance_measurement_enabled_ ||
+      !graphicalDisplayAvailable())
+    {
+      startup_measurement_config_.depth_preview_enabled = false;
+    }
     startup_measurement_config_.point_sample_step = static_cast<int>(
       get_parameter("measurement_point_sample_step").as_int());
     startup_measurement_config_.minimum_valid_points = static_cast<int>(

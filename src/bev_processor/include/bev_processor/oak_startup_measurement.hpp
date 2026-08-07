@@ -31,6 +31,10 @@ struct OakStartupMeasurementConfig
 
   int roi_width{456};
   int roi_height{228};
+  int roi_center_x{-1};
+  int roi_center_y{-1};
+  bool depth_preview_enabled{true};
+  std::string depth_preview_window_name{"Startup depth ROI"};
   int point_sample_step{2};
   int minimum_valid_points{5080};
   double minimum_depth_m{0.30};
