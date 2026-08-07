@@ -60,15 +60,19 @@ class FrontLaneDetector(Node):
             "preview_enabled": True,
             "preview_window_name": "Front lane detection",
             "preview_fps": 30.0,
-            "roi_top_ratio": 0.34,
-            "roi_bottom_ratio": 0.98,
+            "roi_top_ratio": 1.0 / 3.0,
+            "roi_bottom_ratio": 1.0,
             "window_count": 12,
             "window_margin_px": 85,
             "minimum_window_pixels": 35,
             "minimum_fit_pixels": 180,
             "white_lightness_min": 165,
             "white_saturation_max": 120,
+            "edge_low_threshold": 35,
+            "edge_high_threshold": 110,
+            "edge_dilation_px": 3,
             "morphology_kernel_px": 5,
+            "minimum_fit_vertical_coverage_ratio": 0.45,
             "temporal_alpha": 0.70,
             "temporal_maximum_jump_px": 95.0,
             "temporal_hold_frames": 3,
@@ -96,9 +100,19 @@ class FrontLaneDetector(Node):
         self.minimum_fit_pixels = max(30, int(parameter("minimum_fit_pixels")))
         self.white_lightness_min = int(parameter("white_lightness_min"))
         self.white_saturation_max = int(parameter("white_saturation_max"))
+        self.edge_low_threshold = max(0, int(parameter("edge_low_threshold")))
+        self.edge_high_threshold = max(
+            self.edge_low_threshold + 1, int(parameter("edge_high_threshold"))
+        )
+        self.edge_dilation_px = max(1, int(parameter("edge_dilation_px")))
+        if self.edge_dilation_px % 2 == 0:
+            self.edge_dilation_px += 1
         self.morphology_kernel_px = max(1, int(parameter("morphology_kernel_px")))
         if self.morphology_kernel_px % 2 == 0:
             self.morphology_kernel_px += 1
+        self.minimum_fit_vertical_coverage_ratio = float(
+            parameter("minimum_fit_vertical_coverage_ratio")
+        )
         self.temporal_alpha = float(parameter("temporal_alpha"))
         self.temporal_maximum_jump_px = float(parameter("temporal_maximum_jump_px"))
         self.temporal_hold_frames = max(0, int(parameter("temporal_hold_frames")))
@@ -123,9 +137,20 @@ class FrontLaneDetector(Node):
 
     def _candidate_mask(self, bgr: np.ndarray, top: int, bottom: int) -> np.ndarray:
         hls = cv2.cvtColor(bgr, cv2.COLOR_BGR2HLS)
+        gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
         lower = np.array([0, self.white_lightness_min, 0], dtype=np.uint8)
         upper = np.array([179, 255, self.white_saturation_max], dtype=np.uint8)
-        mask = cv2.inRange(hls, lower, upper)
+        white_mask = cv2.inRange(hls, lower, upper)
+
+        # The track is black and its markings are white.  Keep only white
+        # pixels touching a strong intensity edge, which rejects broad bright
+        # background regions more reliably than a brightness threshold alone.
+        edges = cv2.Canny(gray, self.edge_low_threshold, self.edge_high_threshold)
+        edge_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT, (self.edge_dilation_px, self.edge_dilation_px)
+        )
+        edges = cv2.dilate(edges, edge_kernel)
+        mask = cv2.bitwise_and(white_mask, edges)
         roi_mask = np.zeros_like(mask)
         roi_mask[top:bottom, :] = 255
         mask = cv2.bitwise_and(mask, roi_mask)
@@ -169,8 +194,14 @@ class FrontLaneDetector(Node):
         return np.column_stack((nonzero_y[indices], nonzero_x[indices])).astype(np.float64)
 
     @staticmethod
-    def _fit(points: np.ndarray, minimum_pixels: int) -> Optional[np.ndarray]:
+    def _fit(
+        points: np.ndarray,
+        minimum_pixels: int,
+        minimum_vertical_span_px: float,
+    ) -> Optional[np.ndarray]:
         if points.shape[0] < minimum_pixels:
+            return None
+        if float(np.ptp(points[:, 0])) < minimum_vertical_span_px:
             return None
         return np.polyfit(points[:, 0], points[:, 1], 2)
 
@@ -184,10 +215,19 @@ class FrontLaneDetector(Node):
         midpoint = histogram.size // 2
         section = histogram[:midpoint] if left else histogram[midpoint:]
         offset = 0 if left else midpoint
+        if previous is not None:
+            # Once a lane was found, continue from its predicted position
+            # instead of allowing a bright background object to replace it.
+            expected_x = int(np.clip(np.polyval(previous, bottom - 1), 0, histogram.size - 1))
+            search_radius = self.window_margin_px
+            lo = max(offset, expected_x - search_radius)
+            hi = min(offset + section.size, expected_x + search_radius + 1)
+            nearby = histogram[lo:hi]
+            if nearby.size and int(nearby.max()) > 0:
+                return int(np.argmax(nearby)) + lo
+            return expected_x
         if section.size and int(section.max()) > 0:
             return int(np.argmax(section)) + offset
-        if previous is not None:
-            return int(np.polyval(previous, bottom - 1))
         return None
 
     def _accept_fit(
@@ -252,11 +292,18 @@ class FrontLaneDetector(Node):
             )
             left_points = self._sliding_window_points(mask, left_seed, top, bottom)
             right_points = self._sliding_window_points(mask, right_seed, top, bottom)
+            minimum_vertical_span_px = (
+                self.minimum_fit_vertical_coverage_ratio * (bottom - top)
+            )
             left_fit, left_detected = self._accept_fit(
-                self._fit(left_points, self.minimum_fit_pixels), self._left_state, sample_y
+                self._fit(
+                    left_points, self.minimum_fit_pixels, minimum_vertical_span_px
+                ), self._left_state, sample_y
             )
             right_fit, right_detected = self._accept_fit(
-                self._fit(right_points, self.minimum_fit_pixels), self._right_state, sample_y
+                self._fit(
+                    right_points, self.minimum_fit_pixels, minimum_vertical_span_px
+                ), self._right_state, sample_y
             )
 
             if left_detected and right_detected and left_fit is not None and right_fit is not None:
@@ -274,6 +321,7 @@ class FrontLaneDetector(Node):
                 right_fit = left_fit + width_fit
 
             overlay = bgr.copy()
+            cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
             right_curve = self._points_for_fit(right_fit, ys, width)

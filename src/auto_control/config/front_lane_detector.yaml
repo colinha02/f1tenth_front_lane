@@ -8,25 +8,31 @@ front_lane_detector:
     preview_window_name: "Front lane detection"
     preview_fps: 30.0
 
-    # The lower part of the direct front image.  The upper portion remains in
-    # the ROI so a curve can be seen before the vehicle reaches it.
-    roi_top_ratio: 0.34
-    roi_bottom_ratio: 0.98
+    # Rough lower two-thirds of the front image.  This includes distant curves
+    # while excluding the upper wall/background.
+    roi_top_ratio: 0.333333
+    roi_bottom_ratio: 1.0
     window_count: 12
     window_margin_px: 85
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
 
+    # White tape on black track: retain bright, low-saturation pixels only
+    # when they touch a strong black/white intensity edge.
     white_lightness_min: 165
     white_saturation_max: 120
+    edge_low_threshold: 35
+    edge_high_threshold: 110
+    edge_dilation_px: 3
     morphology_kernel_px: 5
+    minimum_fit_vertical_coverage_ratio: 0.45
 
     # Per-frame polynomial changes beyond this are treated as background
     # reacquisition.  The previous valid curve is held only briefly.
     temporal_alpha: 0.70
-    temporal_maximum_jump_px: 95.0
-    temporal_hold_frames: 3
-    expected_lane_width_px: 360.0
-    minimum_lane_width_px: 180.0
-    maximum_lane_width_px: 650.0
+    temporal_maximum_jump_px: 70.0
+    temporal_hold_frames: 8
+    expected_lane_width_px: 720.0
+    minimum_lane_width_px: 100.0
+    maximum_lane_width_px: 1400.0
     lookahead_ratio: 0.48
