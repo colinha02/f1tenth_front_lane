@@ -133,6 +133,17 @@ def curve_points(fit: np.ndarray | None, ys: np.ndarray, width: int) -> np.ndarr
     return np.column_stack((xs[inside], ys[inside])).astype(np.int32)
 
 
+def skeletonize(mask: np.ndarray) -> np.ndarray:
+    work = mask.copy()
+    skeleton = np.zeros_like(mask)
+    element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+    while cv2.countNonZero(work) > 0:
+        opened = cv2.morphologyEx(work, cv2.MORPH_OPEN, element)
+        skeleton = cv2.bitwise_or(skeleton, cv2.subtract(work, opened))
+        work = cv2.erode(work, element)
+    return skeleton
+
+
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
     top = height // 2
@@ -170,23 +181,8 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     extracted = np.zeros_like(overlay)
     extracted[mask > 0] = (255, 0, 0)
     overlay = cv2.addWeighted(overlay, 1.0, extracted, 0.55, 0.0)
+    overlay[skeletonize(mask) > 0] = (255, 0, 0)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
-    for fit, inferred in ((left_fit, left_inferred), (right_fit, right_inferred)):
-        points = curve_points(fit, ys, width)
-        if points is not None:
-            cv2.polylines(
-                overlay, [points], False,
-                (255, 255, 0) if inferred else (255, 0, 0), 5,
-            )
-    if left_fit is not None and right_fit is not None:
-        center = curve_points(0.5 * (left_fit + right_fit), ys, width)
-        if center is not None:
-            cv2.polylines(overlay, [center], False, (0, 255, 0), 3)
-        center_fit = 0.5 * (left_fit + right_fit)
-        reference_y = int(round(np.clip(0.67 * height, top, bottom - 1)))
-        reference_x = int(round(np.polyval(center_fit, reference_y)))
-        cv2.circle(overlay, (reference_x, reference_y), 7, (255, 0, 255), -1)
-        cv2.circle(overlay, (width // 2, reference_y), 6, (0, 255, 255), 2)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
     cv2.putText(mask_bgr, "candidate mask", (15, 35), cv2.FONT_HERSHEY_SIMPLEX,

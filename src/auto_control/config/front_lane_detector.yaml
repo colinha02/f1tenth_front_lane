@@ -11,6 +11,9 @@ front_lane_detector:
     # independent from the later blue curve/path fit.
     show_extracted_lane_mask: true
     extracted_lane_mask_alpha: 0.55
+    # Keep false while tuning extraction: the blue trace then follows only
+    # observed white-tape pixels, not an extrapolated polynomial fit.
+    show_model_paths: false
 
     # Lower half of the front image.  This removes the wall/background while
     # retaining the nearby track section used for lane tracking.

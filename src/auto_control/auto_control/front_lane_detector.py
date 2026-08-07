@@ -62,6 +62,7 @@ class FrontLaneDetector(Node):
             "preview_fps": 30.0,
             "show_extracted_lane_mask": True,
             "extracted_lane_mask_alpha": 0.55,
+            "show_model_paths": False,
             "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
@@ -101,6 +102,7 @@ class FrontLaneDetector(Node):
         self.preview_fps = max(1.0, float(parameter("preview_fps")))
         self.show_extracted_lane_mask = bool(parameter("show_extracted_lane_mask"))
         self.extracted_lane_mask_alpha = float(parameter("extracted_lane_mask_alpha"))
+        self.show_model_paths = bool(parameter("show_model_paths"))
         self.roi_top_ratio = float(parameter("roi_top_ratio"))
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
@@ -190,6 +192,18 @@ class FrontLaneDetector(Node):
         )
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, opening_kernel)
         return cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+    @staticmethod
+    def _skeletonize(mask: np.ndarray) -> np.ndarray:
+        """Reduce each extracted tape strip to its actual one-pixel center."""
+        work = mask.copy()
+        skeleton = np.zeros_like(mask)
+        element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        while cv2.countNonZero(work) > 0:
+            opened = cv2.morphologyEx(work, cv2.MORPH_OPEN, element)
+            skeleton = cv2.bitwise_or(skeleton, cv2.subtract(work, opened))
+            work = cv2.erode(work, element)
+        return skeleton
 
     def _sliding_window_points(
         self,
@@ -376,6 +390,7 @@ class FrontLaneDetector(Node):
             top = int(np.clip(self.roi_top_ratio * height, 0, height - 2))
             bottom = int(np.clip(self.roi_bottom_ratio * height, top + 2, height))
             mask = self._candidate_mask(bgr, top, bottom)
+            lane_skeleton = self._skeletonize(mask)
             histogram = np.sum(mask[max(top, bottom - 80):bottom] > 0, axis=0)
             sample_y = np.linspace(bottom - 1, top, 8)
             left_seed = self._initial_seed(
@@ -444,16 +459,19 @@ class FrontLaneDetector(Node):
                 overlay = cv2.addWeighted(
                     overlay, 1.0, extracted, self.extracted_lane_mask_alpha, 0.0
                 )
+            # The blue trace is the center of the extracted white tape itself;
+            # it is never extrapolated away from the observed pixels.
+            overlay[lane_skeleton > 0] = (255, 0, 0)
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
             right_curve = self._points_for_fit(right_fit, ys, width)
-            if left_curve is not None:
+            if self.show_model_paths and left_curve is not None:
                 cv2.polylines(
                     overlay, [left_curve], False,
                     (255, 255, 0) if left_inferred else (255, 0, 0), 5,
                 )
-            if right_curve is not None:
+            if self.show_model_paths and right_curve is not None:
                 cv2.polylines(
                     overlay, [right_curve], False,
                     (255, 255, 0) if right_inferred else (255, 0, 0), 5,
@@ -467,7 +485,7 @@ class FrontLaneDetector(Node):
             if left_fit is not None and right_fit is not None:
                 center_fit = 0.5 * (left_fit + right_fit)
                 center_curve = self._points_for_fit(center_fit, ys, width)
-                if center_curve is not None:
+                if self.show_model_paths and center_curve is not None:
                     cv2.polylines(overlay, [center_curve], False, (0, 255, 0), 3)
                 reference_y = float(np.clip(
                     self.control_reference_y_ratio * height, top, bottom - 1
@@ -477,14 +495,15 @@ class FrontLaneDetector(Node):
                 lookahead_x = float(np.polyval(center_fit, lookahead_y))
                 lateral_error = (reference_x - 0.5 * width) / (0.5 * width)
                 lookahead_offset = (lookahead_x - 0.5 * width) / (0.5 * width)
-                cv2.circle(
-                    overlay, (int(round(reference_x)), int(round(reference_y))),
-                    7, (255, 0, 255), -1,
-                )
-                cv2.circle(
-                    overlay, (width // 2, int(round(reference_y))),
-                    6, (0, 255, 255), 2,
-                )
+                if self.show_model_paths:
+                    cv2.circle(
+                        overlay, (int(round(reference_x)), int(round(reference_y))),
+                        7, (255, 0, 255), -1,
+                    )
+                    cv2.circle(
+                        overlay, (width // 2, int(round(reference_y))),
+                        6, (0, 255, 255), 2,
+                    )
                 a, b, _ = center_fit
                 slope = 2.0 * a * lookahead_y + b
                 curvature = float(2.0 * a / ((1.0 + slope * slope) ** 1.5))
