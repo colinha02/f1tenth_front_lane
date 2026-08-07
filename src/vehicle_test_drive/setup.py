@@ -25,6 +25,7 @@ setup(
         "console_scripts": [
             "vehicle_test_drive = vehicle_test_drive.vehicle_test_drive_node:main",
             "vehicle_test_drive_node = vehicle_test_drive.vehicle_test_drive_node:main",
+            "straight_run_keyboard = vehicle_test_drive.straight_run_keyboard_node:main",
         ],
     },
 )
