@@ -35,17 +35,7 @@ def candidate_mask(
     edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
     mask = cv2.bitwise_and(white, edges)
     roi_mask = np.zeros_like(mask)
-    inset = int(0.18 * mask.shape[1])
-    cv2.fillConvexPoly(
-        roi_mask,
-        np.array([
-            (inset, top),
-            (mask.shape[1] - 1 - inset, top),
-            (mask.shape[1] - 1, bottom - 1),
-            (0, bottom - 1),
-        ], dtype=np.int32),
-        255,
-    )
+    roi_mask[top:bottom, :] = 255
     mask = cv2.bitwise_and(mask, roi_mask)
     return cv2.morphologyEx(
         mask,
@@ -73,28 +63,42 @@ def sliding_points(
 ) -> np.ndarray:
     if start_x is None:
         return np.empty((0, 2), dtype=np.float64)
-    nonzero_y, nonzero_x = mask.nonzero()
     current_x = int(np.clip(start_x, 0, mask.shape[1] - 1))
+    last_step_x = 0.0
     window_height = max(1, (bottom - top) // window_count)
     selected: list[np.ndarray] = []
     for index in range(window_count):
         y_high = bottom - index * window_height
         y_low = max(top, y_high - window_height)
-        inside = (
-            (nonzero_y >= y_low)
-            & (nonzero_y < y_high)
-            & (nonzero_x >= current_x - margin)
-            & (nonzero_x <= current_x + margin)
+        predicted_x = int(np.clip(current_x + np.clip(last_step_x, -55, 55), 0, mask.shape[1] - 1))
+        x_low = max(0, predicted_x - margin)
+        x_high = min(mask.shape[1], predicted_x + margin + 1)
+        window = mask[y_low:y_high, x_low:x_high]
+        labels_count, labels, stats, centroids = cv2.connectedComponentsWithStats(
+            window, connectivity=8
         )
-        point_indices = np.flatnonzero(inside)
-        if point_indices.size:
-            selected.append(point_indices)
-        if point_indices.size >= minimum_window_pixels:
-            current_x = int(np.mean(nonzero_x[point_indices]))
+        candidates = [
+            label for label in range(1, labels_count)
+            if stats[label, cv2.CC_STAT_AREA] >= minimum_window_pixels
+        ]
+        if not candidates:
+            continue
+        label = min(
+            candidates,
+            key=lambda value: (
+                abs((centroids[value, 0] + x_low) - predicted_x),
+                -stats[value, cv2.CC_STAT_AREA],
+            ),
+        )
+        component_y, component_x = np.nonzero(labels == label)
+        points = np.column_stack((component_y + y_low, component_x + x_low))
+        selected.append(points)
+        next_x = float(np.mean(points[:, 1]))
+        last_step_x = next_x - current_x
+        current_x = int(round(next_x))
     if not selected:
         return np.empty((0, 2), dtype=np.float64)
-    indices = np.concatenate(selected)
-    return np.column_stack((nonzero_y[indices], nonzero_x[indices])).astype(np.float64)
+    return np.vstack(selected).astype(np.float64)
 
 
 def fit_curve(points: np.ndarray, roi_height: int) -> np.ndarray | None:
@@ -131,10 +135,6 @@ def render(image: np.ndarray, lightness: int, saturation: int, edge_low: int, ed
 
     overlay = image.copy()
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
-    inset = int(0.18 * width)
-    cv2.line(overlay, (inset, top), (0, bottom - 1), (0, 165, 255), 2)
-    cv2.line(overlay, (width - 1 - inset, top), (width - 1, bottom - 1),
-             (0, 165, 255), 2)
     for fit in (left_fit, right_fit):
         points = curve_points(fit, ys, width)
         if points is not None:

@@ -12,11 +12,11 @@ front_lane_detector:
     # retaining the nearby track section used for lane tracking.
     roi_top_ratio: 0.5
     roi_bottom_ratio: 1.0
-    # At the distant (top) edge of the ROI, exclude the outer 18% on each
-    # side.  The ROI expands to the entire image width at the bottom.
-    roi_top_inset_ratio: 0.18
     window_count: 12
     window_margin_px: 85
+    # Max horizontal prediction change between vertically adjacent windows.
+    # The closest connected white component is used instead of averaging all.
+    window_prediction_max_step_px: 55
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
 

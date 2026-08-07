@@ -62,9 +62,9 @@ class FrontLaneDetector(Node):
             "preview_fps": 30.0,
             "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
-            "roi_top_inset_ratio": 0.18,
             "window_count": 12,
             "window_margin_px": 85,
+            "window_prediction_max_step_px": 55,
             "minimum_window_pixels": 35,
             "minimum_fit_pixels": 180,
             "white_lightness_min": 165,
@@ -95,9 +95,11 @@ class FrontLaneDetector(Node):
         self.preview_fps = max(1.0, float(parameter("preview_fps")))
         self.roi_top_ratio = float(parameter("roi_top_ratio"))
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
-        self.roi_top_inset_ratio = float(parameter("roi_top_inset_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
         self.window_margin_px = max(10, int(parameter("window_margin_px")))
+        self.window_prediction_max_step_px = max(
+            1, int(parameter("window_prediction_max_step_px"))
+        )
         self.minimum_window_pixels = max(5, int(parameter("minimum_window_pixels")))
         self.minimum_fit_pixels = max(30, int(parameter("minimum_fit_pixels")))
         self.white_lightness_min = int(parameter("white_lightness_min"))
@@ -153,18 +155,8 @@ class FrontLaneDetector(Node):
         )
         edges = cv2.dilate(edges, edge_kernel)
         mask = cv2.bitwise_and(white_mask, edges)
-        # The lower edge remains wide, but the distant edge is narrowed toward
-        # the road center.  This excludes fixed white background lines beside
-        # the track without cutting off nearby curve entry.
-        inset = int(np.clip(self.roi_top_inset_ratio * mask.shape[1], 0, mask.shape[1] // 2))
         roi_mask = np.zeros_like(mask)
-        trapezoid = np.array([
-            (inset, top),
-            (mask.shape[1] - 1 - inset, top),
-            (mask.shape[1] - 1, bottom - 1),
-            (0, bottom - 1),
-        ], dtype=np.int32)
-        cv2.fillConvexPoly(roi_mask, trapezoid, 255)
+        roi_mask[top:bottom, :] = 255
         mask = cv2.bitwise_and(mask, roi_mask)
         kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE,
@@ -181,29 +173,54 @@ class FrontLaneDetector(Node):
     ) -> np.ndarray:
         if start_x is None:
             return np.empty((0, 2), dtype=np.float64)
-        nonzero_y, nonzero_x = mask.nonzero()
         current_x = int(np.clip(start_x, 0, mask.shape[1] - 1))
+        last_step_x = 0.0
         height = max(1, (bottom - top) // self.window_count)
         selected: list[np.ndarray] = []
         for index in range(self.window_count):
             y_high = bottom - index * height
             y_low = max(top, y_high - height)
-            in_window = (
-                (nonzero_y >= y_low)
-                & (nonzero_y < y_high)
-                & (nonzero_x >= current_x - self.window_margin_px)
-                & (nonzero_x <= current_x + self.window_margin_px)
+            predicted_x = int(np.clip(
+                current_x + np.clip(
+                    last_step_x,
+                    -self.window_prediction_max_step_px,
+                    self.window_prediction_max_step_px,
+                ),
+                0,
+                mask.shape[1] - 1,
+            ))
+            x_low = max(0, predicted_x - self.window_margin_px)
+            x_high = min(mask.shape[1], predicted_x + self.window_margin_px + 1)
+            window = mask[y_low:y_high, x_low:x_high]
+            labels_count, labels, stats, centroids = cv2.connectedComponentsWithStats(
+                window, connectivity=8
             )
-            point_indices = np.flatnonzero(in_window)
-            if point_indices.size:
-                selected.append(point_indices)
-            if point_indices.size >= self.minimum_window_pixels:
-                current_x = int(np.mean(nonzero_x[point_indices]))
+            candidates = [
+                label for label in range(1, labels_count)
+                if stats[label, cv2.CC_STAT_AREA] >= self.minimum_window_pixels
+            ]
+            if not candidates:
+                continue
+            # Select the single component that continues the lane predicted by
+            # the previous window.  Averaging every white object in a wide
+            # window is what allowed a wall/background line to bend the fit.
+            label = min(
+                candidates,
+                key=lambda value: (
+                    abs((centroids[value, 0] + x_low) - predicted_x),
+                    -stats[value, cv2.CC_STAT_AREA],
+                ),
+            )
+            component_y, component_x = np.nonzero(labels == label)
+            points = np.column_stack((component_y + y_low, component_x + x_low))
+            selected.append(points)
+            next_x = float(np.mean(points[:, 1]))
+            last_step_x = next_x - current_x
+            current_x = int(round(next_x))
         if not selected:
             return np.empty((0, 2), dtype=np.float64)
-        indices = np.concatenate(selected)
         # Stored as [y, x], matching numpy.polyfit's independent variable.
-        return np.column_stack((nonzero_y[indices], nonzero_x[indices])).astype(np.float64)
+        return np.vstack(selected).astype(np.float64)
 
     @staticmethod
     def _fit(
@@ -338,12 +355,6 @@ class FrontLaneDetector(Node):
 
             overlay = bgr.copy()
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
-            inset = int(np.clip(self.roi_top_inset_ratio * width, 0, width // 2))
-            cv2.line(overlay, (inset, top), (0, bottom - 1), (0, 165, 255), 2)
-            cv2.line(
-                overlay, (width - 1 - inset, top), (width - 1, bottom - 1),
-                (0, 165, 255), 2,
-            )
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
             right_curve = self._points_for_fit(right_fit, ys, width)
