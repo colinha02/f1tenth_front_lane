@@ -8,9 +8,9 @@ front_lane_detector:
     preview_window_name: "Front lane detection"
     preview_fps: 30.0
 
-    # Rough lower two-thirds of the front image.  This includes distant curves
-    # while excluding the upper wall/background.
-    roi_top_ratio: 0.333333
+    # Lower half of the front image.  This removes the wall/background while
+    # retaining the nearby track section used for lane tracking.
+    roi_top_ratio: 0.5
     roi_bottom_ratio: 1.0
     window_count: 12
     window_margin_px: 85

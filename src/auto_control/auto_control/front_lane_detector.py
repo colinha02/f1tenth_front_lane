@@ -60,7 +60,7 @@ class FrontLaneDetector(Node):
             "preview_enabled": True,
             "preview_window_name": "Front lane detection",
             "preview_fps": 30.0,
-            "roi_top_ratio": 1.0 / 3.0,
+            "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
             "window_margin_px": 85,

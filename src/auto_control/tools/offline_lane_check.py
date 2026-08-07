@@ -104,7 +104,7 @@ def curve_points(fit: np.ndarray | None, ys: np.ndarray, width: int) -> np.ndarr
 
 def render(image: np.ndarray, lightness: int, saturation: int, edge_low: int, edge_high: int) -> np.ndarray:
     height, width = image.shape[:2]
-    top = height // 3
+    top = height // 2
     bottom = height
     mask = candidate_mask(
         image, top, bottom, lightness, saturation, edge_low, edge_high
