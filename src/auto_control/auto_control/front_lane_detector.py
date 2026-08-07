@@ -60,6 +60,7 @@ class FrontLaneDetector(Node):
             "preview_enabled": True,
             "preview_window_name": "Front lane detection",
             "preview_fps": 30.0,
+            "processing_fps": 30.0,
             "show_extracted_lane_mask": True,
             "extracted_lane_mask_alpha": 0.55,
             "show_model_paths": False,
@@ -102,6 +103,7 @@ class FrontLaneDetector(Node):
         self.preview_enabled = bool(parameter("preview_enabled"))
         self.preview_window_name = str(parameter("preview_window_name"))
         self.preview_fps = max(1.0, float(parameter("preview_fps")))
+        self.processing_fps = max(1.0, float(parameter("processing_fps")))
         self.show_extracted_lane_mask = bool(parameter("show_extracted_lane_mask"))
         self.extracted_lane_mask_alpha = float(parameter("extracted_lane_mask_alpha"))
         self.show_model_paths = bool(parameter("show_model_paths"))
@@ -153,6 +155,7 @@ class FrontLaneDetector(Node):
         self.control_reference_y_ratio = float(parameter("control_reference_y_ratio"))
         self.lookahead_ratio = float(parameter("lookahead_ratio"))
         self._next_preview_at = 0.0
+        self._next_process_at = 0.0
 
     @staticmethod
     def _nv12_to_bgr(message: Image) -> np.ndarray:
@@ -437,6 +440,10 @@ class FrontLaneDetector(Node):
         (self._mask_pub if encoding == "mono8" else self._overlay_pub).publish(message)
 
     def _on_image(self, message: Image) -> None:
+        now = time.monotonic()
+        if now < self._next_process_at:
+            return
+        self._next_process_at = now + 1.0 / self.processing_fps
         try:
             bgr = self._nv12_to_bgr(message)
             height, width = bgr.shape[:2]

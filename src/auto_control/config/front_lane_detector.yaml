@@ -7,6 +7,9 @@ front_lane_detector:
     preview_enabled: true
     preview_window_name: "Front lane detection"
     preview_fps: 30.0
+    # Process only the latest camera frames at this rate; the OAK can capture
+    # faster without making the Python lane pipeline and display fall behind.
+    processing_fps: 30.0
     # Only long, lower-ROI-reaching lane skeletons are displayed: solid dark
     # red trace with a yellow actual center.  Raw white candidates are hidden.
     show_extracted_lane_mask: true
