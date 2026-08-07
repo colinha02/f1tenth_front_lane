@@ -15,7 +15,8 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
   <depend>sensor_msgs</depend>
-  <depend>depthai</depend>
+  <!-- DepthAI is a native CMake library, not an ament/ROS package.  The
+       CMakeLists.txt locates depthai::core through depthaiConfig.cmake. -->
   <depend>opencv4</depend>
 
   <exec_depend>launch</exec_depend>
