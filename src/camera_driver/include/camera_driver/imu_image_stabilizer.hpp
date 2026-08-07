@@ -39,9 +39,9 @@ struct ImuImageStabilizerConfig
   double maximum_correction_deg{12.0};
   double maximum_sample_interval_sec{0.1};
   double maximum_history_sec{2.0};
-  double maximum_frame_imu_wait_sec{0.001};
+  double maximum_frame_imu_wait_sec{0.008};
   double maximum_frame_imu_age_sec{0.006};
-  double maximum_frame_imu_prediction_sec{0.015};
+  double maximum_frame_imu_prediction_sec{0.0};
 };
 
 struct ImageStabilizationCorrection

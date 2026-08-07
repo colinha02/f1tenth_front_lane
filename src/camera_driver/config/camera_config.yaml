@@ -66,9 +66,12 @@ camera_driver:
     imu_stabilization_pitch_correction_enabled: true
     imu_stabilization_roll_correction_enabled: true
     imu_stabilization_maximum_correction_deg: 12.0
-    imu_stabilization_maximum_frame_imu_wait_sec: 0.001
+    # 영상 노출 중앙 시각보다 뒤의 IMU가 올 때까지 기다린 뒤 앞뒤 자세를
+    # 보간한다. 400Hz IMU의 2.5ms 주기와 호스트 스케줄링 여유를 포함한다.
+    imu_stabilization_maximum_frame_imu_wait_sec: 0.008
     imu_stabilization_maximum_frame_imu_age_sec: 0.006
-    imu_stabilization_maximum_prediction_sec: 0.015
+    # 0이면 과거 gyro로 영상 시각의 미래 자세를 예측하지 않는다.
+    imu_stabilization_maximum_prediction_sec: 0.0
 
     # 광학 중심 기준 고정 FOV. 이 crop으로 원본 경계를 채울 수 없는 자세의
     # 프레임은 검은 영역을 섞지 않고 폐기한다.

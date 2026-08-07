@@ -313,7 +313,8 @@ bool validConfig(const ImuImageStabilizerConfig & config)
     positive_finite(config.maximum_history_sec) &&
     positive_finite(config.maximum_frame_imu_wait_sec) &&
     positive_finite(config.maximum_frame_imu_age_sec) &&
-    positive_finite(config.maximum_frame_imu_prediction_sec) &&
+    std::isfinite(config.maximum_frame_imu_prediction_sec) &&
+    config.maximum_frame_imu_prediction_sec >= 0.0 &&
     config.maximum_frame_imu_prediction_sec <= 0.050;
 }
 
@@ -629,6 +630,7 @@ public:
       const TimedOrientation & latest = history_.back();
       prediction_horizon_sec = timestamp_sec - latest.timestamp_sec;
       if (
+        config_.maximum_frame_imu_prediction_sec <= 0.0 ||
         !std::isfinite(prediction_horizon_sec) ||
         prediction_horizon_sec < 0.0 ||
         prediction_horizon_sec > config_.maximum_frame_imu_prediction_sec)

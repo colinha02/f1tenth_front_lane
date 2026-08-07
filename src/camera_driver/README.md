@@ -278,7 +278,8 @@ ros2 topic info /camera/image_rect --verbose
 | `imu_stabilization_startup_discard_duration_sec` | `1.0` | 전원 직후 IMU 과도값 폐기 시간 |
 | `imu_stabilization_reference_calibration_duration_sec` | `4.0` | 정지 기준 자세 측정 시간 |
 | `imu_stabilization_maximum_correction_deg` | `12.0` | 축별 최대 영상 보정각 |
-| `imu_stabilization_maximum_prediction_sec` | `0.015` | 마지막 gyro 기반 최대 예측 시간 |
+| `imu_stabilization_maximum_frame_imu_wait_sec` | `0.008` | 영상 시각 뒤 IMU를 기다리는 최대 시간 |
+| `imu_stabilization_maximum_prediction_sec` | `0.0` | 마지막 gyro 기반 최대 예측 시간 (`0`이면 예측 금지) |
 | `fixed_view_zoom` | `1.25` | 고정 출력 FOV 줌 배율 |
 | `fixed_view_border_margin_px` | `1.5` | 원본 경계 bilinear 안전 여백 |
 | `output_crop_top_px` | `0` | 안정화 후 제거할 상단 행 수 (`0`이면 원본) |

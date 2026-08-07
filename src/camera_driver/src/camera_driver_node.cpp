@@ -419,13 +419,13 @@ private:
       "imu_stabilization_maximum_correction_deg", 12.0);
     imu_stabilizer_config_.maximum_frame_imu_wait_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_maximum_frame_imu_wait_sec", 0.001);
+      "imu_stabilization_maximum_frame_imu_wait_sec", 0.008);
     imu_stabilizer_config_.maximum_frame_imu_age_sec =
       node_.declare_parameter<double>(
       "imu_stabilization_maximum_frame_imu_age_sec", 0.006);
     imu_stabilizer_config_.maximum_frame_imu_prediction_sec =
       node_.declare_parameter<double>(
-      "imu_stabilization_maximum_prediction_sec", 0.015);
+      "imu_stabilization_maximum_prediction_sec", 0.0);
     fixed_view_zoom_ =
       node_.declare_parameter<double>("fixed_view_zoom", 1.25);
     fixed_view_border_margin_px_ = node_.declare_parameter<double>(

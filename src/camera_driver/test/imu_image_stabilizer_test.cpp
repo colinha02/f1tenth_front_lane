@@ -1,7 +1,9 @@
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
+#include <thread>
 
 #include <opencv2/core.hpp>
 
@@ -27,9 +29,9 @@ camera_driver::ImuImageStabilizerConfig fastConfig()
   config.startup_discard_duration_sec = 0.0;
   config.reference_calibration_duration_sec = 0.01;
   config.stationary_detection_window_sec = 0.01;
-  config.maximum_frame_imu_wait_sec = 0.0001;
+  config.maximum_frame_imu_wait_sec = 0.02;
   config.maximum_frame_imu_age_sec = 0.006;
-  config.maximum_frame_imu_prediction_sec = 0.015;
+  config.maximum_frame_imu_prediction_sec = 0.0;
   return config;
 }
 
@@ -97,12 +99,46 @@ void verifyLateralAccelerationDoesNotCreateRoll()
     "lateral acceleration was incorrectly accumulated as roll");
 }
 
+void verifyFrameWaitsForBracketingImuWithoutPrediction()
+{
+  const auto config = fastConfig();
+  camera_driver::ImuImageStabilizer stabilizer(config);
+  calibrate(stabilizer);
+
+  stabilizer.update(
+    cv::Vec3d(0.0, -9.80665, 0.0),
+    cv::Vec3d(0.0, 0.0, 1.0),
+    0.0125);
+  std::thread future_imu([&stabilizer]() {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      stabilizer.update(
+        cv::Vec3d(0.0, -9.80665, 0.0),
+        cv::Vec3d(0.0, 0.0, 1.0),
+        0.0175);
+    });
+
+  const auto interpolated = stabilizer.correctionAt(0.0150);
+  future_imu.join();
+  require(interpolated.has_value(), "bracketing IMU wait failed");
+  require(
+    !interpolated->predicted,
+    "bracketed frame was incorrectly marked as predicted");
+  require(
+    std::abs(std::abs(interpolated->nearest_imu_delta_sec) - 0.0025) < 1.0e-9,
+    "frame did not use the nearest bracketing IMU timestamps");
+
+  require(
+    !stabilizer.correctionAt(0.0300).has_value(),
+    "future frame was predicted while prediction was disabled");
+}
+
 }  // namespace
 
 int main()
 {
   verifyStartupSamplesAreDiscarded();
   verifyLateralAccelerationDoesNotCreateRoll();
+  verifyFrameWaitsForBracketingImuWithoutPrediction();
 
   const auto config = fastConfig();
   camera_driver::ImuImageStabilizer stabilizer(config);
@@ -121,15 +157,9 @@ int main()
     !roll_correction->predicted,
     "exact timestamp was incorrectly marked as predicted");
 
-  const auto predicted = stabilizer.correctionAt(0.0200);
-  require(predicted.has_value(), "short gyro prediction failed");
-  require(predicted->predicted, "future frame did not use gyro prediction");
   require(
-    std::abs(predicted->prediction_horizon_sec - 0.0075) < 1.0e-9,
-    "prediction horizon is incorrect");
-  require(
-    !stabilizer.correctionAt(0.0300).has_value(),
-    "prediction exceeded its configured time limit");
+    !stabilizer.correctionAt(0.0200).has_value(),
+    "future frame was predicted while prediction was disabled");
 
   const auto homography = camera_driver::makeImageStabilizationHomography(
     500.0, 500.0, 640.0, 360.0, *roll_correction);

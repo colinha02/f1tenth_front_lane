@@ -16,7 +16,7 @@ C++ 패키지다. 시작할 때 카메라 높이·roll·하향 pitch를 반드�
 6. OAK 측정 파이프라인을 닫고 `camera_driver`를 시작한다.
 7. 카메라 드라이버가 프레임 시각의 roll/pitch 보정 homography를 계산한다.
 8. CUDA가 시작 LUT의 BEV 좌표를 homography로 원본 NV12에 역투영하여,
-   영상 하단 60%만 안정화와 BEV 변환을 한 번에 수행한다.
+   영상 하단 70%만 안정화와 BEV 변환을 한 번에 수행한다.
 
 높이와 roll/pitch는 origin과 동일하게 depth 노면 평면의 offset과 법선으로
 구한다. IMU는 평면 후보 검증과 정지 상태 판정에 사용한다. 시작 측정에 실패하면 임의의
@@ -119,7 +119,7 @@ intra-process 통신을 사용한다. BEV 시작 측정이 OAK 장치를 반환�
 
 `CudaBevProcessor`는 다음 처리를 한 커널에서 수행한다.
 
-1. BEV LUT 좌표 중 안정화 영상 하단 60%(`y>=288`)만 유지한다.
+1. BEV LUT 좌표 중 안정화 영상 하단 70%(`y>=216`)만 유지한다.
 2. 프레임별 안정화 homography의 역행렬로 원본 NV12 좌표를 구한다.
 3. 원본 NV12 Y/UV 값을 한 번만 bilinear 보간한다.
 4. YUV를 BGR로 변환하고 `bgr8` BEV를 발행한다.

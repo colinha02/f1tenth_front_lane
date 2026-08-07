@@ -141,7 +141,7 @@ def generate_launch_description():
                                     "/camera/image_rect_deferred"
                                 ),
                                 "deferred_stabilization_enabled": True,
-                                "stabilized_bottom_roi_ratio": 0.60,
+                                "stabilized_bottom_roi_ratio": 0.70,
                             },
                             lane_parameter_overrides,
                         ],

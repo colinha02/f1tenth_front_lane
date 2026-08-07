@@ -11,8 +11,8 @@ bev_processor:
     # 발행한다. CUDA가 안정화와 BEV를 한 번에 처리한다.
     input_topic: "/camera/image_rect_deferred"
     deferred_stabilization_enabled: true
-    # 영상 하단에서 위로 60%까지만 안정화+BEV 샘플링한다.
-    stabilized_bottom_roi_ratio: 0.60
+    # 영상 하단에서 위로 70%까지만 안정화+BEV 샘플링한다.
+    stabilized_bottom_roi_ratio: 0.70
     output_topic: "/camera/image_bev"
     output_frame_id: "front_axle_bev"
     expected_input_fps: 110.0
