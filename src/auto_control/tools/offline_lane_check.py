@@ -80,7 +80,9 @@ def sliding_points(
             points = np.column_stack((component_y + y_low, component_x))
             components.append((points, float(centroids[label, 0]), float(area)))
         windows.append(components)
-    if not windows or not windows[0]:
+    while windows and not windows[0]:
+        windows.pop(0)
+    if not windows:
         return np.empty((0, 2), dtype=np.float64)
 
     midpoint = 0.5 * mask.shape[1]

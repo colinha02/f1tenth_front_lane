@@ -201,7 +201,12 @@ class FrontLaneDetector(Node):
                 components.append((points, float(centroids[label, 0]), float(area)))
             windows.append(components)
 
-        if not windows or not windows[0]:
+        # A close curve can leave the very bottom of the image before it
+        # re-enters the ROI.  Start at the lowest window that actually has
+        # white candidates instead of declaring both lanes absent.
+        while windows and not windows[0]:
+            windows.pop(0)
+        if not windows:
             return np.empty((0, 2), dtype=np.float64)
 
         midpoint = 0.5 * mask.shape[1]
