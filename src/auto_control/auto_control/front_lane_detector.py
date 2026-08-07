@@ -331,14 +331,22 @@ class FrontLaneDetector(Node):
         result = []
         for direction in (-1, 1):
             current_x, y = int(seed_x), reference_y
+            previous_x, misses = float(current_x), 0
             while top <= y < bottom:
                 y0, y1 = (max(top, y - 24), y) if direction < 0 else (y, min(bottom, y + 24))
-                inside = ((nonzero_y >= y0) & (nonzero_y < y1) & (nonzero_x >= current_x - self.window_margin_px) & (nonzero_x <= current_x + self.window_margin_px))
+                margin = max(self.window_margin_px, 140)
+                inside = ((nonzero_y >= y0) & (nonzero_y < y1) & (nonzero_x >= current_x - margin) & (nonzero_x <= current_x + margin))
                 ids = np.flatnonzero(inside)
                 if ids.size < self.minimum_window_pixels:
-                    break
+                    misses += 1
+                    if misses > 2:
+                        break
+                    current_x = int(round(current_x + np.clip(current_x - previous_x, -60, 60)))
+                    y += direction * 24
+                    continue
                 result.append(np.column_stack((nonzero_y[ids], nonzero_x[ids])))
-                current_x = int(np.mean(nonzero_x[ids]))
+                previous_x, current_x = float(current_x), int(np.mean(nonzero_x[ids]))
+                misses = 0
                 y += direction * 24
         return np.vstack(result).astype(np.float64) if result else np.empty((0, 2), dtype=np.float64)
 
@@ -439,7 +447,7 @@ class FrontLaneDetector(Node):
             displayed_skeleton = self._displayable_lane_skeleton(
                 lane_skeleton, top, bottom
             )
-            reference_row = int(np.clip(0.67 * height, top, bottom - 1))
+            reference_row = int(np.clip(0.75 * height, top, bottom - 1))
             histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
             sample_y = np.linspace(bottom - 1, top, 8)
             left_seed = self._initial_seed(

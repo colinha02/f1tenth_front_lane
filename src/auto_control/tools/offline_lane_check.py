@@ -124,15 +124,22 @@ def seeded_sliding_points(mask: np.ndarray, seed_x: int | None, reference_y: int
     selected = []
     for direction in (-1, 1):
         current_x, y = int(seed_x), reference_y
+        previous_x, misses = float(current_x), 0
         while top <= y < bottom:
             y0, y1 = (max(top, y - 24), y) if direction < 0 else (y, min(bottom, y + 24))
             inside = ((nonzero_y >= y0) & (nonzero_y < y1) &
-                      (nonzero_x >= current_x - 85) & (nonzero_x <= current_x + 85))
+                      (nonzero_x >= current_x - 140) & (nonzero_x <= current_x + 140))
             indices = np.flatnonzero(inside)
             if indices.size < 35:
-                break
+                misses += 1
+                if misses > 2:
+                    break
+                current_x = int(round(current_x + np.clip(current_x - previous_x, -60, 60)))
+                y += direction * 24
+                continue
             selected.append(np.column_stack((nonzero_y[indices], nonzero_x[indices])))
-            current_x = int(np.mean(nonzero_x[indices]))
+            previous_x, current_x = float(current_x), int(np.mean(nonzero_x[indices]))
+            misses = 0
             y += direction * 24
     return np.vstack(selected).astype(np.float64) if selected else np.empty((0, 2), dtype=np.float64)
 
@@ -185,7 +192,7 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     mask = candidate_mask(
         image, top, bottom, lightness, saturation, dark_max, dark_adjacency
     )
-    reference_row = int(np.clip(0.67 * height, top, bottom - 1))
+    reference_row = int(np.clip(0.75 * height, top, bottom - 1))
     histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
     left_points = seeded_sliding_points(mask, seed(histogram, True), reference_row, top, bottom)
     right_points = seeded_sliding_points(mask, seed(histogram, False), reference_row, top, bottom)

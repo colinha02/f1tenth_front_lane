@@ -56,5 +56,5 @@ front_lane_detector:
     lane_width_temporal_alpha: 0.25
     # Control/reference row: around the lower third of the full image.  The
     # magenta center point should approach the yellow image-center target.
-    control_reference_y_ratio: 0.67
+    control_reference_y_ratio: 0.75
     lookahead_ratio: 0.48
