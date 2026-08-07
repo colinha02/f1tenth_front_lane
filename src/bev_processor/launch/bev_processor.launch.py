@@ -157,6 +157,9 @@ def generate_launch_description():
                                 "publish_enabled": True,
                                 "imu_bridge_enabled": False,
                                 "imu_stabilization_enabled": True,
+                                # BEV intrinsics in bev_config.yaml include
+                                # this fixed-view zoom, so enforce it here.
+                                "fixed_view_zoom": 1.25,
                                 "output_crop_top_px": 0,
                                 "performance_measurement_enabled": (
                                     performance_measurement_parameter
