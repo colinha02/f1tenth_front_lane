@@ -7,8 +7,8 @@ front_lane_detector:
     preview_enabled: true
     preview_window_name: "Front lane detection"
     preview_fps: 30.0
-    # Blue transparent rendering of the raw white-tape extraction.  It is
-    # independent from the later blue curve/path fit.
+    # Dark-red transparent rendering of the raw white-tape extraction.  Its
+    # actual skeleton center is drawn in yellow.
     show_extracted_lane_mask: true
     extracted_lane_mask_alpha: 0.55
     # Keep false while tuning extraction: the blue trace then follows only

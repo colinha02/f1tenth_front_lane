@@ -455,13 +455,13 @@ class FrontLaneDetector(Node):
             overlay = bgr.copy()
             if self.show_extracted_lane_mask:
                 extracted = np.zeros_like(overlay)
-                extracted[mask > 0] = (255, 0, 0)
+                extracted[mask > 0] = (0, 0, 180)
                 overlay = cv2.addWeighted(
                     overlay, 1.0, extracted, self.extracted_lane_mask_alpha, 0.0
                 )
             # The blue trace is the center of the extracted white tape itself;
             # it is never extrapolated away from the observed pixels.
-            overlay[lane_skeleton > 0] = (255, 0, 0)
+            overlay[lane_skeleton > 0] = (0, 255, 255)
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
