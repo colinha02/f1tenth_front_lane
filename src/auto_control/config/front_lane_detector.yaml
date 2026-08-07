@@ -17,6 +17,9 @@ front_lane_detector:
     # Max horizontal prediction change between vertically adjacent windows.
     # The closest connected white component is used instead of averaging all.
     window_prediction_max_step_px: 55
+    # Number of full lane-path candidates retained while scoring all connected
+    # white components from the bottom window to the top window.
+    candidate_path_count: 16
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
 

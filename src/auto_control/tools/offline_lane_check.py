@@ -57,48 +57,52 @@ def sliding_points(
     start_x: int | None,
     top: int,
     bottom: int,
+    left_side: bool,
     window_count: int = 12,
     margin: int = 85,
     minimum_window_pixels: int = 35,
 ) -> np.ndarray:
-    if start_x is None:
-        return np.empty((0, 2), dtype=np.float64)
-    current_x = int(np.clip(start_x, 0, mask.shape[1] - 1))
-    last_step_x = 0.0
     window_height = max(1, (bottom - top) // window_count)
-    selected: list[np.ndarray] = []
+    windows: list[list[tuple[np.ndarray, float, float]]] = []
     for index in range(window_count):
         y_high = bottom - index * window_height
         y_low = max(top, y_high - window_height)
-        predicted_x = int(np.clip(current_x + np.clip(last_step_x, -55, 55), 0, mask.shape[1] - 1))
-        x_low = max(0, predicted_x - margin)
-        x_high = min(mask.shape[1], predicted_x + margin + 1)
-        window = mask[y_low:y_high, x_low:x_high]
+        window = mask[y_low:y_high, :]
         labels_count, labels, stats, centroids = cv2.connectedComponentsWithStats(
             window, connectivity=8
         )
-        candidates = [
-            label for label in range(1, labels_count)
-            if stats[label, cv2.CC_STAT_AREA] >= minimum_window_pixels
-        ]
-        if not candidates:
-            continue
-        label = min(
-            candidates,
-            key=lambda value: (
-                abs((centroids[value, 0] + x_low) - predicted_x),
-                -stats[value, cv2.CC_STAT_AREA],
-            ),
-        )
-        component_y, component_x = np.nonzero(labels == label)
-        points = np.column_stack((component_y + y_low, component_x + x_low))
-        selected.append(points)
-        next_x = float(np.mean(points[:, 1]))
-        last_step_x = next_x - current_x
-        current_x = int(round(next_x))
-    if not selected:
+        components: list[tuple[np.ndarray, float, float]] = []
+        for label in range(1, labels_count):
+            area = int(stats[label, cv2.CC_STAT_AREA])
+            if area < minimum_window_pixels:
+                continue
+            component_y, component_x = np.nonzero(labels == label)
+            points = np.column_stack((component_y + y_low, component_x))
+            components.append((points, float(centroids[label, 0]), float(area)))
+        windows.append(components)
+    if not windows or not windows[0]:
         return np.empty((0, 2), dtype=np.float64)
-    return np.vstack(selected).astype(np.float64)
+
+    midpoint = 0.5 * mask.shape[1]
+    initial = [component for component in windows[0]
+               if (component[1] < midpoint) == left_side] or windows[0]
+    paths = [(np.log1p(area) - (0.02 * abs(x - start_x) if start_x is not None else 0.0),
+              [points], [x]) for points, x, area in initial]
+    paths = sorted(paths, key=lambda item: item[0], reverse=True)[:16]
+    for components in windows[1:]:
+        expanded = []
+        for score, path_points, centers in paths:
+            step = centers[-1] - centers[-2] if len(centers) > 1 else 0.0
+            predicted = centers[-1] + np.clip(step, -55, 55)
+            for points, x, area in components:
+                distance = abs(x - predicted)
+                if distance <= 2.0 * margin:
+                    expanded.append((score + np.log1p(area) - 0.055 * distance,
+                                     path_points + [points], centers + [x]))
+        if not expanded:
+            break
+        paths = sorted(expanded, key=lambda item: item[0], reverse=True)[:16]
+    return np.vstack(paths[0][1]).astype(np.float64) if paths else np.empty((0, 2))
 
 
 def fit_curve(points: np.ndarray, roi_height: int) -> np.ndarray | None:
@@ -127,10 +131,10 @@ def render(image: np.ndarray, lightness: int, saturation: int, edge_low: int, ed
     histogram = np.sum(mask[max(top, bottom - 80):bottom] > 0, axis=0)
     ys = np.linspace(bottom - 1, top, 80)
     left_fit = fit_curve(
-        sliding_points(mask, seed(histogram, True), top, bottom), bottom - top
+        sliding_points(mask, seed(histogram, True), top, bottom, True), bottom - top
     )
     right_fit = fit_curve(
-        sliding_points(mask, seed(histogram, False), top, bottom), bottom - top
+        sliding_points(mask, seed(histogram, False), top, bottom, False), bottom - top
     )
 
     overlay = image.copy()
