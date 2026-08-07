@@ -148,20 +148,45 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     right_fit = fit_curve(
         sliding_points(mask, seed(histogram, False), top, bottom, False), bottom - top
     )
+    width_fit = None
+    if left_fit is not None and right_fit is not None:
+        candidate_width = right_fit - left_fit
+        widths = np.polyval(candidate_width, ys)
+        if np.all((widths > 100.0) & (widths < 1400.0)):
+            width_fit = candidate_width
+    if width_fit is None:
+        width_fit = np.array([0.0, 0.0, 720.0])
+
+    left_inferred = False
+    right_inferred = False
+    if left_fit is None and right_fit is not None:
+        left_fit = right_fit - width_fit
+        left_inferred = True
+    elif right_fit is None and left_fit is not None:
+        right_fit = left_fit + width_fit
+        right_inferred = True
 
     overlay = image.copy()
     extracted = np.zeros_like(overlay)
     extracted[mask > 0] = (255, 0, 0)
     overlay = cv2.addWeighted(overlay, 1.0, extracted, 0.55, 0.0)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
-    for fit in (left_fit, right_fit):
+    for fit, inferred in ((left_fit, left_inferred), (right_fit, right_inferred)):
         points = curve_points(fit, ys, width)
         if points is not None:
-            cv2.polylines(overlay, [points], False, (255, 0, 0), 5)
+            cv2.polylines(
+                overlay, [points], False,
+                (255, 255, 0) if inferred else (255, 0, 0), 5,
+            )
     if left_fit is not None and right_fit is not None:
         center = curve_points(0.5 * (left_fit + right_fit), ys, width)
         if center is not None:
             cv2.polylines(overlay, [center], False, (0, 255, 0), 3)
+        center_fit = 0.5 * (left_fit + right_fit)
+        reference_y = int(round(np.clip(0.67 * height, top, bottom - 1)))
+        reference_x = int(round(np.polyval(center_fit, reference_y)))
+        cv2.circle(overlay, (reference_x, reference_y), 7, (255, 0, 255), -1)
+        cv2.circle(overlay, (width // 2, reference_y), 6, (0, 255, 255), 2)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
     cv2.putText(mask_bgr, "candidate mask", (15, 35), cv2.FONT_HERSHEY_SIMPLEX,
