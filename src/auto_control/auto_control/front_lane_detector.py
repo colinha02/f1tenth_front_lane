@@ -371,6 +371,29 @@ class FrontLaneDetector(Node):
         return np.column_stack((best[1], best[2])).astype(np.float64)
 
     @staticmethod
+    def _row_centerline(left, right, top, bottom):
+        centers, previous_center, previous_left, previous_right = [], None, None, None
+        for y in range(bottom - 1, top - 1, -4):
+            def row_x(points):
+                if points.size == 0: return None
+                values = points[np.abs(points[:, 0] - y) <= 2, 1]
+                return float(np.median(values)) if values.size else None
+            lx, rx = row_x(left), row_x(right)
+            if lx is not None and rx is not None:
+                center = 0.5 * (lx + rx)
+            elif lx is not None and previous_center is not None and previous_left is not None:
+                center = previous_center + (lx - previous_left)
+            elif rx is not None and previous_center is not None and previous_right is not None:
+                center = previous_center + (rx - previous_right)
+            else:
+                center = previous_center
+            if center is not None: centers.append((int(round(center)), y))
+            if lx is not None: previous_left = lx
+            if rx is not None: previous_right = rx
+            previous_center = center
+        return np.asarray(centers, dtype=np.int32)
+
+    @staticmethod
     def _fit(
         points: np.ndarray,
         minimum_pixels: int,
@@ -482,6 +505,7 @@ class FrontLaneDetector(Node):
             )
             left_points = self._connected_lane_points(lane_skeleton, left_seed, reference_row)
             right_points = self._connected_lane_points(lane_skeleton, right_seed, reference_row)
+            row_centers = self._row_centerline(left_points, right_points, top, bottom)
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
             )
@@ -544,6 +568,10 @@ class FrontLaneDetector(Node):
                 cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)),
             )
             overlay[tracked_trace > 0] = (0, 0, 255)
+            if row_centers.size:
+                cv2.polylines(overlay, [row_centers], False, (0, 255, 0), 3)
+                for point in row_centers:
+                    cv2.circle(overlay, tuple(point), 3, (0, 255, 0), -1)
             trace = cv2.dilate(
                 displayed_skeleton,
                 cv2.getStructuringElement(
