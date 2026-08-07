@@ -65,7 +65,7 @@ class FrontLaneDetector(Node):
             "show_model_paths": False,
             "minimum_displayed_lane_vertical_coverage": 0.20,
             "displayed_lane_trace_thickness_px": 7,
-            "roi_top_ratio": 0.5,
+            "roi_top_ratio": 0.4,
             "roi_bottom_ratio": 1.0,
             "window_count": 12,
             "window_margin_px": 85,
@@ -334,12 +334,12 @@ class FrontLaneDetector(Node):
             previous_x, misses = float(current_x), 0
             while top <= y < bottom:
                 y0, y1 = (max(top, y - 24), y) if direction < 0 else (y, min(bottom, y + 24))
-                margin = max(self.window_margin_px, 140)
+                margin = max(self.window_margin_px, 170)
                 inside = ((nonzero_y >= y0) & (nonzero_y < y1) & (nonzero_x >= current_x - margin) & (nonzero_x <= current_x + margin))
                 ids = np.flatnonzero(inside)
                 if ids.size < self.minimum_window_pixels:
                     misses += 1
-                    if misses > 2:
+                    if misses > 3:
                         break
                     current_x = int(round(current_x + np.clip(current_x - previous_x, -60, 60)))
                     y += direction * 24

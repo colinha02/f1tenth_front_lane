@@ -128,11 +128,11 @@ def seeded_sliding_points(mask: np.ndarray, seed_x: int | None, reference_y: int
         while top <= y < bottom:
             y0, y1 = (max(top, y - 24), y) if direction < 0 else (y, min(bottom, y + 24))
             inside = ((nonzero_y >= y0) & (nonzero_y < y1) &
-                      (nonzero_x >= current_x - 140) & (nonzero_x <= current_x + 140))
+                      (nonzero_x >= current_x - 170) & (nonzero_x <= current_x + 170))
             indices = np.flatnonzero(inside)
             if indices.size < 35:
                 misses += 1
-                if misses > 2:
+                if misses > 3:
                     break
                 current_x = int(round(current_x + np.clip(current_x - previous_x, -60, 60)))
                 y += direction * 24
@@ -187,7 +187,7 @@ def displayed_lane_skeleton(skeleton: np.ndarray, top: int, bottom: int) -> np.n
 
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
-    top = height // 2
+    top = int(0.4 * height)
     bottom = height
     mask = candidate_mask(
         image, top, bottom, lightness, saturation, dark_max, dark_adjacency
