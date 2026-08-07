@@ -173,10 +173,11 @@ public:
         startup_measurement_config_.manual_camera_height_m);
       RCLCPP_INFO(
         get_logger(),
-        "Measurement quality: warmup=%.1fs, IMU=%d samples, "
+        "Measurement quality: warmup=%.1fs, IMU=%d samples/%d blocks, "
         "depth/IR ground-plane measurement=disabled, attitude=imu.",
         startup_measurement_config_.warmup_sec,
-        startup_measurement_config_.imu_sample_count);
+        startup_measurement_config_.imu_sample_count,
+        startup_measurement_config_.imu_block_count);
     } else {
       RCLCPP_INFO(
         get_logger(),
@@ -186,13 +187,16 @@ public:
         startupAttitudeSourceName(startup_measurement_config_.attitude_source));
       RCLCPP_INFO(
         get_logger(),
-        "Measurement quality: warmup=%.1fs, IR-dot=%.2f, IMU=%d samples, "
+        "Measurement quality: warmup=%.1fs, IR-dot=%.2f, "
+        "IMU=%d samples/%d blocks, "
         "stereo=%dx%d@%.1fHz/5-bit-subpixel/shift=%d, "
         "depth ROI=%dx%d step=%d (%d valid points minimum), "
-        "RANSAC=%d iterations, stable planes=%d frames, attitude=%s.",
+        "RANSAC=%d iterations, stable planes=%d frames/%d blocks, "
+        "attitude=%s.",
         startup_measurement_config_.warmup_sec,
         startup_measurement_config_.ir_dot_projector_intensity,
         startup_measurement_config_.imu_sample_count,
+        startup_measurement_config_.imu_block_count,
         startup_measurement_config_.stereo_width,
         startup_measurement_config_.stereo_height,
         startup_measurement_config_.stereo_fps,
@@ -203,6 +207,7 @@ public:
         startup_measurement_config_.minimum_valid_points,
         startup_measurement_config_.plane_ransac_iterations,
         startup_measurement_config_.stable_plane_frame_count,
+        startup_measurement_config_.plane_block_count,
         startupAttitudeSourceName(startup_measurement_config_.attitude_source));
     }
     const auto measurement =
@@ -215,7 +220,8 @@ public:
       "BEV_STARTUP_MEASUREMENT: height_source=%s, attitude_source=%s, "
       "height=%.4fm, roll=%.3fdeg, "
       "pitch=%.3fdeg, downward_pitch=%.3fdeg, "
-      "height_stddev=%.4fm, plane_normal_RMS=%.3fdeg",
+      "frame_height_stddev=%.4fm, frame_plane_RMS=%.3fdeg, "
+      "block_height_stddev=%.4fm, block_plane_RMS=%.3fdeg",
       measurement.height_source.c_str(),
       measurement.attitude_source.c_str(),
       measurement.height_m,
@@ -223,19 +229,38 @@ public:
       -measurement.pitch_down_deg,
       measurement.pitch_down_deg,
       measurement.height_stddev_m,
-      measurement.plane_normal_rms_deg);
+      measurement.plane_normal_rms_deg,
+      measurement.plane_block_height_stddev_m,
+      measurement.plane_block_normal_rms_deg);
     RCLCPP_INFO(
       get_logger(),
       "Startup IMU: measured=(roll=%.3f,pitch_down=%.3fdeg), "
       "corrected=(roll=%.3f,pitch_down=%.3fdeg), "
-      "direction_RMS=%.3fdeg, gyro_mean/stddev=%.3f/%.3fdegps",
+      "sample_RMS=%.3fdeg, block_RMS=%.3fdeg, "
+      "gyro_mean/stddev=%.3f/%.3fdegps",
       measurement.imu_roll_deg,
       measurement.imu_pitch_down_deg,
       measurement.corrected_imu_roll_deg,
       measurement.corrected_imu_pitch_down_deg,
       measurement.imu_direction_rms_deg,
+      measurement.imu_block_normal_rms_deg,
       measurement.imu_gyroscope_mean_degps,
       measurement.imu_gyroscope_stddev_degps);
+    for (
+      std::size_t index = 0U;
+      index < measurement.imu_block_roll_deg.size() &&
+      index < measurement.imu_block_pitch_down_deg.size();
+      ++index)
+    {
+      RCLCPP_INFO(
+        get_logger(),
+        "Startup repeat IMU block %zu/%zu: "
+        "corrected_roll=%.3fdeg, corrected_pitch_down=%.3fdeg",
+        index + 1U,
+        measurement.imu_block_roll_deg.size(),
+        measurement.imu_block_roll_deg[index],
+        measurement.imu_block_pitch_down_deg[index]);
+    }
     if (!startup_measurement_config_.manual_camera_height_enabled) {
       RCLCPP_INFO(
         get_logger(),
@@ -257,6 +282,23 @@ public:
         measurement.plane_inlier_count,
         100.0 * measurement.plane_inlier_ratio,
         measurement.plane_residual_mad_m);
+      for (
+        std::size_t index = 0U;
+        index < measurement.depth_block_height_m.size() &&
+        index < measurement.depth_block_roll_deg.size() &&
+        index < measurement.depth_block_pitch_down_deg.size();
+        ++index)
+      {
+        RCLCPP_INFO(
+          get_logger(),
+          "Startup repeat Depth block %zu/%zu: "
+          "height=%.4fm, roll=%.3fdeg, pitch_down=%.3fdeg",
+          index + 1U,
+          measurement.depth_block_height_m.size(),
+          measurement.depth_block_height_m[index],
+          measurement.depth_block_roll_deg[index],
+          measurement.depth_block_pitch_down_deg[index]);
+      }
     }
     installProcessor(
       startup_roll_deg_,
@@ -507,12 +549,15 @@ private:
       "measurement_plane_maximum_residual_mad_m", 0.005);
     declare_parameter<double>(
       "measurement_plane_maximum_imu_difference_deg", 5.0);
-    declare_parameter<std::string>("measurement_attitude_source", "depth");
+    declare_parameter<std::string>("measurement_attitude_source", "imu");
     declare_parameter<double>("measurement_imu_roll_bias_deg", 0.0);
     declare_parameter<double>("measurement_imu_pitch_bias_deg", 0.0);
     declare_parameter<int>("measurement_imu_sample_count", 1200);
+    declare_parameter<int>("measurement_imu_block_count", 3);
     declare_parameter<double>(
       "measurement_imu_max_direction_rms_deg", 0.50);
+    declare_parameter<double>(
+      "measurement_imu_maximum_block_normal_rms_deg", 0.15);
     declare_parameter<double>("measurement_imu_accel_min_mps2", 8.30);
     declare_parameter<double>("measurement_imu_accel_max_mps2", 11.30);
     declare_parameter<double>(
@@ -520,9 +565,14 @@ private:
     declare_parameter<double>(
       "measurement_imu_gyroscope_stddev_maximum_degps", 1.40);
     declare_parameter<int>("measurement_stable_plane_frame_count", 45);
+    declare_parameter<int>("measurement_plane_block_count", 3);
     declare_parameter<double>("measurement_maximum_height_stddev_m", 0.003);
     declare_parameter<double>(
       "measurement_maximum_plane_normal_rms_deg", 0.25);
+    declare_parameter<double>(
+      "measurement_maximum_plane_block_height_stddev_m", 0.0015);
+    declare_parameter<double>(
+      "measurement_maximum_plane_block_normal_rms_deg", 0.10);
     declare_parameter<double>("measurement_timeout_sec", 45.0);
 
     declare_parameter<double>("x_min_m", 0.0);
@@ -730,9 +780,14 @@ private:
       get_parameter("measurement_imu_pitch_bias_deg").as_double();
     startup_measurement_config_.imu_sample_count = static_cast<int>(
       get_parameter("measurement_imu_sample_count").as_int());
+    startup_measurement_config_.imu_block_count = static_cast<int>(
+      get_parameter("measurement_imu_block_count").as_int());
     startup_measurement_config_.imu_max_direction_rms_deg =
       get_parameter(
       "measurement_imu_max_direction_rms_deg").as_double();
+    startup_measurement_config_.imu_maximum_block_normal_rms_deg =
+      get_parameter(
+      "measurement_imu_maximum_block_normal_rms_deg").as_double();
     startup_measurement_config_.imu_accel_min_mps2 =
       get_parameter("measurement_imu_accel_min_mps2").as_double();
     startup_measurement_config_.imu_accel_max_mps2 =
@@ -745,12 +800,20 @@ private:
       "measurement_imu_gyroscope_stddev_maximum_degps").as_double();
     startup_measurement_config_.stable_plane_frame_count = static_cast<int>(
       get_parameter("measurement_stable_plane_frame_count").as_int());
+    startup_measurement_config_.plane_block_count = static_cast<int>(
+      get_parameter("measurement_plane_block_count").as_int());
     startup_measurement_config_.maximum_height_stddev_m =
       get_parameter(
       "measurement_maximum_height_stddev_m").as_double();
     startup_measurement_config_.maximum_plane_normal_rms_deg =
       get_parameter(
       "measurement_maximum_plane_normal_rms_deg").as_double();
+    startup_measurement_config_.maximum_plane_block_height_stddev_m =
+      get_parameter(
+      "measurement_maximum_plane_block_height_stddev_m").as_double();
+    startup_measurement_config_.maximum_plane_block_normal_rms_deg =
+      get_parameter(
+      "measurement_maximum_plane_block_normal_rms_deg").as_double();
     startup_measurement_config_.timeout_sec =
       get_parameter("measurement_timeout_sec").as_double();
 

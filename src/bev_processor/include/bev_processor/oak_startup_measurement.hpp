@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "bev_processor/startup_attitude.hpp"
 
@@ -44,20 +45,25 @@ struct OakStartupMeasurementConfig
   double plane_maximum_residual_mad_m{0.005};
   double plane_maximum_imu_difference_deg{5.0};
 
-  StartupAttitudeSource attitude_source{StartupAttitudeSource::kDepth};
+  StartupAttitudeSource attitude_source{StartupAttitudeSource::kImu};
   double imu_roll_bias_deg{0.0};
   double imu_pitch_bias_deg{0.0};
 
   int imu_sample_count{1200};
+  int imu_block_count{3};
   double imu_max_direction_rms_deg{0.50};
+  double imu_maximum_block_normal_rms_deg{0.15};
   double imu_accel_min_mps2{8.30};
   double imu_accel_max_mps2{11.30};
   double imu_gyroscope_mean_maximum_degps{0.80};
   double imu_gyroscope_stddev_maximum_degps{1.40};
 
   int stable_plane_frame_count{45};
+  int plane_block_count{3};
   double maximum_height_stddev_m{0.003};
   double maximum_plane_normal_rms_deg{0.25};
+  double maximum_plane_block_height_stddev_m{0.0015};
+  double maximum_plane_block_normal_rms_deg{0.10};
   double timeout_sec{45.0};
 };
 
@@ -75,14 +81,22 @@ struct OakStartupMeasurement
   double depth_roll_deg{0.0};
   double depth_pitch_down_deg{0.0};
   double imu_direction_rms_deg{0.0};
+  double imu_block_normal_rms_deg{0.0};
   double imu_gyroscope_mean_degps{0.0};
   double imu_gyroscope_stddev_degps{0.0};
   double height_stddev_m{0.0};
   double plane_normal_rms_deg{0.0};
+  double plane_block_height_stddev_m{0.0};
+  double plane_block_normal_rms_deg{0.0};
   double median_depth_m{0.0};
   double plane_residual_mad_m{0.0};
   double plane_inlier_ratio{0.0};
   double plane_imu_difference_deg{0.0};
+  std::vector<double> imu_block_roll_deg;
+  std::vector<double> imu_block_pitch_down_deg;
+  std::vector<double> depth_block_height_m;
+  std::vector<double> depth_block_roll_deg;
+  std::vector<double> depth_block_pitch_down_deg;
   std::size_t valid_point_count{0U};
   std::size_t plane_inlier_count{0U};
 };

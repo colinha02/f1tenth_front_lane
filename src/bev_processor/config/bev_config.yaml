@@ -115,9 +115,9 @@ bev_processor:
     # depth 평면 법선과 IMU 중력 방향이 이 각도보다 다르면 잘못된 평면으로 본다.
     measurement_plane_maximum_imu_difference_deg: 5.0
 
-    # BEV 절대 roll/pitch는 실제 노면 평면 법선에서 구한다.
-    # IMU는 노면 후보 검증과 정지 상태 판정에만 사용한다.
-    measurement_attitude_source: "depth"
+    # 지면이 수평이라는 전제에서 BEV 절대 roll/pitch는 IMU 중력 방향으로
+    # 구한다. Depth 평면은 카메라 높이와 지면 후보 품질 검증에 사용한다.
+    measurement_attitude_source: "imu"
 
     # IMU 장착 bias = IMU 측정값 - 신뢰하는 실제값. "imu" 선택 시 최종
     # roll/pitch에 적용되며, "depth" 선택 시에도 노면 평면 검증 기준에 적용된다.
@@ -126,10 +126,14 @@ bev_processor:
     measurement_imu_roll_bias_deg: 0.0
     measurement_imu_pitch_bias_deg: 0.0
 
-    # sample_count/rate가 IMU 평균 시간이다. 1200/400 = 3초이다.
+    # 1200개를 400개씩 3개 독립 블록으로 나눠 각 블록의 중력 방향을
+    # 측정하고, 블록 중앙 방향을 최종 roll/pitch로 사용한다.
     measurement_imu_sample_count: 1200
+    measurement_imu_block_count: 3
     # 정지 중 중력 방향 RMS 한계다. 실패하면 차량 진동·바닥 흔들림부터 확인한다.
     measurement_imu_max_direction_rms_deg: 0.50
+    # 세 IMU 블록 평균 방향끼리의 RMS가 이 값보다 크면 초기화를 다시 한다.
+    measurement_imu_maximum_block_normal_rms_deg: 0.15
     # 정지 상태에서 가속도 크기는 중력가속도 9.81m/s² 근처여야 한다.
     # 이 범위를 벗어나면 이동·충격·센서 이상으로 보고 측정을 받지 않는다.
     measurement_imu_accel_min_mps2: 8.30
@@ -137,13 +141,16 @@ bev_processor:
     measurement_imu_gyroscope_mean_maximum_degps: 0.80
     measurement_imu_gyroscope_stddev_maximum_degps: 1.40
 
-    # 연속된 평면 여러 장의 높이와 법선이 안정적일 때만 최종값을 채택한다.
-    # 30FPS에서 45프레임은 약 1.5초이다.
+    # 45개 평면을 15개씩 3개 독립 블록으로 나눠 높이와 법선의 반복성을
+    # 따로 검사한다. 30FPS에서 전체 45프레임은 약 1.5초이다.
     measurement_stable_plane_frame_count: 45
+    measurement_plane_block_count: 3
     # origin 방식의 depth 평면 offset 높이 표준편차 3mm를 허용한다.
     # 반복 실패 시 ROI와 정지 상태를 먼저 확인한 뒤 조금씩 완화한다.
     measurement_maximum_height_stddev_m: 0.003
     measurement_maximum_plane_normal_rms_deg: 0.25
+    measurement_maximum_plane_block_height_stddev_m: 0.0015
+    measurement_maximum_plane_block_normal_rms_deg: 0.10
     # 워밍업+IMU 평균+평면 수집을 모두 포함한 전체 제한시간이다.
     measurement_timeout_sec: 45.0
 

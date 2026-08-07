@@ -28,8 +28,8 @@ int main()
   const bev_processor::OakStartupMeasurementConfig default_config;
   require(
     default_config.attitude_source ==
-    bev_processor::StartupAttitudeSource::kDepth,
-    "startup attitude did not default to the depth plane");
+    bev_processor::StartupAttitudeSource::kImu,
+    "startup attitude did not default to the IMU gravity direction");
 
   const auto raw_imu_up = bev_processor::attitudeUpVector(4.0, 18.0);
   const auto depth_up = bev_processor::attitudeUpVector(1.0, 12.0);

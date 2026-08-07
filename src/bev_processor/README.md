@@ -9,23 +9,25 @@ C++ 패키지다. 시작할 때 카메라 높이·roll·하향 pitch를 반드�
 1. `bev_processor`가 OAK를 먼저 단독으로 연다.
 2. 차량이 정지한 상태에서 stereo depth 중앙 ROI의 노면 평면과 IMU 중력
    방향을 측정한다.
-3. depth RANSAC/PCA 노면 평면 법선에서 roll과 하향 pitch를 구한다.
-4. 같은 depth 노면 평면의 offset 높이를 구하고, 그 값의 시간
-   중앙값으로 카메라 높이를 구한다.
+3. IMU 1200개를 3개 독립 블록으로 나눠 중력 방향 roll과 하향 pitch의
+   반복성을 검사하고 블록 중앙 방향을 채택한다.
+4. depth RANSAC/PCA 노면 평면 45개도 3개 블록으로 나눠 offset 높이와
+   평면 법선의 반복성을 검사하고 블록 중앙 높이를 채택한다.
 5. 측정한 높이·roll·pitch와 설정 파일의 X/Y/yaw로 BEV LUT를 한 번 만든다.
 6. OAK 측정 파이프라인을 닫고 `camera_driver`를 시작한다.
 7. 카메라 드라이버가 프레임 시각의 roll/pitch 보정 homography를 계산한다.
 8. CUDA가 시작 LUT의 BEV 좌표를 homography로 원본 NV12에 역투영하여,
    영상 하단 70%만 안정화와 BEV 변환을 한 번에 수행한다.
 
-높이와 roll/pitch는 origin과 동일하게 depth 노면 평면의 offset과 법선으로
-구한다. IMU는 평면 후보 검증과 정지 상태 판정에 사용한다. 시작 측정에 실패하면 임의의
+높이는 depth 노면 평면 offset으로 구하고, 지면이 수평이라는 전제에서
+roll/pitch는 IMU 중력 방향으로 구한다. Depth 법선은 평면 후보 품질을
+검증하고 IMU와의 차이도 함께 기록한다. 시작 측정에 실패하면 임의의
 수동 외부 파라미터로 계속하지 않고 노드 시작을 중단한다. LUT 생성 후에는
 BEV 노드가 IMU를 구독하거나 자세 변화에 따라 LUT를 다시 만들지 않는다.
 
 카메라 X/Y 위치와 yaw는 시작 측정으로 구하지 않으므로 실제 장착값을
 `config/bev_config.yaml`에 입력해야 한다. 높이·roll·pitch 입력 항목은 없고
-시작 측정 결과만 사용한다. 자동 모드의 roll/pitch 출처는 `depth`다.
+시작 측정 결과만 사용한다. 자동 모드의 roll/pitch 출처는 기본 `imu`다.
 
 ## 실행
 
@@ -221,10 +223,12 @@ CUDA BEV 변환, ROS 발행, GUI 프리뷰 시간을 포함하지 않는다. Jet
 ## 시작 측정
 
 OAK stereo depth의 중앙 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier를
-찾는다. 정지 상태의 calibrated accel/gyro 1200개를 400Hz로 측정해
-노면 후보와 정지 상태를 검증한다. roll/pitch는 depth 노면 법선에서, 높이는 각 depth
-프레임에서 RANSAC/PCA로 정밀화한 노면 평면 offset을 구하고, 그 값의
-시간 중앙값을 사용한다. 45개 평면의 시간 안정성까지 통과해야 성공한다.
+찾는다. 정지 상태의 calibrated accel/gyro 1200개를 400Hz로 측정하고
+400개씩 3개 블록의 중력 방향을 독립 계산한다. roll/pitch는 세 블록의
+중앙 방향을 사용하며, 블록 간 방향 RMS가 기준을 통과해야 한다.
+높이는 45개 depth 평면을 15개씩 3개 블록으로 나눠 블록별 중앙 offset과
+평균 법선을 구한 뒤 중앙값을 사용한다. 전체 프레임 안정성과 블록 간
+높이·법선 반복성 조건을 모두 통과해야 성공한다.
 Pro-series OAK의 IR dot projector는 시작 측정 동안 `1.0`으로 사용한다.
 
 높이를 수동으로 쓰려면 `config/bev_config.yaml`에서 다음과 같이
@@ -261,7 +265,7 @@ shift는 0으로 고정한다. Extended disparity도 사용하지 않는다. Dep
 [bev_processor] Startup IMU: ...
 [bev_processor] Startup attitude selection: selected=..., ...
 [bev_processor] Startup ground-plane diagnostics: ...
-[bev_processor] BEV LUT installed from depth-plane attitude + depth-plane offset height: ...
+[bev_processor] BEV LUT installed from IMU attitude + depth-plane offset height: ...
 ```
 
 상태 로그의 `extrinsics=startup_measured, fixed_lut=true`는 시작 측정 자세의
