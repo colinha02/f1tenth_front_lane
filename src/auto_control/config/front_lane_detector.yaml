@@ -31,10 +31,10 @@ front_lane_detector:
     minimum_fit_pixels: 180
 
     # Preserve the white tape core, then require a nearby dark track region.
-    white_lightness_min: 165
-    white_saturation_max: 120
-    track_dark_lightness_max: 105
-    dark_adjacency_kernel_px: 25
+    white_lightness_min: 82
+    white_saturation_max: 179
+    track_dark_lightness_max: 42
+    dark_adjacency_kernel_px: 75
     morphology_kernel_px: 7
     noise_opening_kernel_px: 3
     minimum_fit_vertical_coverage_ratio: 0.45

@@ -180,7 +180,7 @@ def main() -> None:
     if image is None:
         raise SystemExit(f"Cannot read image: {args.image}")
 
-    values = {"lightness": 165, "saturation": 120, "dark max": 105, "dark range": 25}
+    values = {"lightness": 82, "saturation": 179, "dark max": 42, "dark range": 75}
     window = "Offline front-lane check"
 
     def current() -> np.ndarray:
