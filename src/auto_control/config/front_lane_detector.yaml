@@ -10,6 +10,10 @@ front_lane_detector:
     # Process only the latest camera frames at this rate; the OAK can capture
     # faster without making the Python lane pipeline and display fall behind.
     processing_fps: 30.0
+    # Keep this false while using the built-in OpenCV preview.  Publishing a
+    # 720p mask and BGR overlay every frame creates avoidable DDS copy/load.
+    # Set true only when viewing /front_lane/mask or /front_lane/overlay in rqt.
+    publish_debug_images: false
     # Only long, lower-ROI-reaching lane skeletons are displayed: solid dark
     # red trace with a yellow actual center.  Raw white candidates are hidden.
     show_extracted_lane_mask: true

@@ -61,6 +61,7 @@ class FrontLaneDetector(Node):
             "preview_window_name": "Front lane detection",
             "preview_fps": 30.0,
             "processing_fps": 30.0,
+            "publish_debug_images": False,
             "show_extracted_lane_mask": True,
             "extracted_lane_mask_alpha": 0.55,
             "show_model_paths": False,
@@ -104,6 +105,7 @@ class FrontLaneDetector(Node):
         self.preview_window_name = str(parameter("preview_window_name"))
         self.preview_fps = max(1.0, float(parameter("preview_fps")))
         self.processing_fps = max(1.0, float(parameter("processing_fps")))
+        self.publish_debug_images = bool(parameter("publish_debug_images"))
         self.show_extracted_lane_mask = bool(parameter("show_extracted_lane_mask"))
         self.extracted_lane_mask_alpha = float(parameter("extracted_lane_mask_alpha"))
         self.show_model_paths = bool(parameter("show_model_paths"))
@@ -180,13 +182,17 @@ class FrontLaneDetector(Node):
             np.array([0, 0, 0], dtype=np.uint8),
             np.array([179, self.track_dark_lightness_max, 255], dtype=np.uint8),
         )
-        dark_neighborhood = cv2.dilate(
-            dark_mask,
-            cv2.getStructuringElement(
-                cv2.MORPH_ELLIPSE,
-                (self.dark_adjacency_kernel_px, self.dark_adjacency_kernel_px),
-            ),
+        # The old 75px elliptical dilation consumed most of a frame on the
+        # Jetson.  A distance transform expresses the same rule (white tape
+        # must be within the kernel radius of dark track) much faster.
+        distance_to_dark = cv2.distanceTransform(
+            cv2.bitwise_not(dark_mask), cv2.DIST_L2, 3
         )
+        dark_neighborhood = np.where(
+            distance_to_dark <= 0.5 * self.dark_adjacency_kernel_px,
+            255,
+            0,
+        ).astype(np.uint8)
         # Preserve the full white tape core.  Background white areas without
         # nearby black track are removed before path scoring.
         mask = cv2.bitwise_and(white_mask, dark_neighborhood)
@@ -239,6 +245,7 @@ class FrontLaneDetector(Node):
         self,
         mask: np.ndarray,
         start_x: Optional[int],
+        reference_y: int,
         top: int,
         bottom: int,
         left_side: bool,
@@ -266,66 +273,97 @@ class FrontLaneDetector(Node):
                 components.append((points, float(centroids[label, 0]), float(area)))
             windows.append(components)
 
-        # A close curve can leave the very bottom of the image before it
-        # re-enters the ROI.  Start at the lowest window that actually has
-        # white candidates instead of declaring both lanes absent.
-        while windows and not windows[0]:
-            windows.pop(0)
-        if not windows:
+        if start_x is None or not windows:
             return np.empty((0, 2), dtype=np.float64)
 
+        # The histogram seed is deliberately taken at the 75%-height row.
+        # Starting at the image bottom makes tight curves latch onto a small
+        # background fragment before reaching the actual tape.
+        anchor_index = next(
+            (
+                index for index in range(self.window_count)
+                if bottom - (index + 1) * height <= reference_y < bottom - index * height
+            ),
+            self.window_count - 1,
+        )
         midpoint = 0.5 * mask.shape[1]
         start_candidates = [
-            component for component in windows[0]
+            component for component in windows[anchor_index]
             if (component[1] < midpoint) == left_side
-        ] or windows[0]
-        # Each hypothesis stores score, selected components, and their x centers.
-        hypotheses: list[tuple[float, list[np.ndarray], list[float]]] = []
+        ]
+        seed_radius = max(2.0 * self.window_margin_px, 130.0)
+        nearby = [
+            component for component in start_candidates
+            if abs(component[1] - start_x) <= seed_radius
+        ]
+        if nearby:
+            start_candidates = nearby
+        if not start_candidates:
+            return np.empty((0, 2), dtype=np.float64)
+
+        # Each hypothesis stores score, selected components, their x centers,
+        # and its number of tolerated missing bands.
+        hypotheses: list[tuple[float, list[np.ndarray], list[float], int]] = []
         for points, center_x, area in start_candidates:
-            anchor_cost = 0.0 if start_x is None else 0.02 * abs(center_x - start_x)
+            anchor_cost = 0.08 * abs(center_x - start_x)
             prior_cost = 0.0
             if previous_fit is not None:
                 prior_cost = 0.04 * abs(
                     center_x - np.polyval(previous_fit, np.mean(points[:, 0]))
                 )
-            hypotheses.append((np.log1p(area) - anchor_cost - prior_cost, [points], [center_x]))
+            hypotheses.append((
+                np.log1p(area) - anchor_cost - prior_cost,
+                [points], [center_x], 0,
+            ))
         hypotheses.sort(key=lambda item: item[0], reverse=True)
         hypotheses = hypotheses[:self.candidate_path_count]
 
-        for components in windows[1:]:
-            if not components:
-                continue
-            expanded: list[tuple[float, list[np.ndarray], list[float]]] = []
-            for score, path_points, centers in hypotheses:
-                previous_x = centers[-1]
-                previous_step = centers[-1] - centers[-2] if len(centers) > 1 else 0.0
-                predicted_x = previous_x + np.clip(
-                    previous_step,
-                    -self.window_prediction_max_step_px,
-                    self.window_prediction_max_step_px,
-                )
-                for points, center_x, area in components:
-                    transition = abs(center_x - predicted_x)
-                    if transition > 2.0 * self.window_margin_px:
+        def extend(direction: int) -> list[np.ndarray]:
+            paths = hypotheses
+            for index in range(anchor_index + direction, len(windows) if direction > 0 else -1, direction):
+                components = windows[index]
+                expanded: list[tuple[float, list[np.ndarray], list[float], int]] = []
+                for score, path_points, centers, misses in paths:
+                    if not components:
+                        if misses < 2:
+                            expanded.append((score - 2.0, path_points, centers, misses + 1))
                         continue
-                    prior_cost = 0.0
-                    if previous_fit is not None:
-                        prior_cost = 0.025 * abs(
-                            center_x - np.polyval(previous_fit, np.mean(points[:, 0]))
-                        )
-                    expanded.append((
-                        score + np.log1p(area) - 0.055 * transition - prior_cost,
-                        path_points + [points], centers + [center_x],
-                    ))
-            if not expanded:
-                break
-            expanded.sort(key=lambda item: item[0], reverse=True)
-            hypotheses = expanded[:self.candidate_path_count]
+                    previous_step = centers[-1] - centers[-2] if len(centers) > 1 else 0.0
+                    predicted_x = centers[-1] + np.clip(
+                        previous_step,
+                        -self.window_prediction_max_step_px,
+                        self.window_prediction_max_step_px,
+                    )
+                    # Permit large sideways movement on a tight curve, but
+                    # only when the preceding path already shows that motion.
+                    maximum_transition = max(
+                        2.0 * self.window_margin_px,
+                        self.window_margin_px + 1.8 * abs(previous_step),
+                    )
+                    for points, center_x, area in components:
+                        transition = abs(center_x - predicted_x)
+                        if transition > maximum_transition:
+                            continue
+                        prior_cost = 0.0
+                        if previous_fit is not None:
+                            prior_cost = 0.025 * abs(
+                                center_x - np.polyval(previous_fit, np.mean(points[:, 0]))
+                            )
+                        expanded.append((
+                            score + np.log1p(area) - 0.055 * transition - prior_cost,
+                            path_points + [points], centers + [center_x], 0,
+                        ))
+                if not expanded:
+                    break
+                expanded.sort(key=lambda item: item[0], reverse=True)
+                paths = expanded[:self.candidate_path_count]
+            return paths[0][1] if paths else []
 
-        if not hypotheses:
-            return np.empty((0, 2), dtype=np.float64)
-        # The best full path, rather than one greedy window decision, is used.
-        return np.vstack(hypotheses[0][1]).astype(np.float64)
+        # Trace upward and downward from the *same* trusted seed, then merge
+        # both observed tape sections.  This supports a lane disappearing at
+        # the lower image edge during a very tight curve.
+        points = extend(1) + extend(-1)
+        return np.vstack(points).astype(np.float64) if points else np.empty((0, 2), dtype=np.float64)
 
     def _seeded_sliding_points(self, mask, seed_x, reference_y, top, bottom):
         if seed_x is None:
@@ -372,7 +410,8 @@ class FrontLaneDetector(Node):
 
     @staticmethod
     def _row_centerline(left, right, top, bottom):
-        centers, previous_center, previous_left, previous_right, previous_step = [], None, None, None, 0.0
+        centers, previous_center, previous_left, previous_right = [], None, None, None
+        previous_step, previous_half_width, missing_rows = 0.0, None, 0
         for y in range(bottom - 1, top - 1, -4):
             def row_x(points):
                 if points.size == 0: return None
@@ -381,18 +420,30 @@ class FrontLaneDetector(Node):
             lx, rx = row_x(left), row_x(right)
             if lx is not None and rx is not None:
                 center = 0.5 * (lx + rx)
+                half_width = 0.5 * (rx - lx)
+                if half_width > 15.0:
+                    previous_half_width = half_width if previous_half_width is None else (
+                        0.75 * previous_half_width + 0.25 * half_width
+                    )
             elif lx is not None and previous_center is not None and previous_left is not None:
-                center = previous_center + (lx - previous_left)
+                center = lx + previous_half_width if previous_half_width is not None else (
+                    previous_center + (lx - previous_left)
+                )
             elif rx is not None and previous_center is not None and previous_right is not None:
-                center = previous_center + (rx - previous_right)
+                center = rx - previous_half_width if previous_half_width is not None else (
+                    previous_center + (rx - previous_right)
+                )
+            elif previous_center is not None and missing_rows < 2:
+                center = previous_center + np.clip(previous_step, -28.0, 28.0)
             else:
-                center = previous_center + previous_step if previous_center is not None else None
+                center = None
             if center is not None: centers.append((int(round(center)), y))
             if lx is not None: previous_left = lx
             if rx is not None: previous_right = rx
             if center is not None and previous_center is not None:
                 previous_step = center - previous_center
             previous_center = center
+            missing_rows = 0 if (lx is not None or rx is not None) else missing_rows + 1
         return np.asarray(centers, dtype=np.int32)
 
     @staticmethod
@@ -492,10 +543,6 @@ class FrontLaneDetector(Node):
             top = int(np.clip(self.roi_top_ratio * height, 0, height - 2))
             bottom = int(np.clip(self.roi_bottom_ratio * height, top + 2, height))
             mask = self._candidate_mask(bgr, top, bottom)
-            lane_skeleton = self._skeletonize(mask)
-            displayed_skeleton = self._displayable_lane_skeleton(
-                lane_skeleton, top, bottom
-            )
             reference_row = int(np.clip(0.75 * height, top, bottom - 1))
             histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
             sample_y = np.linspace(bottom - 1, top, 8)
@@ -505,8 +552,20 @@ class FrontLaneDetector(Node):
             right_seed = self._initial_seed(
                 histogram, False, self._right_state.coefficients, reference_row
             )
-            left_points = self._connected_lane_points(lane_skeleton, left_seed, reference_row)
-            right_points = self._connected_lane_points(lane_skeleton, right_seed, reference_row)
+            # Do not select a whole connected component merely because it is
+            # close to a seed: a wall/tile marking can be connected to it at a
+            # curve.  The sliding-window beam keeps only the continuous
+            # bottom-to-top path that agrees with the seed and previous path.
+            # It also avoids the iterative full-frame skeletonization that was
+            # the main source of preview lag on the Jetson.
+            left_points = self._sliding_window_points(
+                mask, left_seed, reference_row, top, bottom, True,
+                self._left_state.coefficients
+            )
+            right_points = self._sliding_window_points(
+                mask, right_seed, reference_row, top, bottom, False,
+                self._right_state.coefficients
+            )
             row_centers = self._row_centerline(left_points, right_points, top, bottom)
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
@@ -574,15 +633,6 @@ class FrontLaneDetector(Node):
                 cv2.polylines(overlay, [row_centers], False, (0, 255, 0), 3)
                 for point in row_centers:
                     cv2.circle(overlay, tuple(point), 3, (0, 255, 0), -1)
-            trace = cv2.dilate(
-                displayed_skeleton,
-                cv2.getStructuringElement(
-                    cv2.MORPH_ELLIPSE,
-                    (self.displayed_lane_trace_thickness_px,) * 2,
-                ),
-            )
-            overlay[trace > 0] = (0, 0, 180)
-            overlay[displayed_skeleton > 0] = (0, 255, 255)
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
@@ -631,8 +681,12 @@ class FrontLaneDetector(Node):
                 actual_sides = int(left_detected) + int(right_detected)
                 confidence = 1.0 if actual_sides == 2 else 0.60
 
-            self._publish_image(message, mask, "mono8")
-            self._publish_image(message, overlay, "bgr8")
+            # A 1280x720 BGR ROS image is several MB per frame.  The OpenCV
+            # preview below is enough during driving, so do not serialize two
+            # debug images every frame unless an external viewer is requested.
+            if self.publish_debug_images:
+                self._publish_image(message, mask, "mono8")
+                self._publish_image(message, overlay, "bgr8")
             if self.preview_enabled:
                 now = time.monotonic()
                 if now >= self._next_preview_at:

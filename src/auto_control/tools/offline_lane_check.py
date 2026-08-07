@@ -35,11 +35,15 @@ def candidate_mask(
         np.array([0, 0, 0], dtype=np.uint8),
         np.array([179, dark_lightness_max, 255], dtype=np.uint8),
     )
-    near_dark = cv2.dilate(
-        dark, cv2.getStructuringElement(
-            cv2.MORPH_ELLIPSE, (max(1, dark_adjacency_px | 1),) * 2
-        )
+    # Equivalent to the former large elliptical dilation, but far cheaper for
+    # real-time use: retain white pixels within the configured radius of the
+    # black track.
+    distance_to_dark = cv2.distanceTransform(
+        cv2.bitwise_not(dark), cv2.DIST_L2, 3
     )
+    near_dark = np.where(
+        distance_to_dark <= 0.5 * max(1, dark_adjacency_px | 1), 255, 0
+    ).astype(np.uint8)
     mask = cv2.bitwise_and(white, near_dark)
     roi_mask = np.zeros_like(mask)
     roi_mask[top:bottom, :] = 255
@@ -144,6 +148,76 @@ def seeded_sliding_points(mask: np.ndarray, seed_x: int | None, reference_y: int
     return np.vstack(selected).astype(np.float64) if selected else np.empty((0, 2), dtype=np.float64)
 
 
+def reference_seeded_sliding_points(
+    mask: np.ndarray,
+    start_x: int | None,
+    reference_y: int,
+    top: int,
+    bottom: int,
+    left_side: bool,
+    window_count: int = 12,
+    margin: int = 85,
+) -> np.ndarray:
+    """Trace both directions from the histogram seed, not from image bottom."""
+    if start_x is None:
+        return np.empty((0, 2), dtype=np.float64)
+    height = max(1, (bottom - top) // window_count)
+    windows = []
+    for index in range(window_count):
+        y_high = bottom - index * height
+        y_low = max(top, y_high - height)
+        labels_count, labels, stats, centroids = cv2.connectedComponentsWithStats(
+            mask[y_low:y_high, :], connectivity=8
+        )
+        components = []
+        for label in range(1, labels_count):
+            if int(stats[label, cv2.CC_STAT_AREA]) < 8:
+                continue
+            ys, xs = np.nonzero(labels == label)
+            components.append((
+                np.column_stack((ys + y_low, xs)),
+                float(centroids[label, 0]),
+                float(stats[label, cv2.CC_STAT_AREA]),
+            ))
+        windows.append(components)
+    anchor = next((i for i in range(window_count)
+                   if bottom - (i + 1) * height <= reference_y < bottom - i * height),
+                  window_count - 1)
+    midpoint = 0.5 * mask.shape[1]
+    candidates = [item for item in windows[anchor]
+                  if (item[1] < midpoint) == left_side and abs(item[1] - start_x) <= max(2 * margin, 130)]
+    if not candidates:
+        return np.empty((0, 2), dtype=np.float64)
+    paths = [(np.log1p(area) - 0.08 * abs(x - start_x), [points], [x], 0)
+             for points, x, area in candidates]
+    paths = sorted(paths, reverse=True, key=lambda item: item[0])[:16]
+
+    def extend(direction: int):
+        active = paths
+        for index in range(anchor + direction, len(windows) if direction > 0 else -1, direction):
+            expanded = []
+            for score, selected, centers, misses in active:
+                if not windows[index]:
+                    if misses < 2:
+                        expanded.append((score - 2.0, selected, centers, misses + 1))
+                    continue
+                step = centers[-1] - centers[-2] if len(centers) > 1 else 0.0
+                predicted = centers[-1] + np.clip(step, -55, 55)
+                maximum = max(2.0 * margin, margin + 1.8 * abs(step))
+                for points, x, area in windows[index]:
+                    distance = abs(x - predicted)
+                    if distance <= maximum:
+                        expanded.append((score + np.log1p(area) - 0.055 * distance,
+                                         selected + [points], centers + [x], 0))
+            if not expanded:
+                break
+            active = sorted(expanded, reverse=True, key=lambda item: item[0])[:16]
+        return active[0][1] if active else []
+
+    points = extend(1) + extend(-1)
+    return np.vstack(points).astype(np.float64) if points else np.empty((0, 2), dtype=np.float64)
+
+
 def fit_curve(points: np.ndarray, roi_height: int) -> np.ndarray | None:
     if points.shape[0] < 180 or np.ptp(points[:, 0]) < 0.45 * roi_height:
         return None
@@ -187,7 +261,8 @@ def connected_lane_points(skeleton: np.ndarray, seed_x: int | None, reference_y:
 
 
 def row_centerline(left: np.ndarray, right: np.ndarray, top: int, bottom: int) -> np.ndarray:
-    centers, previous_center, previous_left, previous_right, previous_step = [], None, None, None, 0.0
+    centers, previous_center, previous_left, previous_right = [], None, None, None
+    previous_step, previous_half_width, missing_rows = 0.0, None, 0
     for y in range(bottom - 1, top - 1, -4):
         def row_x(points):
             values = points[np.abs(points[:, 0] - y) <= 2, 1] if points.size else []
@@ -195,18 +270,24 @@ def row_centerline(left: np.ndarray, right: np.ndarray, top: int, bottom: int) -
         lx, rx = row_x(left), row_x(right)
         if lx is not None and rx is not None:
             center = 0.5 * (lx + rx)
+            half_width = 0.5 * (rx - lx)
+            if half_width > 15.0:
+                previous_half_width = half_width if previous_half_width is None else 0.75 * previous_half_width + 0.25 * half_width
         elif lx is not None and previous_center is not None and previous_left is not None:
-            center = previous_center + lx - previous_left
+            center = lx + previous_half_width if previous_half_width is not None else previous_center + lx - previous_left
         elif rx is not None and previous_center is not None and previous_right is not None:
-            center = previous_center + rx - previous_right
+            center = rx - previous_half_width if previous_half_width is not None else previous_center + rx - previous_right
+        elif previous_center is not None and missing_rows < 2:
+            center = previous_center + np.clip(previous_step, -28.0, 28.0)
         else:
-            center = previous_center + previous_step if previous_center is not None else None
+            center = None
         if center is not None: centers.append((int(round(center)), y))
         if lx is not None: previous_left = lx
         if rx is not None: previous_right = rx
         if center is not None and previous_center is not None:
             previous_step = center - previous_center
         previous_center = center
+        missing_rows = 0 if (lx is not None or rx is not None) else missing_rows + 1
     return np.asarray(centers, dtype=np.int32)
 
 
@@ -233,9 +314,15 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     )
     reference_row = int(np.clip(0.75 * height, top, bottom - 1))
     histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
-    raw_skeleton = skeletonize(mask)
-    left_points = connected_lane_points(raw_skeleton, seed(histogram, True), reference_row)
-    right_points = connected_lane_points(raw_skeleton, seed(histogram, False), reference_row)
+    # Use the same continuous sliding-window path selection as the ROS node.
+    # Selecting an entire skeleton component here made a curve branch into
+    # bright background markings even though a sliding implementation existed.
+    left_points = reference_seeded_sliding_points(
+        mask, seed(histogram, True), reference_row, top, bottom, True
+    )
+    right_points = reference_seeded_sliding_points(
+        mask, seed(histogram, False), reference_row, top, bottom, False
+    )
     centers = row_centerline(left_points, right_points, top, bottom)
     ys = np.linspace(bottom - 1, top, 80)
     left_fit = fit_curve(left_points, bottom - top)
@@ -271,12 +358,6 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
         cv2.polylines(overlay, [centers], False, (0, 255, 0), 3)
         for point in centers:
             cv2.circle(overlay, tuple(point), 3, (0, 255, 0), -1)
-    skeleton = displayed_lane_skeleton(skeletonize(mask), top, bottom)
-    trace = cv2.dilate(
-        skeleton, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-    )
-    overlay[trace > 0] = (0, 0, 180)
-    overlay[skeleton > 0] = (0, 255, 255)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
