@@ -354,6 +354,23 @@ class FrontLaneDetector(Node):
         return np.vstack(result).astype(np.float64) if result else np.empty((0, 2), dtype=np.float64)
 
     @staticmethod
+    def _connected_lane_points(skeleton, seed_x, reference_y):
+        if seed_x is None:
+            return np.empty((0, 2), dtype=np.float64)
+        count, labels, _, _ = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
+        best = None
+        for label in range(1, count):
+            ys, xs = np.nonzero(labels == label)
+            if ys.size == 0:
+                continue
+            distance = np.min((xs - seed_x) ** 2 + (ys - reference_y) ** 2)
+            if best is None or distance < best[0]:
+                best = (distance, ys, xs)
+        if best is None or best[0] > 70 * 70:
+            return np.empty((0, 2), dtype=np.float64)
+        return np.column_stack((best[1], best[2])).astype(np.float64)
+
+    @staticmethod
     def _fit(
         points: np.ndarray,
         minimum_pixels: int,
@@ -463,8 +480,8 @@ class FrontLaneDetector(Node):
             right_seed = self._initial_seed(
                 histogram, False, self._right_state.coefficients, reference_row
             )
-            left_points = self._seeded_sliding_points(mask, left_seed, reference_row, top, bottom)
-            right_points = self._seeded_sliding_points(mask, right_seed, reference_row, top, bottom)
+            left_points = self._connected_lane_points(lane_skeleton, left_seed, reference_row)
+            right_points = self._connected_lane_points(lane_skeleton, right_seed, reference_row)
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
             )

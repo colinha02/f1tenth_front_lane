@@ -171,6 +171,21 @@ def skeletonize(mask: np.ndarray) -> np.ndarray:
     return skeleton
 
 
+def connected_lane_points(skeleton: np.ndarray, seed_x: int | None, reference_y: int) -> np.ndarray:
+    if seed_x is None:
+        return np.empty((0, 2), dtype=np.float64)
+    count, labels, _, _ = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
+    best = None
+    for label in range(1, count):
+        ys, xs = np.nonzero(labels == label)
+        if ys.size:
+            distance = np.min((xs - seed_x) ** 2 + (ys - reference_y) ** 2)
+            if best is None or distance < best[0]:
+                best = (distance, ys, xs)
+    return (np.column_stack((best[1], best[2])).astype(np.float64)
+            if best is not None and best[0] <= 70 * 70 else np.empty((0, 2), dtype=np.float64))
+
+
 def displayed_lane_skeleton(skeleton: np.ndarray, top: int, bottom: int) -> np.ndarray:
     labels_count, labels, stats, _ = cv2.connectedComponentsWithStats(
         skeleton, connectivity=8
@@ -194,8 +209,9 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     )
     reference_row = int(np.clip(0.75 * height, top, bottom - 1))
     histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
-    left_points = seeded_sliding_points(mask, seed(histogram, True), reference_row, top, bottom)
-    right_points = seeded_sliding_points(mask, seed(histogram, False), reference_row, top, bottom)
+    raw_skeleton = skeletonize(mask)
+    left_points = connected_lane_points(raw_skeleton, seed(histogram, True), reference_row)
+    right_points = connected_lane_points(raw_skeleton, seed(histogram, False), reference_row)
     ys = np.linspace(bottom - 1, top, 80)
     left_fit = fit_curve(left_points, bottom - top)
     right_fit = fit_curve(right_points, bottom - top)
