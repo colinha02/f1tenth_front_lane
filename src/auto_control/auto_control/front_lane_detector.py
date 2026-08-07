@@ -77,6 +77,8 @@ class FrontLaneDetector(Node):
             "minimum_window_pixels": 35,
             "minimum_fit_pixels": 180,
             "sobel_edge_threshold": 55,
+            "centerline_bin_height_px": 12,
+            "centerline_outlier_px": 24.0,
             "white_lightness_min": 82,
             "white_saturation_max": 179,
             "track_dark_lightness_max": 42,
@@ -130,6 +132,12 @@ class FrontLaneDetector(Node):
         self.minimum_window_pixels = max(5, int(parameter("minimum_window_pixels")))
         self.minimum_fit_pixels = max(30, int(parameter("minimum_fit_pixels")))
         self.sobel_edge_threshold = max(1, int(parameter("sobel_edge_threshold")))
+        self.centerline_bin_height_px = max(
+            4, int(parameter("centerline_bin_height_px"))
+        )
+        self.centerline_outlier_px = max(
+            2.0, float(parameter("centerline_outlier_px"))
+        )
         self.white_lightness_min = int(parameter("white_lightness_min"))
         self.white_saturation_max = int(parameter("white_saturation_max"))
         self.track_dark_lightness_max = int(parameter("track_dark_lightness_max"))
@@ -494,6 +502,38 @@ class FrontLaneDetector(Node):
             [(int(round(x)), int(round(y))) for y, x in centers], dtype=np.int32
         )
 
+    def _smooth_centerline(
+        self, centers: np.ndarray, top: int, bottom: int
+    ) -> np.ndarray:
+        """Bin row centers, reject outliers, then render one smooth curve."""
+        if centers.shape[0] < 4:
+            return centers
+        bins: list[tuple[float, float]] = []
+        for y0 in range(top, bottom, self.centerline_bin_height_px):
+            values = centers[
+                (centers[:, 1] >= y0) &
+                (centers[:, 1] < y0 + self.centerline_bin_height_px)
+            ]
+            if values.size:
+                bins.append((
+                    float(np.median(values[:, 0])),
+                    float(np.median(values[:, 1])),
+                ))
+        samples = np.asarray(bins, dtype=np.float64)
+        if samples.shape[0] < 4:
+            return centers
+        degree = 2 if samples.shape[0] >= 6 else 1
+        fit = np.polyfit(samples[:, 1], samples[:, 0], degree)
+        residual = np.abs(samples[:, 0] - np.polyval(fit, samples[:, 1]))
+        inliers = residual <= self.centerline_outlier_px
+        if int(np.count_nonzero(inliers)) >= degree + 2:
+            fit = np.polyfit(samples[inliers, 1], samples[inliers, 0], degree)
+            samples = samples[inliers]
+        y_start = int(np.clip(np.max(samples[:, 1]), top, bottom - 1))
+        y_end = int(np.clip(np.min(samples[:, 1]), top, bottom - 1))
+        ys = np.arange(y_start, y_end - 1, -4, dtype=np.float64)
+        return np.column_stack((np.polyval(fit, ys), ys)).astype(np.int32)
+
     @staticmethod
     def _fit(
         points: np.ndarray,
@@ -636,6 +676,7 @@ class FrontLaneDetector(Node):
             row_centers = self._row_centerline(
                 left_center_points, right_center_points, top, bottom
             )
+            smoothed_centers = self._smooth_centerline(row_centers, top, bottom)
             minimum_vertical_span_px = (
                 self.minimum_fit_vertical_coverage_ratio * (bottom - top)
             )
@@ -690,7 +731,10 @@ class FrontLaneDetector(Node):
             # painted on the source image.
             tracked_trace = cv2.dilate(
                 tracked_pixels,
-                cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)),
+                # This affects only the visualization.  It joins tiny holes
+                # between consecutive selected windows without treating a new
+                # background object as part of the lane path.
+                cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11)),
             )
             overlay[tracked_trace > 0] = (0, 0, 255)
             for edge_points in (left_edge_points, right_edge_points):
@@ -698,10 +742,8 @@ class FrontLaneDetector(Node):
                     pixel_y = edge_points[:, 0].astype(np.int32)
                     pixel_x = edge_points[:, 1].astype(np.int32)
                     overlay[pixel_y, pixel_x] = (255, 255, 0)
-            if row_centers.size:
-                cv2.polylines(overlay, [row_centers], False, (0, 255, 0), 3)
-                for point in row_centers:
-                    cv2.circle(overlay, tuple(point), 3, (0, 255, 0), -1)
+            if smoothed_centers.size:
+                cv2.polylines(overlay, [smoothed_centers], False, (0, 255, 0), 4)
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)

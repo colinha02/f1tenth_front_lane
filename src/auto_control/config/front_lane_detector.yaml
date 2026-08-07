@@ -44,6 +44,10 @@ front_lane_detector:
     # Within the selected white tape only, retain Sobel-X edges stronger than
     # this value and use the midpoint of the two tape boundaries.
     sobel_edge_threshold: 55
+    # The raw row centers are binned and robustly fitted before being drawn or
+    # used as a visual centerline; this suppresses Sobel-pixel jitter.
+    centerline_bin_height_px: 12
+    centerline_outlier_px: 24.0
 
     # Preserve the white tape core, then require a nearby dark track region.
     white_lightness_min: 82

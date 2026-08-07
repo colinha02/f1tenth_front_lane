@@ -336,6 +336,27 @@ def tape_edge_centers(gray: np.ndarray, selected: np.ndarray, top: int, bottom: 
     return np.column_stack(np.nonzero(edge_mask)).astype(np.float64), np.asarray(centers, dtype=np.float64)
 
 
+def smooth_centerline(centers: np.ndarray, top: int, bottom: int, bin_height: int = 12, outlier_px: float = 24.0) -> np.ndarray:
+    if centers.shape[0] < 4:
+        return centers.astype(np.int32)
+    bins = []
+    for y0 in range(top, bottom, bin_height):
+        values = centers[(centers[:, 1] >= y0) & (centers[:, 1] < y0 + bin_height)]
+        if values.size:
+            bins.append((float(np.median(values[:, 0])), float(np.median(values[:, 1]))))
+    samples = np.asarray(bins, dtype=np.float64)
+    if samples.shape[0] < 4:
+        return centers.astype(np.int32)
+    degree = 2 if samples.shape[0] >= 6 else 1
+    fit = np.polyfit(samples[:, 1], samples[:, 0], degree)
+    inliers = np.abs(samples[:, 0] - np.polyval(fit, samples[:, 1])) <= outlier_px
+    if np.count_nonzero(inliers) >= degree + 2:
+        fit = np.polyfit(samples[inliers, 1], samples[inliers, 0], degree)
+        samples = samples[inliers]
+    ys = np.arange(int(np.max(samples[:, 1])), int(np.min(samples[:, 1])) - 1, -4, dtype=np.float64)
+    return np.column_stack((np.polyval(fit, ys), ys)).astype(np.int32)
+
+
 def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, dark_adjacency: int) -> np.ndarray:
     height, width = image.shape[:2]
     top = height // 2
@@ -360,6 +381,7 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     left_edges, left_centers = tape_edge_centers(gray, left_selected, top, bottom)
     right_edges, right_centers = tape_edge_centers(gray, right_selected, top, bottom)
     centers = row_centerline(left_centers, right_centers, top, bottom)
+    smoothed_centers = smooth_centerline(centers, top, bottom)
     ys = np.linspace(bottom - 1, top, 80)
     left_fit = fit_curve(left_centers, bottom - top)
     right_fit = fit_curve(right_centers, bottom - top)
@@ -384,16 +406,14 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     overlay = image.copy()
     tracked = cv2.bitwise_or(left_selected, right_selected)
     tracked_trace = cv2.dilate(
-        tracked, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        tracked, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
     )
     overlay[tracked_trace > 0] = (0, 0, 255)
     for edges in (left_edges, right_edges):
         if edges.size:
             overlay[edges[:, 0].astype(np.int32), edges[:, 1].astype(np.int32)] = (255, 255, 0)
-    if centers.size:
-        cv2.polylines(overlay, [centers], False, (0, 255, 0), 3)
-        for point in centers:
-            cv2.circle(overlay, tuple(point), 3, (0, 255, 0), -1)
+    if smoothed_centers.size:
+        cv2.polylines(overlay, [smoothed_centers], False, (0, 255, 0), 4)
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
 
     mask_bgr = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
