@@ -62,6 +62,7 @@ class FrontLaneDetector(Node):
             "preview_fps": 30.0,
             "roi_top_ratio": 0.5,
             "roi_bottom_ratio": 1.0,
+            "roi_top_inset_ratio": 0.18,
             "window_count": 12,
             "window_margin_px": 85,
             "minimum_window_pixels": 35,
@@ -94,6 +95,7 @@ class FrontLaneDetector(Node):
         self.preview_fps = max(1.0, float(parameter("preview_fps")))
         self.roi_top_ratio = float(parameter("roi_top_ratio"))
         self.roi_bottom_ratio = float(parameter("roi_bottom_ratio"))
+        self.roi_top_inset_ratio = float(parameter("roi_top_inset_ratio"))
         self.window_count = max(4, int(parameter("window_count")))
         self.window_margin_px = max(10, int(parameter("window_margin_px")))
         self.minimum_window_pixels = max(5, int(parameter("minimum_window_pixels")))
@@ -151,8 +153,18 @@ class FrontLaneDetector(Node):
         )
         edges = cv2.dilate(edges, edge_kernel)
         mask = cv2.bitwise_and(white_mask, edges)
+        # The lower edge remains wide, but the distant edge is narrowed toward
+        # the road center.  This excludes fixed white background lines beside
+        # the track without cutting off nearby curve entry.
+        inset = int(np.clip(self.roi_top_inset_ratio * mask.shape[1], 0, mask.shape[1] // 2))
         roi_mask = np.zeros_like(mask)
-        roi_mask[top:bottom, :] = 255
+        trapezoid = np.array([
+            (inset, top),
+            (mask.shape[1] - 1 - inset, top),
+            (mask.shape[1] - 1, bottom - 1),
+            (0, bottom - 1),
+        ], dtype=np.int32)
+        cv2.fillConvexPoly(roi_mask, trapezoid, 255)
         mask = cv2.bitwise_and(mask, roi_mask)
         kernel = cv2.getStructuringElement(
             cv2.MORPH_ELLIPSE,
@@ -238,9 +250,13 @@ class FrontLaneDetector(Node):
                 state.coefficients = candidate
                 state.held_frames = 0
                 return candidate, True
-            jump = float(np.median(np.abs(
+            differences = np.abs(
                 np.polyval(candidate, sample_y) - np.polyval(state.coefficients, sample_y)
-            )))
+            )
+            # A background line can agree near the vehicle but bend away at
+            # the far end.  Use an upper-percentile difference rather than a
+            # median so that far-field hijacking is rejected.
+            jump = float(np.percentile(differences, 80.0))
             if jump <= self.temporal_maximum_jump_px:
                 state.coefficients = (
                     self.temporal_alpha * candidate
@@ -322,6 +338,12 @@ class FrontLaneDetector(Node):
 
             overlay = bgr.copy()
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
+            inset = int(np.clip(self.roi_top_inset_ratio * width, 0, width // 2))
+            cv2.line(overlay, (inset, top), (0, bottom - 1), (0, 165, 255), 2)
+            cv2.line(
+                overlay, (width - 1 - inset, top), (width - 1, bottom - 1),
+                (0, 165, 255), 2,
+            )
             ys = np.linspace(bottom - 1, top, 80)
             left_curve = self._points_for_fit(left_fit, ys, width)
             right_curve = self._points_for_fit(right_fit, ys, width)

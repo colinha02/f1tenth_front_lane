@@ -34,8 +34,19 @@ def candidate_mask(
     edges = cv2.Canny(gray, edge_low, edge_high)
     edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)))
     mask = cv2.bitwise_and(white, edges)
-    mask[:top] = 0
-    mask[bottom:] = 0
+    roi_mask = np.zeros_like(mask)
+    inset = int(0.18 * mask.shape[1])
+    cv2.fillConvexPoly(
+        roi_mask,
+        np.array([
+            (inset, top),
+            (mask.shape[1] - 1 - inset, top),
+            (mask.shape[1] - 1, bottom - 1),
+            (0, bottom - 1),
+        ], dtype=np.int32),
+        255,
+    )
+    mask = cv2.bitwise_and(mask, roi_mask)
     return cv2.morphologyEx(
         mask,
         cv2.MORPH_CLOSE,
@@ -120,6 +131,10 @@ def render(image: np.ndarray, lightness: int, saturation: int, edge_low: int, ed
 
     overlay = image.copy()
     cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
+    inset = int(0.18 * width)
+    cv2.line(overlay, (inset, top), (0, bottom - 1), (0, 165, 255), 2)
+    cv2.line(overlay, (width - 1 - inset, top), (width - 1, bottom - 1),
+             (0, 165, 255), 2)
     for fit in (left_fit, right_fit):
         points = curve_points(fit, ys, width)
         if points is not None:
