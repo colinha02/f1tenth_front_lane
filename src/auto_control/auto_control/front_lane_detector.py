@@ -539,7 +539,11 @@ class FrontLaneDetector(Node):
             # Solid red means this exact white-mask pixel was accepted by a
             # lane tracking path.  Unselected background candidates are not
             # painted on the source image.
-            overlay[tracked_pixels > 0] = (0, 0, 255)
+            tracked_trace = cv2.dilate(
+                tracked_pixels,
+                cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)),
+            )
+            overlay[tracked_trace > 0] = (0, 0, 255)
             trace = cv2.dilate(
                 displayed_skeleton,
                 cv2.getStructuringElement(

@@ -238,7 +238,10 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     for points in (left_points, right_points):
         if points.size:
             tracked[points[:, 0].astype(np.int32), points[:, 1].astype(np.int32)] = 255
-    overlay[tracked > 0] = (0, 0, 255)
+    tracked_trace = cv2.dilate(
+        tracked, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    )
+    overlay[tracked_trace > 0] = (0, 0, 255)
     skeleton = displayed_lane_skeleton(skeletonize(mask), top, bottom)
     trace = cv2.dilate(
         skeleton, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
