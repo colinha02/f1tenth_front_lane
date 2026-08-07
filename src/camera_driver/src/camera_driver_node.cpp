@@ -1349,6 +1349,25 @@ private:
     }
   }
 
+  void draw_preview_frame_info(
+    cv::Mat & frame,
+    const std::uint64_t frame_number,
+    const double display_fps,
+    const cv::Point & origin) const
+  {
+    const auto label = cv::format(
+      "Frame: %llu | Preview: %.0f FPS",
+      static_cast<unsigned long long>(frame_number), display_fps);
+    // A dark outline keeps the counter visible on both the black track and
+    // bright wall areas.
+    cv::putText(
+      frame, label, origin, cv::FONT_HERSHEY_SIMPLEX, 0.65,
+      cv::Scalar(0, 0, 0), 3, cv::LINE_AA);
+    cv::putText(
+      frame, label, origin, cv::FONT_HERSHEY_SIMPLEX, 0.65,
+      cv::Scalar(0, 255, 0), 1, cv::LINE_AA);
+  }
+
   void preview_loop()
   {
     const std::string & display_window_name = comparison_preview_enabled_ ?
@@ -1461,9 +1480,16 @@ private:
                 cv::hconcat(
                   std::vector<cv::Mat>{raw_tile, calibrated_tile, stabilized_tile},
                   comparison);
+                draw_preview_frame_info(
+                  comparison, snapshot->generation,
+                  comparison_preview_fps_,
+                  cv::Point(12, comparison.rows - 12));
                 cv::imshow(display_window_name, comparison);
               }
             } else {
+              draw_preview_frame_info(
+                preview_frame, snapshot->generation, preview_fps_,
+                cv::Point(12, 30));
               resize_preview_window(preview_frame);
               cv::imshow(display_window_name, preview_frame);
             }
