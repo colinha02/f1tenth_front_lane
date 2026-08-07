@@ -117,6 +117,26 @@ def sliding_points(
     return np.vstack(paths[0][1]).astype(np.float64) if paths else np.empty((0, 2))
 
 
+def seeded_sliding_points(mask: np.ndarray, seed_x: int | None, reference_y: int, top: int, bottom: int) -> np.ndarray:
+    if seed_x is None:
+        return np.empty((0, 2), dtype=np.float64)
+    nonzero_y, nonzero_x = mask.nonzero()
+    selected = []
+    for direction in (-1, 1):
+        current_x, y = int(seed_x), reference_y
+        while top <= y < bottom:
+            y0, y1 = (max(top, y - 24), y) if direction < 0 else (y, min(bottom, y + 24))
+            inside = ((nonzero_y >= y0) & (nonzero_y < y1) &
+                      (nonzero_x >= current_x - 85) & (nonzero_x <= current_x + 85))
+            indices = np.flatnonzero(inside)
+            if indices.size < 35:
+                break
+            selected.append(np.column_stack((nonzero_y[indices], nonzero_x[indices])))
+            current_x = int(np.mean(nonzero_x[indices]))
+            y += direction * 24
+    return np.vstack(selected).astype(np.float64) if selected else np.empty((0, 2), dtype=np.float64)
+
+
 def fit_curve(points: np.ndarray, roi_height: int) -> np.ndarray | None:
     if points.shape[0] < 180 or np.ptp(points[:, 0]) < 0.45 * roi_height:
         return None
@@ -165,14 +185,13 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     mask = candidate_mask(
         image, top, bottom, lightness, saturation, dark_max, dark_adjacency
     )
-    histogram = np.sum(mask[max(top, bottom - 80):bottom] > 0, axis=0)
+    reference_row = int(np.clip(0.67 * height, top, bottom - 1))
+    histogram = np.sum(mask[max(top, reference_row - 8):min(bottom, reference_row + 9)] > 0, axis=0)
+    left_points = seeded_sliding_points(mask, seed(histogram, True), reference_row, top, bottom)
+    right_points = seeded_sliding_points(mask, seed(histogram, False), reference_row, top, bottom)
     ys = np.linspace(bottom - 1, top, 80)
-    left_fit = fit_curve(
-        sliding_points(mask, seed(histogram, True), top, bottom, True), bottom - top
-    )
-    right_fit = fit_curve(
-        sliding_points(mask, seed(histogram, False), top, bottom, False), bottom - top
-    )
+    left_fit = fit_curve(left_points, bottom - top)
+    right_fit = fit_curve(right_points, bottom - top)
     width_fit = None
     if left_fit is not None and right_fit is not None:
         candidate_width = right_fit - left_fit
@@ -192,6 +211,11 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
         right_inferred = True
 
     overlay = image.copy()
+    tracked = np.zeros_like(mask)
+    for points in (left_points, right_points):
+        if points.size:
+            tracked[points[:, 0].astype(np.int32), points[:, 1].astype(np.int32)] = 255
+    overlay[tracked > 0] = (0, 0, 255)
     skeleton = displayed_lane_skeleton(skeletonize(mask), top, bottom)
     trace = cv2.dilate(
         skeleton, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
