@@ -186,6 +186,28 @@ def connected_lane_points(skeleton: np.ndarray, seed_x: int | None, reference_y:
             if best is not None and best[0] <= 70 * 70 else np.empty((0, 2), dtype=np.float64))
 
 
+def row_centerline(left: np.ndarray, right: np.ndarray, top: int, bottom: int) -> np.ndarray:
+    centers, previous_center, previous_left, previous_right = [], None, None, None
+    for y in range(bottom - 1, top - 1, -4):
+        def row_x(points):
+            values = points[np.abs(points[:, 0] - y) <= 2, 1] if points.size else []
+            return float(np.median(values)) if len(values) else None
+        lx, rx = row_x(left), row_x(right)
+        if lx is not None and rx is not None:
+            center = 0.5 * (lx + rx)
+        elif lx is not None and previous_center is not None and previous_left is not None:
+            center = previous_center + lx - previous_left
+        elif rx is not None and previous_center is not None and previous_right is not None:
+            center = previous_center + rx - previous_right
+        else:
+            center = previous_center
+        if center is not None: centers.append((int(round(center)), y))
+        if lx is not None: previous_left = lx
+        if rx is not None: previous_right = rx
+        previous_center = center
+    return np.asarray(centers, dtype=np.int32)
+
+
 def displayed_lane_skeleton(skeleton: np.ndarray, top: int, bottom: int) -> np.ndarray:
     labels_count, labels, stats, _ = cv2.connectedComponentsWithStats(
         skeleton, connectivity=8
@@ -212,6 +234,7 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
     raw_skeleton = skeletonize(mask)
     left_points = connected_lane_points(raw_skeleton, seed(histogram, True), reference_row)
     right_points = connected_lane_points(raw_skeleton, seed(histogram, False), reference_row)
+    centers = row_centerline(left_points, right_points, top, bottom)
     ys = np.linspace(bottom - 1, top, 80)
     left_fit = fit_curve(left_points, bottom - top)
     right_fit = fit_curve(right_points, bottom - top)
@@ -242,6 +265,10 @@ def render(image: np.ndarray, lightness: int, saturation: int, dark_max: int, da
         tracked, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     )
     overlay[tracked_trace > 0] = (0, 0, 255)
+    if centers.size:
+        cv2.polylines(overlay, [centers], False, (0, 255, 0), 3)
+        for point in centers:
+            cv2.circle(overlay, tuple(point), 3, (0, 255, 0), -1)
     skeleton = displayed_lane_skeleton(skeletonize(mask), top, bottom)
     trace = cv2.dilate(
         skeleton, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
