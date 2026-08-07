@@ -14,6 +14,8 @@ OAK/DepthAI 카메라 영상을 낮은 지연시간으로 받는 ROS 2 C++ 패�
   가속도+각속도 발행
 - 영상 안정화: 기본 활성화, 시작 pitch/roll 기준을 유지하는 고정 초점
   짐벌 방식
+- BEV 결합 모드: 전체 프레임을 warp하지 않고 원본 NV12와 프레임별
+  homography를 `DeferredStabilizedNv12`로 함께 발행
 - QoS: sensor data, best effort, keep-last 1
 - 호스트 큐: 크기 1, non-blocking
 - 프리뷰: 캡처와 분리된 최신 프레임 방식
@@ -266,6 +268,8 @@ ros2 topic info /camera/image_rect --verbose
 | `queue_blocking` | `false` | 큐가 찼을 때 캡처 차단 여부 |
 | `publish_enabled` | `false` | ROS 이미지 발행 |
 | `publish_fps` | `120.0` | ROS 발행 목표 최대 FPS |
+| `deferred_stabilization_enabled` | `false` | 전체 warp를 BEV CUDA 단계로 지연 |
+| `deferred_image_topic` | `/camera/image_rect_deferred` | 원본 NV12+homography 결합 토픽 |
 | `imu_bridge_enabled` | `false` | 가속도+자이로 ROS 발행 |
 | `imu_rate_hz` | `400.0` | calibrated accel+gyro 요청/발행 rate |
 | `imu_max_batch_reports` | `5` | 장치측 IMU 묶음 전송 상한 |

@@ -24,6 +24,10 @@ camera_driver:
     frame_id: "camera_optical_frame"
     # Raw NV12: Y plane followed by interleaved UV plane.
     image_topic: "/camera/image_rect"
+    # BEV launch overrides this to publish raw NV12 plus the synchronized
+    # source-to-stabilized homography without a full-frame CPU warp.
+    deferred_stabilization_enabled: false
+    deferred_image_topic: "/camera/image_rect_deferred"
 
     # IMU 토픽 발행은 선택 사항이며 영상 안정화는 내부 IMU를 직접 사용한다.
     imu_bridge_enabled: false

@@ -25,6 +25,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(camera_driver REQUIRED)
 find_package(depthai 3.6 CONFIG QUIET)
 if(NOT depthai_FOUND)
   message(FATAL_ERROR
@@ -124,6 +125,7 @@ ament_target_dependencies(bev_processor_component
   rclcpp_components
   sensor_msgs
   std_msgs
+  camera_driver
 )
 target_link_libraries(bev_processor_component
   bev_geometry

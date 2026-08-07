@@ -24,6 +24,8 @@
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/header.hpp>
 
+#include "camera_driver/msg/deferred_stabilized_nv12.hpp"
+
 #include "bev_processor/bev_geometry.hpp"
 #include "bev_processor/bev_lane_reconstructor.hpp"
 #include "bev_processor/cuda_bev_processor.hpp"
@@ -266,12 +268,24 @@ public:
       "IMU attitude + depth-plane offset height");
 
     const auto image_qos = rclcpp::SensorDataQoS().keep_last(1);
-    input_subscription_ = create_subscription<sensor_msgs::msg::Image>(
-      input_topic_,
-      image_qos,
-      [this](sensor_msgs::msg::Image::ConstSharedPtr message) {
-        onImage(std::move(message));
-      });
+    if (deferred_stabilization_enabled_) {
+      deferred_input_subscription_ = create_subscription<
+        camera_driver::msg::DeferredStabilizedNv12>(
+        input_topic_,
+        image_qos,
+        [this](
+          camera_driver::msg::DeferredStabilizedNv12::ConstSharedPtr message)
+        {
+          onDeferredImage(std::move(message));
+        });
+    } else {
+      input_subscription_ = create_subscription<sensor_msgs::msg::Image>(
+        input_topic_,
+        image_qos,
+        [this](sensor_msgs::msg::Image::ConstSharedPtr message) {
+          onImage(std::move(message), cv::Matx33d::eye());
+        });
+    }
     if (publish_enabled_) {
       output_publisher_ = create_publisher<sensor_msgs::msg::Image>(
         output_topic_, image_qos);
@@ -313,7 +327,7 @@ public:
       "range X=[%.2f, %.2f]m Y=[%.2f, %.2f]m, %.3fm/px, "
       "camera=(x=%.3f, y=%.3f, z=%.3fm, "
       "roll=%.2f, pitch_down=%.2f, yaw=%.2fdeg), "
-      "valid_lut=%.2f%%, GPU=%s, processing=NV12-to-BEV/latest-only, "
+      "valid_lut=%.2f%%, GPU=%s, processing=%s/bottom-%.0f%%/latest-only, "
       "ROS=%s (max=%.1fHz, 0=unlimited), preview=%s (max=%.1fHz)",
       input_topic_.c_str(),
       camera_model_.image_width,
@@ -335,6 +349,9 @@ public:
       camera_yaw_deg_,
       valid_lut_percent_.load(std::memory_order_relaxed),
       startup_processor->deviceName().c_str(),
+      deferred_stabilization_enabled_ ?
+      "deferred-stabilization+NV12-to-BEV" : "NV12-to-BEV",
+      100.0 * stabilized_bottom_roi_ratio_,
       publish_enabled_ ? "on" : "off",
       publish_max_fps_,
       preview_enabled_ ? "on" : "off",
@@ -430,6 +447,8 @@ private:
     declare_parameter<bool>("performance_measurement_enabled", false);
 
     declare_parameter<std::string>("input_topic", "/camera/image_rect");
+    declare_parameter<bool>("deferred_stabilization_enabled", false);
+    declare_parameter<double>("stabilized_bottom_roi_ratio", 1.0);
     declare_parameter<std::string>("output_topic", "/camera/image_bev");
     declare_parameter<std::string>("output_frame_id", "front_axle_bev");
     declare_parameter<double>("expected_input_fps", 110.0);
@@ -595,6 +614,10 @@ private:
       get_parameter("performance_measurement_enabled").as_bool();
 
     input_topic_ = get_parameter("input_topic").as_string();
+    deferred_stabilization_enabled_ =
+      get_parameter("deferred_stabilization_enabled").as_bool();
+    stabilized_bottom_roi_ratio_ =
+      get_parameter("stabilized_bottom_roi_ratio").as_double();
     output_topic_ = get_parameter("output_topic").as_string();
     output_frame_id_ = get_parameter("output_frame_id").as_string();
     expected_input_fps_ = get_parameter("expected_input_fps").as_double();
@@ -876,6 +899,14 @@ private:
     if (input_topic_.empty()) {
       throw std::invalid_argument("input_topic must not be empty");
     }
+    if (
+      !std::isfinite(stabilized_bottom_roi_ratio_) ||
+      stabilized_bottom_roi_ratio_ <= 0.0 ||
+      stabilized_bottom_roi_ratio_ > 1.0)
+    {
+      throw std::invalid_argument(
+              "stabilized_bottom_roi_ratio must be in (0, 1]");
+    }
     if (publish_enabled_ && output_topic_.empty()) {
       throw std::invalid_argument(
               "output_topic must not be empty when publishing is enabled");
@@ -954,7 +985,17 @@ private:
       lut.map_x,
       lut.map_y);
 
-    const int valid_pixels = cv::countNonZero(lut.valid_mask);
+    cv::Mat roi_mask;
+    cv::compare(
+      lut.map_y,
+      cv::Scalar(
+        (1.0 - stabilized_bottom_roi_ratio_) *
+        static_cast<double>(camera_model.image_height)),
+      roi_mask,
+      cv::CMP_GE);
+    cv::Mat active_valid_mask;
+    cv::bitwise_and(lut.valid_mask, roi_mask, active_valid_mask);
+    const int valid_pixels = cv::countNonZero(active_valid_mask);
     const int output_pixels =
       bev_config_.output_width * bev_config_.output_height;
     const double valid_percent =
@@ -978,7 +1019,38 @@ private:
     }
   }
 
-  void onImage(sensor_msgs::msg::Image::ConstSharedPtr message)
+  void onDeferredImage(
+    camera_driver::msg::DeferredStabilizedNv12::ConstSharedPtr message)
+  {
+    cv::Matx33d source_to_stabilized;
+    for (int row = 0; row < 3; ++row) {
+      for (int column = 0; column < 3; ++column) {
+        source_to_stabilized(row, column) =
+          message->source_to_stabilized_homography[
+          static_cast<std::size_t>(row * 3 + column)];
+      }
+    }
+    if (
+      !cv::checkRange(cv::Mat(source_to_stabilized)) ||
+      std::abs(cv::determinant(cv::Mat(source_to_stabilized))) < 1.0e-12)
+    {
+      invalid_total_.fetch_add(1U, std::memory_order_relaxed);
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 5000,
+        "Rejected deferred image with an invalid stabilization homography.");
+      return;
+    }
+
+    // Aliasing ownership keeps the outer custom message alive without copying
+    // the nested 1.38 MB NV12 image.
+    const sensor_msgs::msg::Image * image_pointer = &message->image;
+    sensor_msgs::msg::Image::ConstSharedPtr image(message, image_pointer);
+    onImage(std::move(image), source_to_stabilized);
+  }
+
+  void onImage(
+    sensor_msgs::msg::Image::ConstSharedPtr message,
+    const cv::Matx33d & source_to_stabilized)
   {
     received_total_.fetch_add(1U, std::memory_order_relaxed);
     received_interval_.fetch_add(1U, std::memory_order_relaxed);
@@ -1043,6 +1115,7 @@ private:
     {
       std::lock_guard<std::mutex> lock(input_mutex_);
       latest_input_ = std::move(message);
+      latest_source_to_stabilized_ = source_to_stabilized;
       latest_input_received_at_ = received_at;
       ++input_generation_;
     }
@@ -1056,6 +1129,7 @@ private:
 
     while (!stop_.load(std::memory_order_acquire)) {
       sensor_msgs::msg::Image::ConstSharedPtr input;
+      cv::Matx33d source_to_stabilized = cv::Matx33d::eye();
       SteadyClock::time_point input_received_at;
       std::uint64_t generation = 0U;
       {
@@ -1071,6 +1145,7 @@ private:
           break;
         }
         input = latest_input_;
+        source_to_stabilized = latest_source_to_stabilized_;
         input_received_at = latest_input_received_at_;
         generation = input_generation_;
       }
@@ -1093,7 +1168,9 @@ private:
         output->image = processor->process(
           input->data.data(),
           input->data.size(),
-          static_cast<std::size_t>(input->step));
+          static_cast<std::size_t>(input->step),
+          source_to_stabilized,
+          stabilized_bottom_roi_ratio_);
         if (lane_reconstructor_) {
           const auto lane_started_at = SteadyClock::now();
           const auto lane = lane_reconstructor_->reconstruct(output->image);
@@ -1658,7 +1735,7 @@ private:
     if (performance_measurement_enabled_) {
       RCLCPP_INFO(
         get_logger(),
-        "[PERF][PIPELINE] stabilized_fps=%.1f bev_ready_fps=%.1f "
+        "[PERF][PIPELINE] camera_input_fps=%.1f bev_ready_fps=%.1f "
         "processed_fps=%.1f "
         "latency_ms(depthai_to_bev_input_avg/max=%.2f/%.2f,"
         "depthai_to_bev_ready_avg/max=%.2f/%.2f,"
@@ -1764,6 +1841,8 @@ private:
   int configuration_version_{0};
   bool performance_measurement_enabled_{false};
   std::string input_topic_;
+  bool deferred_stabilization_enabled_{false};
+  double stabilized_bottom_roi_ratio_{1.0};
   std::string output_topic_;
   std::string output_frame_id_;
   double expected_input_fps_{110.0};
@@ -1796,6 +1875,9 @@ private:
   std::unique_ptr<BevLaneReconstructor> lane_reconstructor_;
 
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr input_subscription_;
+  rclcpp::Subscription<
+    camera_driver::msg::DeferredStabilizedNv12>::SharedPtr
+  deferred_input_subscription_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr output_publisher_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr lane_output_publisher_;
   rclcpp::TimerBase::SharedPtr status_timer_;
@@ -1803,6 +1885,7 @@ private:
   std::mutex input_mutex_;
   std::condition_variable input_cv_;
   sensor_msgs::msg::Image::ConstSharedPtr latest_input_;
+  cv::Matx33d latest_source_to_stabilized_{cv::Matx33d::eye()};
   SteadyClock::time_point latest_input_received_at_;
   std::uint64_t input_generation_{0U};
   bool first_camera_input_seen_{false};

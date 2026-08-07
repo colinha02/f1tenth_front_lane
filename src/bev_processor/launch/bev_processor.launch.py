@@ -137,6 +137,11 @@ def generate_launch_description():
                                 "performance_measurement_enabled": (
                                     performance_measurement_parameter
                                 ),
+                                "input_topic": (
+                                    "/camera/image_rect_deferred"
+                                ),
+                                "deferred_stabilization_enabled": True,
+                                "stabilized_bottom_roi_ratio": 0.60,
                             },
                             lane_parameter_overrides,
                         ],
@@ -157,6 +162,10 @@ def generate_launch_description():
                                 "publish_enabled": True,
                                 "imu_bridge_enabled": False,
                                 "imu_stabilization_enabled": True,
+                                "deferred_stabilization_enabled": True,
+                                "deferred_image_topic": (
+                                    "/camera/image_rect_deferred"
+                                ),
                                 # BEV intrinsics in bev_config.yaml include
                                 # this fixed-view zoom, so enforce it here.
                                 "fixed_view_zoom": 1.25,

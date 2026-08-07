@@ -27,7 +27,9 @@ public:
   cv::Mat process(
     const std::uint8_t * nv12,
     std::size_t data_size,
-    std::size_t input_stride);
+    std::size_t input_stride,
+    const cv::Matx33d & source_to_stabilized_homography,
+    double stabilized_bottom_roi_ratio);
 
   const std::string & deviceName() const;
 
