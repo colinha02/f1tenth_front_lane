@@ -26,6 +26,11 @@ find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(camera_driver REQUIRED)
+find_library(
+  CAMERA_DRIVER_TYPESUPPORT_CPP_LIBRARY
+  NAMES camera_driver__rosidl_typesupport_cpp
+  REQUIRED
+)
 find_package(depthai 3.6 CONFIG QUIET)
 if(NOT depthai_FOUND)
   message(FATAL_ERROR
@@ -125,13 +130,15 @@ ament_target_dependencies(bev_processor_component
   rclcpp_components
   sensor_msgs
   std_msgs
-  camera_driver
 )
+target_include_directories(
+  bev_processor_component PRIVATE ${camera_driver_INCLUDE_DIRS})
 target_link_libraries(bev_processor_component
   bev_geometry
   bev_lane_reconstructor
   bev_cuda
   bev_startup_measurement
+  ${CAMERA_DRIVER_TYPESUPPORT_CPP_LIBRARY}
   ${OpenCV_LIBS}
   Threads::Threads
 )

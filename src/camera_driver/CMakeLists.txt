@@ -112,10 +112,13 @@ install(
   TARGETS
     camera_imu_stabilizer
     camera_driver_component
-    camera_driver_node
   EXPORT export_camera_driver
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+install(
+  TARGETS camera_driver_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
