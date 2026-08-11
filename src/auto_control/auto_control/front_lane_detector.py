@@ -43,6 +43,9 @@ class FrontLaneDetector(Node):
             "show_center_guidance": True,
             "close_target_y_ratio": 0.75,
             "far_target_y_ratio": 0.60,
+            # Camera-visible reference: centre of the white tape on the front bumper.
+            "vehicle_reference_x_ratio": 0.50,
+            "vehicle_reference_y_ratio": 0.90,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -73,6 +76,8 @@ class FrontLaneDetector(Node):
         self.show_center_guidance = bool(value("show_center_guidance"))
         self.close_target_y_ratio = float(value("close_target_y_ratio"))
         self.far_target_y_ratio = float(value("far_target_y_ratio"))
+        self.vehicle_reference_x_ratio = float(value("vehicle_reference_x_ratio"))
+        self.vehicle_reference_y_ratio = float(value("vehicle_reference_y_ratio"))
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -284,7 +289,13 @@ class FrontLaneDetector(Node):
                         cv2.circle(overlay, tuple(point), 5, color, -1)
 
             if self.show_center_guidance:
-                vehicle_point = (width // 2, height - 1)
+                # Do not move the lane centreline to compensate for the camera
+                # viewpoint.  Use the measured bumper-tape position as the
+                # vehicle reference from which the guidance line starts.
+                vehicle_point = (
+                    int(np.clip(self.vehicle_reference_x_ratio * width, 0, width - 1)),
+                    int(np.clip(self.vehicle_reference_y_ratio * height, 0, height - 1)),
+                )
                 if centers.shape[0] >= 2:
                     ordered_centers = centers[np.argsort(centers[:, 1])]
                     cv2.polylines(overlay, [ordered_centers], False, (255, 255, 0), 3, cv2.LINE_AA)
