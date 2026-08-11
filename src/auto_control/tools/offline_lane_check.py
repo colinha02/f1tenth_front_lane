@@ -20,17 +20,28 @@ def seed(histogram: np.ndarray, left: bool) -> int | None:
 def track(mask: np.ndarray, seed_x: int | None, seed_y: int, top: int, margin: int = 90) -> np.ndarray:
     if seed_x is None:
         return np.empty((0, 2), dtype=np.int32)
-    bottom, count = mask.shape[0], 12
+    bottom, count = mask.shape[0], 20
     step, points = max(8, (bottom - top) // count), []
     for direction in (-1, 1):
         x, previous, misses, y = float(seed_x), float(seed_x), 0, seed_y
         while top <= y < bottom:
             y0, y1 = ((max(top, y - step), y) if direction < 0 else (y, min(bottom, y + step)))
-            ys, xs = np.nonzero(mask[y0:y1, :])
-            keep = np.abs(xs.astype(np.float32) - x) <= margin
-            if int(np.count_nonzero(keep)) >= 20:
-                x_next = float(np.median(xs[keep]))
-                points.append((int(round(x_next)), int(round(np.median(ys[keep] + y0)))))
+            labels, _, stats, _ = cv2.connectedComponentsWithStats(
+                mask[y0:y1, :], connectivity=8
+            )
+            candidates = []
+            for label in range(1, labels):
+                area = int(stats[label, cv2.CC_STAT_AREA])
+                width = int(stats[label, cv2.CC_STAT_WIDTH])
+                if area < 20 or area > 700 or width > 70:
+                    continue
+                x_next = float(stats[label, cv2.CC_STAT_LEFT]) + 0.5 * width
+                if abs(x_next - x) <= margin:
+                    y_next = float(stats[label, cv2.CC_STAT_TOP] + y0) + 0.5 * float(stats[label, cv2.CC_STAT_HEIGHT])
+                    candidates.append((x_next, y_next))
+            if candidates:
+                x_next, y_next = min(candidates, key=lambda item: abs(item[0] - x))
+                points.append((int(round(x_next)), int(round(y_next))))
                 previous, x, misses = x, x_next, 0
             else:
                 misses += 1

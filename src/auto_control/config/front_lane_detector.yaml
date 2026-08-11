@@ -17,7 +17,9 @@ front_lane_detector:
     seed_band_height_px: 24
 
     # Sliding-window tracking around each left/right histogram seed.
-    window_count: 12
+    window_count: 20
     window_margin_px: 90
     minimum_window_pixels: 20
     maximum_missing_windows: 2
+    maximum_component_pixels: 700
+    maximum_component_width_px: 70

@@ -33,10 +33,12 @@ class FrontLaneDetector(Node):
             "white_threshold": 180,
             "seed_row_ratio": 0.75,
             "seed_band_height_px": 24,
-            "window_count": 12,
+            "window_count": 20,
             "window_margin_px": 90,
             "minimum_window_pixels": 20,
             "maximum_missing_windows": 2,
+            "maximum_component_pixels": 700,
+            "maximum_component_width_px": 70,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -57,6 +59,12 @@ class FrontLaneDetector(Node):
         self.window_margin_px = max(10, int(value("window_margin_px")))
         self.minimum_window_pixels = max(3, int(value("minimum_window_pixels")))
         self.maximum_missing_windows = max(0, int(value("maximum_missing_windows")))
+        self.maximum_component_pixels = max(
+            self.minimum_window_pixels, int(value("maximum_component_pixels"))
+        )
+        self.maximum_component_width_px = max(
+            5, int(value("maximum_component_width_px"))
+        )
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -117,14 +125,30 @@ class FrontLaneDetector(Node):
             )
             if y1 <= y0:
                 break
-            pixels_y, pixels_x = np.nonzero(mask[y0:y1, :])
-            inside = np.abs(pixels_x.astype(np.float32) - x) <= self.window_margin_px
-            xs = pixels_x[inside]
-            ys = pixels_y[inside] + y0
-            if xs.size >= self.minimum_window_pixels:
-                # Median is resistant to a few bright floor specks.
-                next_x = float(np.median(xs))
-                points.append((int(round(next_x)), int(round(np.median(ys)))))
+            count, _, stats, _ = cv2.connectedComponentsWithStats(
+                mask[y0:y1, :], connectivity=8
+            )
+            candidates: list[tuple[float, float]] = []
+            for label in range(1, count):
+                area = int(stats[label, cv2.CC_STAT_AREA])
+                component_width = int(stats[label, cv2.CC_STAT_WIDTH])
+                if (
+                    area < self.minimum_window_pixels
+                    or area > self.maximum_component_pixels
+                    or component_width > self.maximum_component_width_px
+                ):
+                    continue
+                # Bounding-box midpoint, not an average of all white pixels.
+                center_x = float(stats[label, cv2.CC_STAT_LEFT]) + 0.5 * component_width
+                if abs(center_x - x) <= self.window_margin_px:
+                    center_y = float(stats[label, cv2.CC_STAT_TOP] + y0) + 0.5 * float(stats[label, cv2.CC_STAT_HEIGHT])
+                    candidates.append((center_x, center_y))
+            if candidates:
+                # Follow only the component closest to the predicted lane
+                # position; background pixels in the same window cannot pull
+                # the selected line by averaging.
+                next_x, next_y = min(candidates, key=lambda item: abs(item[0] - x))
+                points.append((int(round(next_x)), int(round(next_y))))
                 previous_x, x = x, next_x
                 misses = 0
             else:
