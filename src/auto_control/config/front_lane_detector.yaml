@@ -31,5 +31,5 @@ front_lane_detector:
     far_target_y_ratio: 0.60
 
     # White tape at the centre of the front bumper (image-coordinate ratio).
-    vehicle_reference_x_ratio: 0.50
+    vehicle_reference_x_ratio: 0.488
     vehicle_reference_y_ratio: 0.90
