@@ -6,74 +6,18 @@ front_lane_detector:
     model_topic: "/front_lane/model"
     preview_enabled: true
     preview_window_name: "Front lane detection"
-    preview_fps: 30.0
-    # Process only the latest camera frames at this rate; the OAK can capture
-    # faster without making the Python lane pipeline and display fall behind.
-    processing_fps: 30.0
-    # Keep this false while using the built-in OpenCV preview.  Publishing a
-    # 720p mask and BGR overlay every frame creates avoidable DDS copy/load.
-    # Set true only when viewing /front_lane/mask or /front_lane/overlay in rqt.
+    preview_fps: 20.0
+    processing_fps: 20.0
     publish_debug_images: false
-    # Only long, lower-ROI-reaching lane skeletons are displayed: solid dark
-    # red trace with a yellow actual center.  Raw white candidates are hidden.
-    show_extracted_lane_mask: true
-    extracted_lane_mask_alpha: 0.55
-    minimum_displayed_lane_vertical_coverage: 0.20
-    displayed_lane_trace_thickness_px: 7
-    # Keep false while tuning extraction: the blue trace then follows only
-    # observed white-tape pixels, not an extrapolated polynomial fit.
-    show_model_paths: false
 
-    # Lower half of the front image.  This removes the wall/background while
-    # retaining the nearby track section used for lane tracking.
+    # Simple pipeline: lower half -> grayscale -> this white threshold.
     roi_top_ratio: 0.5
-    roi_bottom_ratio: 1.0
+    white_threshold: 180
+    seed_row_ratio: 0.75
+    seed_band_height_px: 24
+
+    # Sliding-window tracking around each left/right histogram seed.
     window_count: 12
-    window_margin_px: 85
-    seed_histogram_smoothing_px: 31
-    # Max horizontal prediction change between vertically adjacent windows.
-    # The closest connected white component is used instead of averaging all.
-    window_prediction_max_step_px: 55
-    # Number of full lane-path candidates retained while scoring all connected
-    # white components from the bottom window to the top window.
-    candidate_path_count: 16
-    # A tape edge can be only a few pixels wide in one window.  Small pieces
-    # remain candidates and are judged by full-path continuity instead.
-    minimum_component_pixels: 8
-    # Reject wide tile/background blobs inside a sliding window.  Tape is a
-    # narrow strip, even at the bottom of this camera image.
-    maximum_component_pixels: 1200
-    maximum_component_width_px: 100
-    minimum_window_pixels: 35
-    minimum_fit_pixels: 180
-    # Within the selected white tape only, retain Sobel-X edges stronger than
-    # this value and use the midpoint of the two tape boundaries.
-    sobel_edge_threshold: 55
-    # The raw row centers are binned and robustly fitted before being drawn or
-    # used as a visual centerline; this suppresses Sobel-pixel jitter.
-    centerline_bin_height_px: 12
-    centerline_outlier_px: 24.0
-
-    # Preserve the white tape core, then require a nearby dark track region.
-    white_lightness_min: 82
-    white_saturation_max: 179
-    track_dark_lightness_max: 42
-    dark_adjacency_kernel_px: 35
-    morphology_kernel_px: 7
-    noise_opening_kernel_px: 3
-    minimum_fit_vertical_coverage_ratio: 0.45
-
-    # Per-frame polynomial changes beyond this are treated as background
-    # reacquisition.  The previous valid curve is held only briefly.
-    temporal_alpha: 0.70
-    temporal_maximum_jump_px: 70.0
-    temporal_hold_frames: 8
-    expected_lane_width_px: 720.0
-    minimum_lane_width_px: 100.0
-    maximum_lane_width_px: 1400.0
-    # Smoothly learn the width profile only when both boundaries are observed.
-    lane_width_temporal_alpha: 0.25
-    # Control/reference row: around the lower third of the full image.  The
-    # magenta center point should approach the yellow image-center target.
-    control_reference_y_ratio: 0.75
-    lookahead_ratio: 0.48
+    window_margin_px: 90
+    minimum_window_pixels: 20
+    maximum_missing_windows: 2
