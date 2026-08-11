@@ -17,7 +17,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Bool, Float32MultiArray
 
 
 @dataclass
@@ -39,6 +39,9 @@ class FrontLaneDetector(Node):
         self._mask_pub = self.create_publisher(Image, self.mask_topic, qos)
         self._overlay_pub = self.create_publisher(Image, self.overlay_topic, qos)
         self._model_pub = self.create_publisher(Float32MultiArray, self.model_topic, qos)
+        self._emergency_stop_pub = self.create_publisher(
+            Bool, "/auto/emergency_stop", qos
+        )
         self._image_sub = self.create_subscription(
             Image, self.image_topic, self._on_image, qos
         )
@@ -834,7 +837,12 @@ class FrontLaneDetector(Node):
                 now = time.monotonic()
                 if now >= self._next_preview_at:
                     cv2.imshow(self.preview_window_name, overlay)
-                    cv2.waitKey(1)
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord(" "):
+                        self._emergency_stop_pub.publish(Bool(data=True))
+                        self.get_logger().warn(
+                            "SPACE pressed in preview: emergency stop requested."
+                        )
                     self._next_preview_at = now + 1.0 / self.preview_fps
             self._model_pub.publish(Float32MultiArray(data=[
                 float(confidence), float(lateral_error), float(lookahead_offset),
