@@ -23,3 +23,4 @@ front_lane_detector:
     maximum_missing_windows: 2
     maximum_component_pixels: 700
     maximum_component_width_px: 70
+    show_diagnostic_windows: true

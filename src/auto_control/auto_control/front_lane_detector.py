@@ -39,6 +39,7 @@ class FrontLaneDetector(Node):
             "maximum_missing_windows": 2,
             "maximum_component_pixels": 700,
             "maximum_component_width_px": 70,
+            "show_diagnostic_windows": True,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -65,6 +66,7 @@ class FrontLaneDetector(Node):
         self.maximum_component_width_px = max(
             5, int(value("maximum_component_width_px"))
         )
+        self.show_diagnostic_windows = bool(value("show_diagnostic_windows"))
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -109,14 +111,15 @@ class FrontLaneDetector(Node):
     def _track_direction(
         self, mask: np.ndarray, seed_x: int | None, seed_y: int,
         top: int, bottom: int, direction: int,
-    ) -> list[tuple[int, int]]:
+    ) -> tuple[list[tuple[int, int]], list[tuple[int, int, int, bool]]]:
         if seed_x is None:
-            return []
+            return [], []
         height = max(8, (bottom - top) // self.window_count)
         x = float(seed_x)
         previous_x = x
         misses = 0
         points: list[tuple[int, int]] = []
+        windows: list[tuple[int, int, int, bool]] = []
         y = seed_y
         while top <= y < bottom:
             y0, y1 = (
@@ -125,6 +128,7 @@ class FrontLaneDetector(Node):
             )
             if y1 <= y0:
                 break
+            window_x = int(round(x))
             count, _, stats, _ = cv2.connectedComponentsWithStats(
                 mask[y0:y1, :], connectivity=8
             )
@@ -151,22 +155,32 @@ class FrontLaneDetector(Node):
                 points.append((int(round(next_x)), int(round(next_y))))
                 previous_x, x = x, next_x
                 misses = 0
+                windows.append((window_x, y0, y1, True))
             else:
+                windows.append((window_x, y0, y1, False))
                 misses += 1
                 if misses > self.maximum_missing_windows:
                     break
                 x += np.clip(x - previous_x, -self.window_margin_px, self.window_margin_px)
             y += direction * height
-        return points
+        return points, windows
 
     def _track_lane(
         self, mask: np.ndarray, seed_x: int | None, seed_y: int,
         top: int, bottom: int,
-    ) -> np.ndarray:
-        upward = self._track_direction(mask, seed_x, seed_y, top, bottom, -1)
-        downward = self._track_direction(mask, seed_x, seed_y, top, bottom, 1)
+    ) -> tuple[np.ndarray, list[tuple[int, int, int, bool]]]:
+        upward, up_windows = self._track_direction(
+            mask, seed_x, seed_y, top, bottom, -1
+        )
+        downward, down_windows = self._track_direction(
+            mask, seed_x, seed_y, top, bottom, 1
+        )
         points = upward + downward
-        return np.asarray(points, dtype=np.int32) if points else np.empty((0, 2), dtype=np.int32)
+        return (
+            np.asarray(points, dtype=np.int32)
+            if points else np.empty((0, 2), dtype=np.int32),
+            up_windows + down_windows,
+        )
 
     @staticmethod
     def _fit(points: np.ndarray) -> np.ndarray | None:
@@ -198,11 +212,27 @@ class FrontLaneDetector(Node):
             seed_y = int(np.clip(self.seed_row_ratio * height, top, height - 1))
             band = self.seed_band_height_px // 2
             histogram = np.sum(mask[max(top, seed_y - band):min(height, seed_y + band + 1)] > 0, axis=0)
-            left = self._track_lane(mask, self._seed_from_histogram(histogram, True), seed_y, top, height)
-            right = self._track_lane(mask, self._seed_from_histogram(histogram, False), seed_y, top, height)
+            left_seed = self._seed_from_histogram(histogram, True)
+            right_seed = self._seed_from_histogram(histogram, False)
+            left, left_windows = self._track_lane(mask, left_seed, seed_y, top, height)
+            right, right_windows = self._track_lane(mask, right_seed, seed_y, top, height)
 
             overlay = bgr.copy()
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
+            cv2.line(overlay, (0, seed_y), (width - 1, seed_y), (0, 255, 255), 1)
+            if left_seed is not None:
+                cv2.circle(overlay, (left_seed, seed_y), 8, (255, 0, 0), -1)
+            if right_seed is not None:
+                cv2.circle(overlay, (right_seed, seed_y), 8, (0, 0, 255), -1)
+            if self.show_diagnostic_windows:
+                for windows, color in ((left_windows, (255, 150, 0)), (right_windows, (0, 150, 255))):
+                    for x, y0, y1, found in windows:
+                        cv2.rectangle(
+                            overlay,
+                            (max(0, x - self.window_margin_px), y0),
+                            (min(width - 1, x + self.window_margin_px), y1),
+                            color if found else (80, 80, 80), 1,
+                        )
             for points, color in ((left, (255, 0, 0)), (right, (0, 0, 255))):
                 if points.shape[0] >= 2:
                     ordered = points[np.argsort(points[:, 1])]
