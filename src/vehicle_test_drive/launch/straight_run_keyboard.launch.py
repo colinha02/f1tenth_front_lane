@@ -12,7 +12,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("vesc_port", default_value="/dev/ttyACM0"),
+            DeclareLaunchArgument("vesc_port", default_value="/dev/ttyTHS1"),
             DeclareLaunchArgument("target_erpm", default_value="2500"),
             Node(
                 package="vesc_initializer",

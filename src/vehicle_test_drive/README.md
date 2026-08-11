@@ -22,5 +22,5 @@ ros2 launch vehicle_test_drive vehicle_test_drive.launch.py
 Use a different serial port when needed:
 
 ```bash
-ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM1
+ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM0
 ```

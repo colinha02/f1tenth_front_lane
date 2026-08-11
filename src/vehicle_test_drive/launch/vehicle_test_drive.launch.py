@@ -43,7 +43,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument("vesc_port", default_value="/dev/ttyACM0"),
+            DeclareLaunchArgument("vesc_port", default_value="/dev/ttyTHS1"),
             vesc_initialize_node,
             test_drive_node,
             shutdown_when_test_finishes,

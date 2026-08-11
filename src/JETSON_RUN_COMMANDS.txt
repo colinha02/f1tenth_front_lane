@@ -32,11 +32,11 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 topic echo /vesc/connected
 
-VESC가 /dev/ttyACM1에 연결된 경우:
+기본 설정은 Jetson UART `/dev/ttyTHS1`이다. 다른 포트를 쓸 경우:
 
 ros2 run vesc_initializer vesc_initialize_node --ros-args \
   --params-file "$(ros2 pkg prefix vehicle_config)/share/vehicle_config/config/vesc_config.yaml" \
-  -p port:=/dev/ttyACM1
+  -p port:=/dev/ttyACM0
 
 주의: 이 명령은 VESC 통신 노드만 시작한다. 실제 주행 명령은 별도의
 /vesc/erpm 및 /vesc/servo_position publisher가 있어야 전달된다.
@@ -60,9 +60,9 @@ ros2 launch vehicle_launcher manual_drive.launch.py
 
 ros2 launch vehicle_test_drive vehicle_test_drive.launch.py
 
-VESC가 /dev/ttyACM1에 연결된 경우:
+기본 UART 포트가 아닌 다른 포트를 쓸 경우:
 
-ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM1
+ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM0
 
 테스트 주행 launch는 VESC 연결과 펌웨어 응답을 확인한 뒤 다음 순서로
 자동 실행한다.
