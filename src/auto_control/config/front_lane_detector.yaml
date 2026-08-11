@@ -24,3 +24,8 @@ front_lane_detector:
     maximum_component_pixels: 700
     maximum_component_width_px: 70
     show_diagnostic_windows: true
+
+    # Display-only center/target guidance.  No vehicle command is produced.
+    show_center_guidance: true
+    close_target_y_ratio: 0.75
+    far_target_y_ratio: 0.60
