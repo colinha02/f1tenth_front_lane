@@ -46,6 +46,12 @@ class FrontLaneDetector(Node):
             # Camera-visible reference: centre of the white tape on the front bumper.
             "vehicle_reference_x_ratio": 0.50,
             "vehicle_reference_y_ratio": 0.90,
+            "width_profile_required_frames": 40,
+            "width_profile_min_pairs_per_frame": 6,
+            "width_profile_min_samples_per_bin": 12,
+            "width_profile_max_samples_per_bin": 80,
+            "width_profile_min_ratio": 0.10,
+            "width_profile_max_ratio": 0.98,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -78,6 +84,17 @@ class FrontLaneDetector(Node):
         self.far_target_y_ratio = float(value("far_target_y_ratio"))
         self.vehicle_reference_x_ratio = float(value("vehicle_reference_x_ratio"))
         self.vehicle_reference_y_ratio = float(value("vehicle_reference_y_ratio"))
+        self.width_profile_required_frames = max(1, int(value("width_profile_required_frames")))
+        self.width_profile_min_pairs_per_frame = max(2, int(value("width_profile_min_pairs_per_frame")))
+        self.width_profile_min_samples_per_bin = max(1, int(value("width_profile_min_samples_per_bin")))
+        self.width_profile_max_samples_per_bin = max(
+            self.width_profile_min_samples_per_bin, int(value("width_profile_max_samples_per_bin"))
+        )
+        self.width_profile_min_ratio = float(value("width_profile_min_ratio"))
+        self.width_profile_max_ratio = float(value("width_profile_max_ratio"))
+        self.width_profile_y: np.ndarray | None = None
+        self.width_profile_samples: list[list[float]] = []
+        self.width_profile_frames = 0
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -200,7 +217,7 @@ class FrontLaneDetector(Node):
         return np.polyfit(points[:, 1], points[:, 0], 2)
 
     @staticmethod
-    def _center_points(
+    def _matched_lane_pairs(
         left: np.ndarray, right: np.ndarray, max_y_difference: int,
     ) -> np.ndarray:
         """Pair only neighbouring sliding-window points at similar heights.
@@ -209,19 +226,89 @@ class FrontLaneDetector(Node):
         curve, so the diagnostic path exposes the actual tracking result.
         """
         if left.size == 0 or right.size == 0:
-            return np.empty((0, 2), dtype=np.int32)
+            return np.empty((0, 3), dtype=np.int32)
         right_ordered = right[np.argsort(right[:, 1])]
-        centers: list[tuple[int, int]] = []
+        pairs: list[tuple[int, int, int]] = []
         for left_x, left_y in left[np.argsort(left[:, 1])]:
             nearest = int(np.argmin(np.abs(right_ordered[:, 1] - left_y)))
             right_x, right_y = right_ordered[nearest]
             if abs(int(right_y) - int(left_y)) > max_y_difference:
                 continue
-            centers.append((
+            lane_width = int(right_x) - int(left_x)
+            if lane_width <= 0:
+                continue
+            pairs.append((
                 int(round((int(left_x) + int(right_x)) / 2.0)),
                 int(round((int(left_y) + int(right_y)) / 2.0)),
+                lane_width,
             ))
-        return np.asarray(centers, dtype=np.int32) if centers else np.empty((0, 2), dtype=np.int32)
+        return np.asarray(pairs, dtype=np.int32) if pairs else np.empty((0, 3), dtype=np.int32)
+
+    def _ensure_width_profile(self, top: int, bottom: int) -> None:
+        if self.width_profile_y is not None:
+            return
+        window_height = max(8, (bottom - top) // self.window_count)
+        self.width_profile_y = np.arange(
+            top + window_height // 2, bottom, window_height, dtype=np.int32
+        )
+        self.width_profile_samples = [[] for _ in self.width_profile_y]
+
+    def _profile_width_at(self, y: int) -> float | None:
+        if self.width_profile_y is None or not self.width_profile_samples:
+            return None
+        index = int(np.argmin(np.abs(self.width_profile_y - y)))
+        samples = self.width_profile_samples[index]
+        if len(samples) < self.width_profile_min_samples_per_bin:
+            return None
+        return float(np.median(samples))
+
+    def _profile_ready(self) -> bool:
+        return (
+            self.width_profile_y is not None
+            and self.width_profile_frames >= self.width_profile_required_frames
+            and all(len(samples) >= self.width_profile_min_samples_per_bin
+                    for samples in self.width_profile_samples)
+        )
+
+    def _learn_width_profile(self, pairs: np.ndarray, width: int) -> None:
+        """Accept only coherent two-lane frames; use a median per image height."""
+        if self.width_profile_y is None or pairs.shape[0] < self.width_profile_min_pairs_per_frame:
+            return
+        valid = [pair for pair in pairs if (
+            self.width_profile_min_ratio * width <= pair[2] <= self.width_profile_max_ratio * width
+        )]
+        if len(valid) < self.width_profile_min_pairs_per_frame:
+            return
+        self.width_profile_frames += 1
+        for _, y, lane_width in valid:
+            index = int(np.argmin(np.abs(self.width_profile_y - y)))
+            samples = self.width_profile_samples[index]
+            samples.append(float(lane_width))
+            if len(samples) > self.width_profile_max_samples_per_bin:
+                del samples[0]
+
+    def _virtual_centers(
+        self, left: np.ndarray, right: np.ndarray, real_centers: np.ndarray,
+        max_y_difference: int,
+    ) -> np.ndarray:
+        """Use a learned, perspective-aware width only where a side is missing."""
+        if not self._profile_ready():
+            return np.empty((0, 2), dtype=np.int32)
+        virtual: list[tuple[int, int]] = []
+
+        def has_real_center(y: int) -> bool:
+            return bool(real_centers.size and np.min(np.abs(real_centers[:, 1] - y)) <= max_y_difference)
+
+        for points, side in ((left, "left"), (right, "right")):
+            for x, y in points:
+                if has_real_center(int(y)):
+                    continue
+                lane_width = self._profile_width_at(int(y))
+                if lane_width is None:
+                    continue
+                center_x = int(round(float(x) + lane_width / 2.0)) if side == "left" else int(round(float(x) - lane_width / 2.0))
+                virtual.append((center_x, int(y)))
+        return np.asarray(virtual, dtype=np.int32) if virtual else np.empty((0, 2), dtype=np.int32)
 
     @staticmethod
     def _nearest_y_point(points: np.ndarray, target_y: int) -> tuple[int, int] | None:
@@ -259,7 +346,14 @@ class FrontLaneDetector(Node):
             left, left_windows = self._track_lane(mask, left_seed, seed_y, top, height)
             right, right_windows = self._track_lane(mask, right_seed, seed_y, top, height)
             window_height = max(8, (height - top) // self.window_count)
-            centers = self._center_points(left, right, max_y_difference=window_height)
+            self._ensure_width_profile(top, height)
+            pairs = self._matched_lane_pairs(left, right, max_y_difference=window_height)
+            self._learn_width_profile(pairs, width)
+            real_centers = pairs[:, :2] if pairs.size else np.empty((0, 2), dtype=np.int32)
+            virtual_centers = self._virtual_centers(
+                left, right, real_centers, max_y_difference=window_height
+            )
+            centers = np.vstack((real_centers, virtual_centers)) if virtual_centers.size else real_centers
             close_target_y = int(np.clip(self.close_target_y_ratio * height, top, height - 1))
             far_target_y = int(np.clip(self.far_target_y_ratio * height, top, height - 1))
             close_target = self._nearest_y_point(centers, close_target_y)
@@ -299,8 +393,10 @@ class FrontLaneDetector(Node):
                 if centers.shape[0] >= 2:
                     ordered_centers = centers[np.argsort(centers[:, 1])]
                     cv2.polylines(overlay, [ordered_centers], False, (255, 255, 0), 3, cv2.LINE_AA)
-                    for point in ordered_centers:
+                    for point in real_centers[np.argsort(real_centers[:, 1])]:
                         cv2.circle(overlay, tuple(point), 4, (255, 255, 0), -1)
+                    for point in virtual_centers:
+                        cv2.circle(overlay, tuple(point), 5, (255, 0, 255), -1)
                 cv2.circle(overlay, vehicle_point, 10, (0, 255, 0), -1)
                 cv2.putText(overlay, "vehicle", (vehicle_point[0] + 12, vehicle_point[1] - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1, cv2.LINE_AA)
@@ -317,7 +413,10 @@ class FrontLaneDetector(Node):
                         cv2.line(overlay, vehicle_point, far_target, (0, 255, 0), 2, cv2.LINE_AA)
                     cv2.putText(overlay, "far", (far_target[0] + 10, far_target[1]),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 0, 255), 1, cv2.LINE_AA)
-                cv2.putText(overlay, f"center pairs: {centers.shape[0]}", (20, height - 20),
+                profile_state = "READY" if self._profile_ready() else f"learning {self.width_profile_frames}/{self.width_profile_required_frames}"
+                cv2.putText(overlay, f"center pairs: {real_centers.shape[0]}  virtual: {virtual_centers.shape[0]}", (20, height - 45),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(overlay, f"width profile: {profile_state}", (20, height - 20),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2, cv2.LINE_AA)
 
             left_fit, right_fit = self._fit(left), self._fit(right)

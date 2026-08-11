@@ -33,3 +33,11 @@ front_lane_detector:
     # White tape at the centre of the front bumper (image-coordinate ratio).
     vehicle_reference_x_ratio: 0.488
     vehicle_reference_y_ratio: 0.90
+
+    # Learn perspective-aware lane width from stable two-lane frames.
+    width_profile_required_frames: 40
+    width_profile_min_pairs_per_frame: 6
+    width_profile_min_samples_per_bin: 12
+    width_profile_max_samples_per_bin: 80
+    width_profile_min_ratio: 0.10
+    width_profile_max_ratio: 0.98
