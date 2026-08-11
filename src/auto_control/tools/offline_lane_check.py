@@ -174,7 +174,9 @@ def reference_seeded_sliding_points(
         )
         components = []
         for label in range(1, labels_count):
-            if int(stats[label, cv2.CC_STAT_AREA]) < 8:
+            area = int(stats[label, cv2.CC_STAT_AREA])
+            width = int(stats[label, cv2.CC_STAT_WIDTH])
+            if area < 8 or area > 1200 or width > 100:
                 continue
             ys, xs = np.nonzero(labels == label)
             components.append((
@@ -452,7 +454,7 @@ def main() -> None:
     if image is None:
         raise SystemExit(f"Cannot read image: {args.image}")
 
-    values = {"lightness": 82, "saturation": 179, "dark max": 42, "dark range": 75}
+    values = {"lightness": 82, "saturation": 179, "dark max": 42, "dark range": 35}
     window = "Offline front-lane check"
 
     def current() -> np.ndarray:

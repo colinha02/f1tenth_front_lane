@@ -78,6 +78,8 @@ class FrontLaneDetector(Node):
             "window_prediction_max_step_px": 55,
             "candidate_path_count": 16,
             "minimum_component_pixels": 8,
+            "maximum_component_pixels": 1200,
+            "maximum_component_width_px": 100,
             "minimum_window_pixels": 35,
             "minimum_fit_pixels": 180,
             "sobel_edge_threshold": 55,
@@ -137,6 +139,13 @@ class FrontLaneDetector(Node):
         self.candidate_path_count = max(2, int(parameter("candidate_path_count")))
         self.minimum_component_pixels = max(
             1, int(parameter("minimum_component_pixels"))
+        )
+        self.maximum_component_pixels = max(
+            self.minimum_component_pixels,
+            int(parameter("maximum_component_pixels")),
+        )
+        self.maximum_component_width_px = max(
+            5, int(parameter("maximum_component_width_px"))
         )
         self.minimum_window_pixels = max(5, int(parameter("minimum_window_pixels")))
         self.minimum_fit_pixels = max(30, int(parameter("minimum_fit_pixels")))
@@ -285,7 +294,12 @@ class FrontLaneDetector(Node):
                 # Edge-based tape masks are often split into thin pieces in a
                 # single window.  Keep small pieces as candidates; the full
                 # path score, not this local area gate, rejects background.
-                if area < self.minimum_component_pixels:
+                component_width = int(stats[label, cv2.CC_STAT_WIDTH])
+                if (
+                    area < self.minimum_component_pixels
+                    or area > self.maximum_component_pixels
+                    or component_width > self.maximum_component_width_px
+                ):
                     continue
                 component_y, component_x = np.nonzero(labels == label)
                 points = np.column_stack((component_y + y_low, component_x))

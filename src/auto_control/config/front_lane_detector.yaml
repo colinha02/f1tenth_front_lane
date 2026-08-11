@@ -40,6 +40,10 @@ front_lane_detector:
     # A tape edge can be only a few pixels wide in one window.  Small pieces
     # remain candidates and are judged by full-path continuity instead.
     minimum_component_pixels: 8
+    # Reject wide tile/background blobs inside a sliding window.  Tape is a
+    # narrow strip, even at the bottom of this camera image.
+    maximum_component_pixels: 1200
+    maximum_component_width_px: 100
     minimum_window_pixels: 35
     minimum_fit_pixels: 180
     # Within the selected white tape only, retain Sobel-X edges stronger than
@@ -54,7 +58,7 @@ front_lane_detector:
     white_lightness_min: 82
     white_saturation_max: 179
     track_dark_lightness_max: 42
-    dark_adjacency_kernel_px: 75
+    dark_adjacency_kernel_px: 35
     morphology_kernel_px: 7
     noise_opening_kernel_px: 3
     minimum_fit_vertical_coverage_ratio: 0.45
