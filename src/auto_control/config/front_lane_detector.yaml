@@ -52,3 +52,9 @@ front_lane_detector:
     width_profile_max_samples_per_bin: 80
     width_profile_min_ratio: 0.10
     width_profile_max_ratio: 0.98
+
+    # One-sided sharp-curve centre: offset the visible lane along its normal.
+    one_side_min_points: 5
+    virtual_tangent_span_windows: 2
+    virtual_normal_min_horizontal_ratio: 0.30
+    virtual_normal_max_vertical_shift_px: 120

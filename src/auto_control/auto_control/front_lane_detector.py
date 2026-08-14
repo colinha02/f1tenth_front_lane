@@ -60,6 +60,10 @@ class FrontLaneDetector(Node):
             "width_profile_max_samples_per_bin": 80,
             "width_profile_min_ratio": 0.10,
             "width_profile_max_ratio": 0.98,
+            "one_side_min_points": 5,
+            "virtual_tangent_span_windows": 2,
+            "virtual_normal_min_horizontal_ratio": 0.30,
+            "virtual_normal_max_vertical_shift_px": 120,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -120,6 +124,16 @@ class FrontLaneDetector(Node):
         )
         self.width_profile_min_ratio = float(value("width_profile_min_ratio"))
         self.width_profile_max_ratio = float(value("width_profile_max_ratio"))
+        self.one_side_min_points = max(2, int(value("one_side_min_points")))
+        self.virtual_tangent_span_windows = max(
+            1, int(value("virtual_tangent_span_windows"))
+        )
+        self.virtual_normal_min_horizontal_ratio = float(
+            value("virtual_normal_min_horizontal_ratio")
+        )
+        self.virtual_normal_max_vertical_shift_px = max(
+            1, int(value("virtual_normal_max_vertical_shift_px"))
+        )
         self.width_profile_y: np.ndarray | None = None
         self.width_profile_samples: list[list[float]] = []
         self.width_profile_frames = 0
@@ -411,25 +425,63 @@ class FrontLaneDetector(Node):
 
     def _virtual_centers(
         self, left: np.ndarray, right: np.ndarray, real_centers: np.ndarray,
-        max_y_difference: int,
+        max_y_difference: int, image_width: int, top: int, bottom: int,
     ) -> np.ndarray:
-        """Use a learned, perspective-aware width only where a side is missing."""
+        """Create a centre path from one visible boundary and its local normal."""
         if not self._profile_ready():
             return np.empty((0, 2), dtype=np.int32)
+
+        # A virtual centre is allowed only when one side is clearly present
+        # and the other is clearly absent.  Never mix two virtual paths while
+        # both real boundaries are visible but imperfectly paired.
+        if left.shape[0] >= self.one_side_min_points and right.shape[0] < self.one_side_min_points:
+            source, side = left, "left"
+        elif right.shape[0] >= self.one_side_min_points and left.shape[0] < self.one_side_min_points:
+            source, side = right, "right"
+        else:
+            return np.empty((0, 2), dtype=np.int32)
+
+        ordered = source[np.argsort(source[:, 1])]
         virtual: list[tuple[int, int]] = []
 
         def has_real_center(y: int) -> bool:
             return bool(real_centers.size and np.min(np.abs(real_centers[:, 1] - y)) <= max_y_difference)
 
-        for points, side in ((left, "left"), (right, "right")):
-            for x, y in points:
-                if has_real_center(int(y)):
-                    continue
-                lane_width = self._profile_width_at(int(y))
-                if lane_width is None:
-                    continue
-                center_x = int(round(float(x) + lane_width / 2.0)) if side == "left" else int(round(float(x) - lane_width / 2.0))
-                virtual.append((center_x, int(y)))
+        for index, (x, y) in enumerate(ordered):
+            if has_real_center(int(y)):
+                continue
+            lower = max(0, index - self.virtual_tangent_span_windows)
+            upper = min(ordered.shape[0] - 1, index + self.virtual_tangent_span_windows)
+            tangent = ordered[upper].astype(np.float32) - ordered[lower].astype(np.float32)
+            tangent_norm = float(np.linalg.norm(tangent))
+            if tangent_norm < 1e-3:
+                continue
+            tangent /= tangent_norm
+            # (-dy, dx) is perpendicular to the visible boundary.  Select
+            # the normal that points into the lane: right from the left line,
+            # left from the right line.
+            normal = np.array([-tangent[1], tangent[0]], dtype=np.float32)
+            if (side == "left" and normal[0] < 0.0) or (side == "right" and normal[0] > 0.0):
+                normal *= -1.0
+            if abs(float(normal[0])) < self.virtual_normal_min_horizontal_ratio:
+                # A nearly horizontal image line has no reliable pixel-space
+                # lane-width conversion; do not invent a target there.
+                continue
+            lane_width = self._profile_width_at(int(y))
+            if lane_width is None:
+                continue
+            # Keep the learned width(y) as the horizontal cross-section
+            # distance, then use the normal to obtain its corresponding y
+            # shift.  This is an image-space approximation until a ground
+            # plane calibration is added.
+            offset_scale = (lane_width / 2.0) / abs(float(normal[0]))
+            vertical_shift = offset_scale * float(normal[1])
+            if abs(vertical_shift) > self.virtual_normal_max_vertical_shift_px:
+                continue
+            center_x = int(round(float(x) + offset_scale * float(normal[0])))
+            center_y = int(round(float(y) + vertical_shift))
+            if 0 <= center_x < image_width and top <= center_y < bottom:
+                virtual.append((center_x, center_y))
         return np.asarray(virtual, dtype=np.int32) if virtual else np.empty((0, 2), dtype=np.int32)
 
     @staticmethod
@@ -486,7 +538,8 @@ class FrontLaneDetector(Node):
             self._learn_width_profile(pairs, width)
             real_centers = pairs[:, :2] if pairs.size else np.empty((0, 2), dtype=np.int32)
             virtual_centers = self._virtual_centers(
-                left, right, real_centers, max_y_difference=window_height
+                left, right, real_centers, max_y_difference=window_height,
+                image_width=width, top=top, bottom=height,
             )
             centers = np.vstack((real_centers, virtual_centers)) if virtual_centers.size else real_centers
             close_target_y = int(np.clip(self.close_target_y_ratio * height, top, height - 1))
