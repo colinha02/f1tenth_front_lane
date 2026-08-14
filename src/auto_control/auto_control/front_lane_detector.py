@@ -61,6 +61,8 @@ class FrontLaneDetector(Node):
             "width_profile_min_ratio": 0.10,
             "width_profile_max_ratio": 0.98,
             "one_side_min_points": 5,
+            "virtual_center_max_age_frames": 60,
+            "virtual_offset_match_max_y_px": 80,
             "virtual_tangent_span_windows": 2,
             "virtual_normal_min_horizontal_ratio": 0.30,
             "virtual_normal_max_vertical_shift_px": 120,
@@ -125,6 +127,12 @@ class FrontLaneDetector(Node):
         self.width_profile_min_ratio = float(value("width_profile_min_ratio"))
         self.width_profile_max_ratio = float(value("width_profile_max_ratio"))
         self.one_side_min_points = max(2, int(value("one_side_min_points")))
+        self.virtual_center_max_age_frames = max(
+            1, int(value("virtual_center_max_age_frames"))
+        )
+        self.virtual_offset_match_max_y_px = max(
+            1, int(value("virtual_offset_match_max_y_px"))
+        )
         self.virtual_tangent_span_windows = max(
             1, int(value("virtual_tangent_span_windows"))
         )
@@ -137,6 +145,13 @@ class FrontLaneDetector(Node):
         self.width_profile_y: np.ndarray | None = None
         self.width_profile_samples: list[list[float]] = []
         self.width_profile_frames = 0
+        # The last reliable image-space translation from each boundary to the
+        # measured lane centre.  This is intentionally not a lane-width
+        # model: it preserves the currently observed curve shape when one
+        # boundary disappears.
+        self.last_left_center_offsets = np.empty((0, 3), dtype=np.float32)
+        self.last_right_center_offsets = np.empty((0, 3), dtype=np.float32)
+        self.center_offset_age_frames = self.virtual_center_max_age_frames + 1
         self.previous_left_seed: int | None = None
         self.previous_right_seed: int | None = None
 
@@ -466,11 +481,48 @@ class FrontLaneDetector(Node):
             if len(samples) > self.width_profile_max_samples_per_bin:
                 del samples[0]
 
+    def _remember_center_offsets(self, pairs: np.ndarray) -> None:
+        """Save the latest measured boundary-to-centre translations.
+
+        Each row is ``[boundary_y, centre_x - boundary_x, centre_y -
+        boundary_y]``.  It is an image-space parallel translation captured
+        while both boundaries are visible, so it contains the current camera
+        perspective and curve geometry without re-estimating a width after a
+        boundary vanishes.
+        """
+        if pairs.shape[0] < self.one_side_min_points:
+            self.center_offset_age_frames += 1
+            return
+        left_offsets = np.column_stack((
+            pairs[:, 1], pairs[:, 4] - pairs[:, 0], pairs[:, 5] - pairs[:, 1],
+        )).astype(np.float32)
+        right_offsets = np.column_stack((
+            pairs[:, 3], pairs[:, 4] - pairs[:, 2], pairs[:, 5] - pairs[:, 3],
+        )).astype(np.float32)
+        self.last_left_center_offsets = left_offsets[np.argsort(left_offsets[:, 0])]
+        self.last_right_center_offsets = right_offsets[np.argsort(right_offsets[:, 0])]
+        self.center_offset_age_frames = 0
+
+    def _center_offset_at(self, side: str, y: int) -> tuple[float, float] | None:
+        """Return the latest valid translation for a source point height."""
+        if self.center_offset_age_frames > self.virtual_center_max_age_frames:
+            return None
+        offsets = (
+            self.last_left_center_offsets if side == "left"
+            else self.last_right_center_offsets
+        )
+        if offsets.size == 0:
+            return None
+        index = int(np.argmin(np.abs(offsets[:, 0] - y)))
+        if abs(float(offsets[index, 0]) - y) > self.virtual_offset_match_max_y_px:
+            return None
+        return float(offsets[index, 1]), float(offsets[index, 2])
+
     def _virtual_centers(
         self, left: np.ndarray, right: np.ndarray, real_centers: np.ndarray,
         max_y_difference: int, image_width: int, top: int, bottom: int,
     ) -> np.ndarray:
-        """Create a centre path from one visible boundary and its local normal."""
+        """Translate the surviving boundary by the last measured centre offset."""
         # A virtual centre is allowed only when one side is clearly present
         # and the other is clearly absent.  Never mix two virtual paths while
         # both real boundaries are visible but imperfectly paired.
@@ -487,25 +539,15 @@ class FrontLaneDetector(Node):
         def has_real_center(y: int) -> bool:
             return bool(real_centers.size and np.min(np.abs(real_centers[:, 1] - y)) <= max_y_difference)
 
-        for index, (x, y) in enumerate(ordered):
+        for x, y in ordered:
             if has_real_center(int(y)):
                 continue
-            normal = self._inward_normal(ordered, index, side)
-            if normal is None:
+            offset = self._center_offset_at(side, int(y))
+            if offset is None:
                 continue
-            if abs(float(normal[0])) < self.virtual_normal_min_horizontal_ratio:
-                # A nearly horizontal image line has no reliable pixel-space
-                # lane-width conversion; do not invent a target there.
-                continue
-            normal_width = self._profile_width_at(int(y))
-            if normal_width is None:
-                continue
-            offset_scale = normal_width / 2.0
-            vertical_shift = offset_scale * float(normal[1])
-            if abs(vertical_shift) > self.virtual_normal_max_vertical_shift_px:
-                continue
-            center_x = int(round(float(x) + offset_scale * float(normal[0])))
-            center_y = int(round(float(y) + vertical_shift))
+            offset_x, offset_y = offset
+            center_x = int(round(float(x) + offset_x))
+            center_y = int(round(float(y) + offset_y))
             if 0 <= center_x < image_width and top <= center_y < bottom:
                 virtual.append((center_x, center_y))
         return np.asarray(virtual, dtype=np.int32) if virtual else np.empty((0, 2), dtype=np.int32)
@@ -564,6 +606,7 @@ class FrontLaneDetector(Node):
             normal_widths = self._normal_width_samples(pairs, left)
             self._learn_width_profile(normal_widths, width)
             real_centers = pairs[:, 4:6] if pairs.size else np.empty((0, 2), dtype=np.int32)
+            self._remember_center_offsets(pairs)
             virtual_centers = self._virtual_centers(
                 left, right, real_centers, max_y_difference=window_height,
                 image_width=width, top=top, bottom=height,
@@ -637,10 +680,16 @@ class FrontLaneDetector(Node):
                     "READY" if self._profile_ready()
                     else f"learning {self.width_profile_frames}/{self.width_profile_required_frames}"
                 )
+                offset_state = (
+                    "fresh" if self.center_offset_age_frames == 0
+                    else f"hold {self.center_offset_age_frames}/{self.virtual_center_max_age_frames}"
+                )
                 cv2.putText(overlay, f"center pairs: {real_centers.shape[0]}  virtual: {virtual_centers.shape[0]}", (20, height - 45),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2, cv2.LINE_AA)
                 cv2.putText(overlay, f"width profile: {profile_state}  bins {ready_bins}/{total_bins}", (20, height - 20),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(overlay, f"centre offset: {offset_state}", (20, height - 70),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 0), 2, cv2.LINE_AA)
 
             left_fit, right_fit = self._fit(left), self._fit(right)
             confidence = 1.0 if left_fit is not None and right_fit is not None else 0.0

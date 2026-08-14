@@ -55,6 +55,10 @@ front_lane_detector:
 
     # One-sided sharp-curve centre: offset the visible lane along its normal.
     one_side_min_points: 5
+    # Keep the latest measured boundary-to-centre translation for short
+    # one-sided intervals. At 20 FPS, 60 frames is about three seconds.
+    virtual_center_max_age_frames: 60
+    virtual_offset_match_max_y_px: 80
     virtual_tangent_span_windows: 2
     virtual_normal_min_horizontal_ratio: 0.30
     virtual_normal_max_vertical_shift_px: 120
