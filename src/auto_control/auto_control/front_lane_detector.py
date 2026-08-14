@@ -41,6 +41,12 @@ class FrontLaneDetector(Node):
             "maximum_missing_windows": 2,
             "maximum_component_pixels": 700,
             "maximum_component_width_px": 70,
+            "curve_slope_trigger": 0.65,
+            "curve_window_height_px": 10,
+            "curve_search_extra_px": 50,
+            "wide_component_max_width_px": 280,
+            "wide_component_max_pixels": 3000,
+            "wide_component_orientation_tolerance_deg": 35.0,
             "show_diagnostic_windows": True,
             "show_center_guidance": True,
             "close_target_y_ratio": 0.75,
@@ -85,6 +91,20 @@ class FrontLaneDetector(Node):
         )
         self.maximum_component_width_px = max(
             5, int(value("maximum_component_width_px"))
+        )
+        self.curve_slope_trigger = max(0.05, float(value("curve_slope_trigger")))
+        self.curve_window_height_px = max(
+            6, int(value("curve_window_height_px"))
+        )
+        self.curve_search_extra_px = max(0, int(value("curve_search_extra_px")))
+        self.wide_component_max_width_px = max(
+            self.maximum_component_width_px, int(value("wide_component_max_width_px"))
+        )
+        self.wide_component_max_pixels = max(
+            self.maximum_component_pixels, int(value("wide_component_max_pixels"))
+        )
+        self.wide_component_orientation_tolerance_rad = np.deg2rad(
+            max(1.0, float(value("wide_component_orientation_tolerance_deg")))
         )
         self.show_diagnostic_windows = bool(value("show_diagnostic_windows"))
         self.show_center_guidance = bool(value("show_center_guidance"))
@@ -182,64 +202,123 @@ class FrontLaneDetector(Node):
     def _track_direction(
         self, mask: np.ndarray, seed_x: int | None, seed_y: int,
         top: int, bottom: int, direction: int,
-    ) -> tuple[list[tuple[int, int]], list[tuple[int, int, int, bool]]]:
+    ) -> tuple[list[tuple[int, int]], list[tuple[int, int, int, int, bool]]]:
         if seed_x is None:
             return [], []
-        height = max(8, (bottom - top) // self.window_count)
-        x = float(seed_x)
-        previous_x = x
+        base_height = max(8, (bottom - top) // self.window_count)
+        last_x = float(seed_x)
+        last_y = float(seed_y)
+        # dx/dy is the local tangent in image coordinates.  It is updated
+        # from the last successful windows, so window centres can bend with a
+        # curve instead of staying vertically above the previous centre.
+        slope_x_per_y = 0.0
         misses = 0
         points: list[tuple[int, int]] = []
-        windows: list[tuple[int, int, int, bool]] = []
+        windows: list[tuple[int, int, int, int, bool]] = []
         y = seed_y
         while top <= y < bottom:
+            strong_curve = abs(slope_x_per_y) >= self.curve_slope_trigger
+            step_height = (
+                min(base_height, self.curve_window_height_px)
+                if strong_curve else base_height
+            )
             y0, y1 = (
-                (max(top, y - height), y) if direction < 0
-                else (y, min(bottom, y + height))
+                (max(top, y - step_height), y) if direction < 0
+                else (y, min(bottom, y + step_height))
             )
             if y1 <= y0:
                 break
-            window_x = int(round(x))
-            count, _, stats, _ = cv2.connectedComponentsWithStats(
-                mask[y0:y1, :], connectivity=8
+            candidate_y = 0.5 * (y0 + y1)
+            predicted_delta_x = slope_x_per_y * (candidate_y - last_y)
+            predicted_x = last_x + predicted_delta_x
+            # Keep the normal window narrow.  Only the predicted turn side
+            # receives extra room in a strong curve.
+            left_margin = self.window_margin_px
+            right_margin = self.window_margin_px
+            if strong_curve:
+                if predicted_delta_x < 0:
+                    left_margin += self.curve_search_extra_px
+                elif predicted_delta_x > 0:
+                    right_margin += self.curve_search_extra_px
+            x0 = max(0, int(np.floor(predicted_x - left_margin)))
+            x1 = min(mask.shape[1], int(np.ceil(predicted_x + right_margin + 1)))
+            if x1 <= x0:
+                break
+            count, labels, stats, _ = cv2.connectedComponentsWithStats(
+                mask[y0:y1, x0:x1], connectivity=8
             )
             candidates: list[tuple[float, float]] = []
             for label in range(1, count):
                 area = int(stats[label, cv2.CC_STAT_AREA])
                 component_width = int(stats[label, cv2.CC_STAT_WIDTH])
-                if (
-                    area < self.minimum_window_pixels
+                wide_component = (
+                    component_width > self.maximum_component_width_px
                     or area > self.maximum_component_pixels
-                    or component_width > self.maximum_component_width_px
-                ):
+                )
+                if area < self.minimum_window_pixels:
                     continue
-                # Bounding-box midpoint, not an average of all white pixels.
-                center_x = float(stats[label, cv2.CC_STAT_LEFT]) + 0.5 * component_width
-                if abs(center_x - x) <= self.window_margin_px:
+                if not wide_component:
+                    center_x = x0 + float(stats[label, cv2.CC_STAT_LEFT]) + 0.5 * component_width
                     center_y = float(stats[label, cv2.CC_STAT_TOP] + y0) + 0.5 * float(stats[label, cv2.CC_STAT_HEIGHT])
                     candidates.append((center_x, center_y))
+                    continue
+                # A nearly horizontal lane becomes wide in a thin horizontal
+                # band.  Permit it only during a strong turn and only if its
+                # local orientation agrees with the predicted lane tangent.
+                if (
+                    not strong_curve
+                    or component_width > self.wide_component_max_width_px
+                    or area > self.wide_component_max_pixels
+                ):
+                    continue
+                component_y, component_x = np.nonzero(labels == label)
+                if component_x.size < self.minimum_window_pixels:
+                    continue
+                line = cv2.fitLine(
+                    np.column_stack((component_x + x0, component_y + y0)).astype(np.float32),
+                    cv2.DIST_L2, 0, 0.01, 0.01,
+                )
+                vx, vy = float(line[0]), float(line[1])
+                expected_angle = np.arctan2(1.0, slope_x_per_y)
+                component_angle = np.arctan2(vy, vx)
+                angle_difference = abs((component_angle - expected_angle + np.pi / 2) % np.pi - np.pi / 2)
+                if angle_difference > self.wide_component_orientation_tolerance_rad:
+                    continue
+                global_x = component_x + x0
+                nearby = global_x[np.abs(global_x - predicted_x) <= max(12, step_height * 2)]
+                if nearby.size < self.minimum_window_pixels:
+                    continue
+                center_x = float(np.median(nearby))
+                center_y = float(np.median(component_y + y0))
+                candidates.append((center_x, center_y))
             if candidates:
-                # Follow only the component closest to the predicted lane
-                # position; background pixels in the same window cannot pull
-                # the selected line by averaging.
-                next_x, next_y = min(candidates, key=lambda item: abs(item[0] - x))
+                # Follow the component closest to the tangent-predicted
+                # position, not merely the preceding vertical window.
+                next_x, next_y = min(
+                    candidates, key=lambda item: abs(item[0] - predicted_x)
+                )
                 points.append((int(round(next_x)), int(round(next_y))))
-                previous_x, x = x, next_x
+                delta_y = next_y - last_y
+                if abs(delta_y) > 1e-3:
+                    measured_slope = np.clip(
+                        (next_x - last_x) / delta_y, -8.0, 8.0
+                    )
+                    slope_x_per_y = 0.6 * slope_x_per_y + 0.4 * measured_slope
+                last_x, last_y = next_x, next_y
                 misses = 0
-                windows.append((window_x, y0, y1, True))
+                windows.append((x0, x1, y0, y1, True))
             else:
-                windows.append((window_x, y0, y1, False))
+                windows.append((x0, x1, y0, y1, False))
                 misses += 1
                 if misses > self.maximum_missing_windows:
                     break
-                x += np.clip(x - previous_x, -self.window_margin_px, self.window_margin_px)
-            y += direction * height
+            y += direction * step_height
         return points, windows
 
     def _track_lane(
         self, mask: np.ndarray, seed_x: int | None, seed_y: int,
         top: int, bottom: int,
-    ) -> tuple[np.ndarray, list[tuple[int, int, int, bool]]]:
+    ) -> tuple[np.ndarray, list[tuple[int, int, int, int, bool]]]:
         upward, up_windows = self._track_direction(
             mask, seed_x, seed_y, top, bottom, -1
         )
@@ -424,11 +503,11 @@ class FrontLaneDetector(Node):
                 cv2.circle(overlay, (right_seed, seed_y), 8, (0, 0, 255), -1)
             if self.show_diagnostic_windows:
                 for windows, color in ((left_windows, (255, 150, 0)), (right_windows, (0, 150, 255))):
-                    for x, y0, y1, found in windows:
+                    for x0, x1, y0, y1, found in windows:
                         cv2.rectangle(
                             overlay,
-                            (max(0, x - self.window_margin_px), y0),
-                            (min(width - 1, x + self.window_margin_px), y1),
+                            (x0, y0),
+                            (min(width - 1, x1 - 1), y1),
                             color if found else (80, 80, 80), 1,
                         )
             for points, color in ((left, (255, 0, 0)), (right, (0, 0, 255))):

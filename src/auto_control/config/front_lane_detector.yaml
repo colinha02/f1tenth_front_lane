@@ -26,6 +26,14 @@ front_lane_detector:
     maximum_missing_windows: 2
     maximum_component_pixels: 700
     maximum_component_width_px: 70
+
+    # Strong-curve tracking: predict the next window from the local tangent.
+    curve_slope_trigger: 0.65
+    curve_window_height_px: 10
+    curve_search_extra_px: 50
+    wide_component_max_width_px: 280
+    wide_component_max_pixels: 3000
+    wide_component_orientation_tolerance_deg: 35.0
     show_diagnostic_windows: true
 
     # Display-only center/target guidance.  No vehicle command is produced.
