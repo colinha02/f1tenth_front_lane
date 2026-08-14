@@ -19,9 +19,9 @@ class LaneAssistDrive(Node):
             "duty_topic": "/vesc/duty",
             "servo_position_topic": "/vesc/servo_position",
             # Intentionally conservative first autonomous-drive values.
-            "cruise_duty": 0.015,
-            "virtual_cruise_duty": 0.010,
-            "max_duty": 0.020,
+            "cruise_duty": 0.040,
+            "virtual_cruise_duty": 0.025,
+            "max_duty": 0.050,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
