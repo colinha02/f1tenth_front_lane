@@ -40,10 +40,9 @@ front_lane_detector:
     show_center_guidance: true
     close_target_y_ratio: 0.75
     far_target_y_ratio: 0.60
-    # Autonomous control becomes valid only when two distinct target heights
-    # can be selected from enough actual or virtual centre points.
+    # Autonomous control becomes valid when CLOSE can be selected from enough
+    # actual or virtual centre points. FAR is diagnostic for this stage.
     minimum_control_center_points: 6
-    minimum_target_y_separation_px: 35
 
     # White tape at the centre of the front bumper (image-coordinate ratio).
     vehicle_reference_x_ratio: 0.488

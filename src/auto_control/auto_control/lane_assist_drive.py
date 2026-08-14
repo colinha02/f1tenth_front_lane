@@ -19,14 +19,13 @@ class LaneAssistDrive(Node):
             "duty_topic": "/vesc/duty",
             "servo_position_topic": "/vesc/servo_position",
             # Intentionally conservative first autonomous-drive values.
-            "cruise_duty": 0.040,
-            "virtual_cruise_duty": 0.025,
-            "max_duty": 0.050,
+            "cruise_duty": 0.055,
+            "virtual_cruise_duty": 0.035,
+            "max_duty": 0.065,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
-            "close_gain": 0.35,
-            "far_gain": 0.70,
+            "close_gain": 0.80,
             "max_steering": 0.28,
             "steering_duty_reduction": 0.45,
             "minimum_center_points": 6,
@@ -43,7 +42,6 @@ class LaneAssistDrive(Node):
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
         self.close_gain = float(value("close_gain"))
-        self.far_gain = float(value("far_gain"))
         self.max_steering = abs(float(value("max_steering")))
         self.steering_duty_reduction = min(
             0.95, max(0.0, float(value("steering_duty_reduction")))
@@ -74,7 +72,6 @@ class LaneAssistDrive(Node):
         self.valid_frames = 0
         self.last_model_time = -1.0
         self.close_error = 0.0
-        self.far_error = 0.0
         self.virtual_only = False
         self.model_valid = False
         self.driving = False
@@ -97,12 +94,11 @@ class LaneAssistDrive(Node):
         if len(msg.data) < 6:
             return
         self.last_model_time = self._now()
-        valid, close_error, far_error, virtual_only, center_count, _ = msg.data[:6]
+        valid, close_error, _, virtual_only, center_count, _ = msg.data[:6]
         self.model_valid = valid >= 0.5 and center_count >= self.minimum_center_points
         if self.model_valid:
             self.valid_frames += 1
             self.close_error = float(close_error)
-            self.far_error = float(far_error)
             self.virtual_only = virtual_only >= 0.5
         else:
             self.valid_frames = 0
@@ -118,7 +114,7 @@ class LaneAssistDrive(Node):
             return
         steering = max(-self.max_steering, min(
             self.max_steering,
-            self.close_gain * self.close_error + self.far_gain * self.far_error,
+            self.close_gain * self.close_error,
         ))
         if steering < 0.0:
             servo = self.servo_center + (self.servo_left - self.servo_center) * (-steering)

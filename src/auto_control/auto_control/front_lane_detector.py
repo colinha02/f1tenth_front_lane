@@ -52,7 +52,6 @@ class FrontLaneDetector(Node):
             "close_target_y_ratio": 0.75,
             "far_target_y_ratio": 0.60,
             "minimum_control_center_points": 6,
-            "minimum_target_y_separation_px": 35,
             # Camera-visible reference: centre of the white tape on the front bumper.
             "vehicle_reference_x_ratio": 0.50,
             "vehicle_reference_y_ratio": 0.90,
@@ -120,9 +119,6 @@ class FrontLaneDetector(Node):
         self.far_target_y_ratio = float(value("far_target_y_ratio"))
         self.minimum_control_center_points = max(
             2, int(value("minimum_control_center_points"))
-        )
-        self.minimum_target_y_separation_px = max(
-            1, int(value("minimum_target_y_separation_px"))
         )
         self.vehicle_reference_x_ratio = float(value("vehicle_reference_x_ratio"))
         self.vehicle_reference_y_ratio = float(value("vehicle_reference_y_ratio"))
@@ -628,14 +624,12 @@ class FrontLaneDetector(Node):
                 int(np.clip(self.vehicle_reference_x_ratio * width, 0, width - 1)),
                 int(np.clip(self.vehicle_reference_y_ratio * height, 0, height - 1)),
             )
-            targets_separated = bool(
-                close_target is not None
-                and far_target is not None
-                and abs(close_target[1] - far_target[1]) >= self.minimum_target_y_separation_px
-            )
+            # CLOSE is the immediate steering target. FAR remains a visual
+            # diagnostic/next-stage curve target, so it must not invalidate
+            # driving when both selected points happen to coincide.
             control_valid = bool(
                 centers.shape[0] >= self.minimum_control_center_points
-                and targets_separated
+                and close_target is not None
             )
             close_error = (
                 (close_target[0] - vehicle_point[0]) / (width / 2.0)

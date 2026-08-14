@@ -17,9 +17,9 @@ def generate_launch_description():
     camera_launch = os.path.join(camera_share, "launch", "camera_driver.launch.py")
 
     return LaunchDescription([
-        DeclareLaunchArgument("duty", default_value="0.040"),
-        DeclareLaunchArgument("virtual_duty", default_value="0.025"),
-        DeclareLaunchArgument("max_duty", default_value="0.050"),
+        DeclareLaunchArgument("duty", default_value="0.055"),
+        DeclareLaunchArgument("virtual_duty", default_value="0.035"),
+        DeclareLaunchArgument("max_duty", default_value="0.065"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(camera_launch),
             launch_arguments={"preview_enabled": "false", "publish_enabled": "true"}.items(),
