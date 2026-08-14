@@ -51,6 +51,8 @@ class FrontLaneDetector(Node):
             "show_center_guidance": True,
             "close_target_y_ratio": 0.75,
             "far_target_y_ratio": 0.60,
+            "minimum_control_center_points": 6,
+            "minimum_target_y_separation_px": 35,
             # Camera-visible reference: centre of the white tape on the front bumper.
             "vehicle_reference_x_ratio": 0.50,
             "vehicle_reference_y_ratio": 0.90,
@@ -116,6 +118,12 @@ class FrontLaneDetector(Node):
         self.show_center_guidance = bool(value("show_center_guidance"))
         self.close_target_y_ratio = float(value("close_target_y_ratio"))
         self.far_target_y_ratio = float(value("far_target_y_ratio"))
+        self.minimum_control_center_points = max(
+            2, int(value("minimum_control_center_points"))
+        )
+        self.minimum_target_y_separation_px = max(
+            1, int(value("minimum_target_y_separation_px"))
+        )
         self.vehicle_reference_x_ratio = float(value("vehicle_reference_x_ratio"))
         self.vehicle_reference_y_ratio = float(value("vehicle_reference_y_ratio"))
         self.width_profile_required_frames = max(1, int(value("width_profile_required_frames")))
@@ -616,6 +624,30 @@ class FrontLaneDetector(Node):
             far_target_y = int(np.clip(self.far_target_y_ratio * height, top, height - 1))
             close_target = self._nearest_y_point(centers, close_target_y)
             far_target = self._nearest_y_point(centers, far_target_y)
+            vehicle_point = (
+                int(np.clip(self.vehicle_reference_x_ratio * width, 0, width - 1)),
+                int(np.clip(self.vehicle_reference_y_ratio * height, 0, height - 1)),
+            )
+            targets_separated = bool(
+                close_target is not None
+                and far_target is not None
+                and abs(close_target[1] - far_target[1]) >= self.minimum_target_y_separation_px
+            )
+            control_valid = bool(
+                centers.shape[0] >= self.minimum_control_center_points
+                and targets_separated
+            )
+            close_error = (
+                (close_target[0] - vehicle_point[0]) / (width / 2.0)
+                if close_target is not None else 0.0
+            )
+            far_error = (
+                (far_target[0] - vehicle_point[0]) / (width / 2.0)
+                if far_target is not None else 0.0
+            )
+            # Any virtual points mean at least one boundary is incomplete;
+            # the drive node should reduce duty for that interval.
+            virtual_mode = bool(virtual_centers.shape[0] > 0)
 
             overlay = bgr.copy()
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
@@ -644,10 +676,6 @@ class FrontLaneDetector(Node):
                 # Do not move the lane centreline to compensate for the camera
                 # viewpoint.  Use the measured bumper-tape position as the
                 # vehicle reference from which the guidance line starts.
-                vehicle_point = (
-                    int(np.clip(self.vehicle_reference_x_ratio * width, 0, width - 1)),
-                    int(np.clip(self.vehicle_reference_y_ratio * height, 0, height - 1)),
-                )
                 if centers.shape[0] >= 2:
                     ordered_centers = centers[np.argsort(centers[:, 1])]
                     cv2.polylines(overlay, [ordered_centers], False, (255, 255, 0), 3, cv2.LINE_AA)
@@ -690,6 +718,10 @@ class FrontLaneDetector(Node):
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2, cv2.LINE_AA)
                 cv2.putText(overlay, f"centre offset: {offset_state}", (20, height - 70),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 0), 2, cv2.LINE_AA)
+                control_text = "control: READY" if control_valid else "control: waiting"
+                cv2.putText(overlay, control_text, (20, height - 95),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55,
+                            (0, 255, 0) if control_valid else (0, 165, 255), 2, cv2.LINE_AA)
 
             left_fit, right_fit = self._fit(left), self._fit(right)
             confidence = 1.0 if left_fit is not None and right_fit is not None else 0.0
@@ -714,9 +746,11 @@ class FrontLaneDetector(Node):
                     self.stop_pub.publish(Bool(data=True))
                     self.get_logger().warn("SPACE pressed in preview: emergency stop requested.")
                 self.next_preview_at = now + 1.0 / self.preview_fps
+            # Model layout for lane_assist_drive:
+            # valid, close_error, far_error, virtual_mode, centre_count, real_pair_count.
             self.model_pub.publish(Float32MultiArray(data=[
-                float(confidence), float(lateral), float(lookahead), float(curvature),
-                float(left_fit is not None), float(right_fit is not None),
+                float(control_valid), float(close_error), float(far_error),
+                float(virtual_mode), float(centers.shape[0]), float(real_centers.shape[0]),
             ]))
         except Exception as error:
             self.get_logger().error(f"Front lane frame rejected: {error}")

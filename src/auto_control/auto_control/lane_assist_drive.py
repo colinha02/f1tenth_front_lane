@@ -18,29 +18,37 @@ class LaneAssistDrive(Node):
             "connection_status_topic": "/vesc/connected",
             "duty_topic": "/vesc/duty",
             "servo_position_topic": "/vesc/servo_position",
-            "cruise_duty": 0.025,
-            "max_duty": 0.035,
+            # Intentionally conservative first autonomous-drive values.
+            "cruise_duty": 0.015,
+            "virtual_cruise_duty": 0.010,
+            "max_duty": 0.020,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
-            "lateral_gain": 0.75,
-            "lookahead_gain": 0.50,
-            "max_steering": 0.35,
-            "minimum_confidence": 0.95,
+            "close_gain": 0.35,
+            "far_gain": 0.70,
+            "max_steering": 0.28,
+            "steering_duty_reduction": 0.45,
+            "minimum_center_points": 6,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
             "control_rate_hz": 30.0,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
-        self.cruise_duty = min(float(value("cruise_duty")), float(value("max_duty")))
+        max_duty = abs(float(value("max_duty")))
+        self.cruise_duty = min(abs(float(value("cruise_duty"))), max_duty)
+        self.virtual_cruise_duty = min(abs(float(value("virtual_cruise_duty"))), max_duty)
         self.servo_left = float(value("servo_left"))
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
-        self.lateral_gain = float(value("lateral_gain"))
-        self.lookahead_gain = float(value("lookahead_gain"))
+        self.close_gain = float(value("close_gain"))
+        self.far_gain = float(value("far_gain"))
         self.max_steering = abs(float(value("max_steering")))
-        self.minimum_confidence = float(value("minimum_confidence"))
+        self.steering_duty_reduction = min(
+            0.95, max(0.0, float(value("steering_duty_reduction")))
+        )
+        self.minimum_center_points = max(2, int(value("minimum_center_points")))
         self.required_valid_frames = max(1, int(value("required_valid_frames")))
         self.model_timeout_sec = max(0.05, float(value("model_timeout_sec")))
 
@@ -65,13 +73,14 @@ class LaneAssistDrive(Node):
         self.emergency_stopped = False
         self.valid_frames = 0
         self.last_model_time = -1.0
-        self.lateral_error = 0.0
-        self.lookahead_offset = 0.0
+        self.close_error = 0.0
+        self.far_error = 0.0
+        self.virtual_only = False
         self.model_valid = False
         self.driving = False
         self.timer = self.create_timer(1.0 / max(5.0, float(value("control_rate_hz"))), self._on_timer)
         self.get_logger().warn(
-            "Lane assist armed at low duty. Focus the camera preview and press SPACE for emergency stop."
+            "Lane assist armed at low duty. It starts only after stable CLOSE/FAR targets; focus preview and press SPACE to stop."
         )
 
     def _on_connection(self, msg: Bool) -> None:
@@ -88,14 +97,13 @@ class LaneAssistDrive(Node):
         if len(msg.data) < 6:
             return
         self.last_model_time = self._now()
-        confidence, lateral, lookahead, _, left, right = msg.data[:6]
-        self.model_valid = (
-            confidence >= self.minimum_confidence and left >= 0.5 and right >= 0.5
-        )
+        valid, close_error, far_error, virtual_only, center_count, _ = msg.data[:6]
+        self.model_valid = valid >= 0.5 and center_count >= self.minimum_center_points
         if self.model_valid:
             self.valid_frames += 1
-            self.lateral_error = float(lateral)
-            self.lookahead_offset = float(lookahead)
+            self.close_error = float(close_error)
+            self.far_error = float(far_error)
+            self.virtual_only = virtual_only >= 0.5
         else:
             self.valid_frames = 0
 
@@ -110,14 +118,17 @@ class LaneAssistDrive(Node):
             return
         steering = max(-self.max_steering, min(
             self.max_steering,
-            self.lateral_gain * self.lateral_error + self.lookahead_gain * self.lookahead_offset,
+            self.close_gain * self.close_error + self.far_gain * self.far_error,
         ))
         if steering < 0.0:
             servo = self.servo_center + (self.servo_left - self.servo_center) * (-steering)
         else:
             servo = self.servo_center + (self.servo_right - self.servo_center) * steering
+        base_duty = self.virtual_cruise_duty if self.virtual_only else self.cruise_duty
+        steering_ratio = abs(steering) / max(self.max_steering, 1e-6)
+        duty = base_duty * (1.0 - self.steering_duty_reduction * steering_ratio)
         self.servo_pub.publish(Float32(data=float(servo)))
-        self.duty_pub.publish(Float32(data=self.cruise_duty))
+        self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
         if not self.driving:
             self.driving = True
             self.get_logger().warn("Lane model verified. Low-speed autonomous drive started.")
