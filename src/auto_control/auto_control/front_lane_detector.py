@@ -33,6 +33,8 @@ class FrontLaneDetector(Node):
             "white_threshold": 180,
             "seed_row_ratio": 0.75,
             "seed_band_height_px": 24,
+            "seed_max_component_width_px": 160,
+            "seed_max_component_pixels": 2000,
             "window_count": 20,
             "window_margin_px": 90,
             "minimum_window_pixels": 20,
@@ -68,9 +70,15 @@ class FrontLaneDetector(Node):
         self.white_threshold = int(value("white_threshold"))
         self.seed_row_ratio = float(value("seed_row_ratio"))
         self.seed_band_height_px = max(3, int(value("seed_band_height_px")))
+        self.seed_max_component_width_px = max(
+            10, int(value("seed_max_component_width_px"))
+        )
         self.window_count = max(4, int(value("window_count")))
         self.window_margin_px = max(10, int(value("window_margin_px")))
         self.minimum_window_pixels = max(3, int(value("minimum_window_pixels")))
+        self.seed_max_component_pixels = max(
+            self.minimum_window_pixels, int(value("seed_max_component_pixels"))
+        )
         self.maximum_missing_windows = max(0, int(value("maximum_missing_windows")))
         self.maximum_component_pixels = max(
             self.minimum_window_pixels, int(value("maximum_component_pixels"))
@@ -95,6 +103,8 @@ class FrontLaneDetector(Node):
         self.width_profile_y: np.ndarray | None = None
         self.width_profile_samples: list[list[float]] = []
         self.width_profile_frames = 0
+        self.previous_left_seed: int | None = None
+        self.previous_right_seed: int | None = None
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -128,13 +138,46 @@ class FrontLaneDetector(Node):
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         return cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-    @staticmethod
-    def _seed_from_histogram(histogram: np.ndarray, left: bool) -> int | None:
-        midpoint = histogram.size // 2
-        section = histogram[:midpoint] if left else histogram[midpoint:]
-        if section.size == 0 or int(section.max()) == 0:
+    def _seed_from_band(
+        self, mask: np.ndarray, y0: int, y1: int, left: bool,
+        previous_seed: int | None,
+    ) -> int | None:
+        """Choose a narrow white stripe, not the brightest large background area.
+
+        The old histogram-only seed could choose a broad white floor/tile area
+        at the reference row.  At the seed row we therefore apply the same
+        connected-component idea as the tracking windows and prefer temporal
+        continuity when a previous valid seed is available.
+        """
+        count, _, stats, _ = cv2.connectedComponentsWithStats(
+            mask[y0:y1, :], connectivity=8
+        )
+        width = mask.shape[1]
+        midpoint = width // 2
+        expected_x = (
+            float(previous_seed) if previous_seed is not None
+            else width * (0.25 if left else 0.75)
+        )
+        candidates: list[tuple[float, int, int]] = []
+        for label in range(1, count):
+            area = int(stats[label, cv2.CC_STAT_AREA])
+            component_width = int(stats[label, cv2.CC_STAT_WIDTH])
+            if (
+                area < self.minimum_window_pixels
+                or area > self.seed_max_component_pixels
+                or component_width > self.seed_max_component_width_px
+            ):
+                continue
+            center_x = int(round(
+                float(stats[label, cv2.CC_STAT_LEFT]) + component_width / 2.0
+            ))
+            if (left and center_x >= midpoint) or (not left and center_x < midpoint):
+                continue
+            candidates.append((abs(center_x - expected_x), -area, center_x))
+        if not candidates:
+            # A missing seed is safer than reseeding to a large white tile.
             return None
-        return int(np.argmax(section)) + (0 if left else midpoint)
+        return min(candidates)[2]
 
     def _track_direction(
         self, mask: np.ndarray, seed_x: int | None, seed_y: int,
@@ -340,11 +383,24 @@ class FrontLaneDetector(Node):
             mask = self._binary_white_mask(gray, top)
             seed_y = int(np.clip(self.seed_row_ratio * height, top, height - 1))
             band = self.seed_band_height_px // 2
-            histogram = np.sum(mask[max(top, seed_y - band):min(height, seed_y + band + 1)] > 0, axis=0)
-            left_seed = self._seed_from_histogram(histogram, True)
-            right_seed = self._seed_from_histogram(histogram, False)
+            seed_y0 = max(top, seed_y - band)
+            seed_y1 = min(height, seed_y + band + 1)
+            left_seed = self._seed_from_band(
+                mask, seed_y0, seed_y1, True, self.previous_left_seed
+            )
+            right_seed = self._seed_from_band(
+                mask, seed_y0, seed_y1, False, self.previous_right_seed
+            )
             left, left_windows = self._track_lane(mask, left_seed, seed_y, top, height)
             right, right_windows = self._track_lane(mask, right_seed, seed_y, top, height)
+            if left.shape[0] >= 5:
+                self.previous_left_seed = int(
+                    self._nearest_y_point(left, seed_y)[0]
+                )
+            if right.shape[0] >= 5:
+                self.previous_right_seed = int(
+                    self._nearest_y_point(right, seed_y)[0]
+                )
             window_height = max(8, (height - top) // self.window_count)
             self._ensure_width_profile(top, height)
             pairs = self._matched_lane_pairs(left, right, max_y_difference=window_height)

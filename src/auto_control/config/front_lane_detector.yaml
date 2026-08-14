@@ -15,6 +15,9 @@ front_lane_detector:
     white_threshold: 180
     seed_row_ratio: 0.75
     seed_band_height_px: 24
+    # Reject wide white floor/tile regions when selecting the initial seed.
+    seed_max_component_width_px: 160
+    seed_max_component_pixels: 2000
 
     # Sliding-window tracking around each left/right histogram seed.
     window_count: 20
