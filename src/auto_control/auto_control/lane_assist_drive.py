@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
@@ -25,13 +26,17 @@ class LaneAssistDrive(Node):
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
-            "close_gain": 0.80,
+            "heading_gain": 0.65,
+            # +1: smaller VESC servo value means right turn.  Change to -1
+            # after a wheels-raised test if the actual steering is reversed.
+            "steering_sign": 1.0,
             "max_steering": 0.28,
             "steering_duty_reduction": 0.45,
-            "minimum_center_points": 6,
+            "minimum_center_points": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
             "control_rate_hz": 30.0,
+            "command_log_rate_hz": 2.0,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -41,7 +46,8 @@ class LaneAssistDrive(Node):
         self.servo_left = float(value("servo_left"))
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
-        self.close_gain = float(value("close_gain"))
+        self.heading_gain = float(value("heading_gain"))
+        self.steering_sign = 1.0 if float(value("steering_sign")) >= 0.0 else -1.0
         self.max_steering = abs(float(value("max_steering")))
         self.steering_duty_reduction = min(
             0.95, max(0.0, float(value("steering_duty_reduction")))
@@ -49,6 +55,7 @@ class LaneAssistDrive(Node):
         self.minimum_center_points = max(2, int(value("minimum_center_points")))
         self.required_valid_frames = max(1, int(value("required_valid_frames")))
         self.model_timeout_sec = max(0.05, float(value("model_timeout_sec")))
+        self.command_log_period = 1.0 / max(0.2, float(value("command_log_rate_hz")))
 
         command_qos = QoSProfile(depth=1)
         command_qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -71,10 +78,11 @@ class LaneAssistDrive(Node):
         self.emergency_stopped = False
         self.valid_frames = 0
         self.last_model_time = -1.0
-        self.close_error = 0.0
+        self.close_heading = 0.0
         self.virtual_only = False
         self.model_valid = False
         self.driving = False
+        self.last_command_log_time = -1.0
         self.timer = self.create_timer(1.0 / max(5.0, float(value("control_rate_hz"))), self._on_timer)
         self.get_logger().warn(
             "Lane assist armed at low duty. It starts only after stable CLOSE/FAR targets; focus preview and press SPACE to stop."
@@ -94,11 +102,11 @@ class LaneAssistDrive(Node):
         if len(msg.data) < 6:
             return
         self.last_model_time = self._now()
-        valid, close_error, _, virtual_only, center_count, _ = msg.data[:6]
+        valid, close_heading, _, virtual_only, center_count, _ = msg.data[:6]
         self.model_valid = valid >= 0.5 and center_count >= self.minimum_center_points
         if self.model_valid:
             self.valid_frames += 1
-            self.close_error = float(close_error)
+            self.close_heading = float(close_heading)
             self.virtual_only = virtual_only >= 0.5
         else:
             self.valid_frames = 0
@@ -112,9 +120,9 @@ class LaneAssistDrive(Node):
         if not can_drive:
             self._stop(None)
             return
-        steering = max(-self.max_steering, min(
+        steering = self.steering_sign * max(-self.max_steering, min(
             self.max_steering,
-            self.close_gain * self.close_error,
+            self.heading_gain * self.close_heading,
         ))
         if steering < 0.0:
             servo = self.servo_center + (self.servo_left - self.servo_center) * (-steering)
@@ -125,6 +133,13 @@ class LaneAssistDrive(Node):
         duty = base_duty * (1.0 - self.steering_duty_reduction * steering_ratio)
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
+        now = self._now()
+        if now - self.last_command_log_time >= self.command_log_period:
+            self.get_logger().info(
+                "lane command | heading=%+.1f deg | steering=%+.3f | servo=%.3f | duty=%.3f"
+                % (np.degrees(self.close_heading), steering, servo, duty)
+            )
+            self.last_command_log_time = now
         if not self.driving:
             self.driving = True
             self.get_logger().warn("Lane model verified. Low-speed autonomous drive started.")

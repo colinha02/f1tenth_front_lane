@@ -20,6 +20,7 @@ def generate_launch_description():
         DeclareLaunchArgument("duty", default_value="0.055"),
         DeclareLaunchArgument("virtual_duty", default_value="0.035"),
         DeclareLaunchArgument("max_duty", default_value="0.065"),
+        DeclareLaunchArgument("steering_sign", default_value="1.0"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(camera_launch),
             launch_arguments={"preview_enabled": "false", "publish_enabled": "true"}.items(),
@@ -39,6 +40,7 @@ def generate_launch_description():
                 "cruise_duty": LaunchConfiguration("duty"),
                 "virtual_cruise_duty": LaunchConfiguration("virtual_duty"),
                 "max_duty": LaunchConfiguration("max_duty"),
+                "steering_sign": LaunchConfiguration("steering_sign"),
             }],
         ),
     ])

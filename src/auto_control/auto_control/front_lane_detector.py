@@ -51,7 +51,7 @@ class FrontLaneDetector(Node):
             "show_center_guidance": True,
             "close_target_y_ratio": 0.75,
             "far_target_y_ratio": 0.60,
-            "minimum_control_center_points": 6,
+            "minimum_control_center_points": 5,
             # Camera-visible reference: centre of the white tape on the front bumper.
             "vehicle_reference_x_ratio": 0.50,
             "vehicle_reference_y_ratio": 0.90,
@@ -631,8 +631,15 @@ class FrontLaneDetector(Node):
                 centers.shape[0] >= self.minimum_control_center_points
                 and close_target is not None
             )
-            close_error = (
-                (close_target[0] - vehicle_point[0]) / (width / 2.0)
+            # Heading is measured from the vehicle's forward image direction.
+            # Positive is right, negative is left.  Unlike a plain x-offset,
+            # this naturally commands more steering when the Vehicle->CLOSE
+            # line becomes more horizontal.
+            close_heading = (
+                float(np.arctan2(
+                    close_target[0] - vehicle_point[0],
+                    max(1, vehicle_point[1] - close_target[1]),
+                ))
                 if close_target is not None else 0.0
             )
             far_error = (
@@ -716,6 +723,9 @@ class FrontLaneDetector(Node):
                 cv2.putText(overlay, control_text, (20, height - 95),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55,
                             (0, 255, 0) if control_valid else (0, 165, 255), 2, cv2.LINE_AA)
+                heading_text = f"close heading: {np.degrees(close_heading):+.1f} deg"
+                cv2.putText(overlay, heading_text, (20, height - 120),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
 
             left_fit, right_fit = self._fit(left), self._fit(right)
             confidence = 1.0 if left_fit is not None and right_fit is not None else 0.0
@@ -741,9 +751,9 @@ class FrontLaneDetector(Node):
                     self.get_logger().warn("SPACE pressed in preview: emergency stop requested.")
                 self.next_preview_at = now + 1.0 / self.preview_fps
             # Model layout for lane_assist_drive:
-            # valid, close_error, far_error, virtual_mode, centre_count, real_pair_count.
+            # valid, close_heading_rad, far_error, virtual_mode, centre_count, real_pair_count.
             self.model_pub.publish(Float32MultiArray(data=[
-                float(control_valid), float(close_error), float(far_error),
+                float(control_valid), float(close_heading), float(far_error),
                 float(virtual_mode), float(centers.shape[0]), float(real_centers.shape[0]),
             ]))
         except Exception as error:
