@@ -37,6 +37,10 @@ class LaneAssistDrive(Node):
             "minimum_center_points": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
+            # Brief visual dropouts should not instantly straighten the car
+            # in the middle of a corner.
+            "short_loss_hold_sec": 0.80,
+            "short_loss_duty_scale": 0.35,
             "control_rate_hz": 30.0,
             "command_log_rate_hz": 2.0,
         }.items():
@@ -57,6 +61,10 @@ class LaneAssistDrive(Node):
         self.minimum_center_points = max(2, int(value("minimum_center_points")))
         self.required_valid_frames = max(1, int(value("required_valid_frames")))
         self.model_timeout_sec = max(0.05, float(value("model_timeout_sec")))
+        self.short_loss_hold_sec = max(0.0, float(value("short_loss_hold_sec")))
+        self.short_loss_duty_scale = min(
+            1.0, max(0.0, float(value("short_loss_duty_scale")))
+        )
         self.command_log_period = 1.0 / max(0.2, float(value("command_log_rate_hz")))
 
         command_qos = QoSProfile(depth=1)
@@ -80,10 +88,14 @@ class LaneAssistDrive(Node):
         self.emergency_stopped = False
         self.valid_frames = 0
         self.last_model_time = -1.0
+        self.last_valid_model_time = -1.0
         self.close_heading = 0.0
         self.virtual_only = False
         self.model_valid = False
         self.driving = False
+        self.last_servo_command = self.servo_center
+        self.last_duty_command = 0.0
+        self.holding_short_loss = False
         self.last_command_log_time = -1.0
         self.timer = self.create_timer(1.0 / max(5.0, float(value("control_rate_hz"))), self._on_timer)
         self.get_logger().warn(
@@ -108,18 +120,38 @@ class LaneAssistDrive(Node):
         self.model_valid = valid >= 0.5 and center_count >= self.minimum_center_points
         if self.model_valid:
             self.valid_frames += 1
+            self.last_valid_model_time = self.last_model_time
             self.close_heading = float(close_heading)
             self.virtual_only = virtual_only >= 0.5
         else:
             self.valid_frames = 0
 
     def _on_timer(self) -> None:
-        fresh = self.last_model_time >= 0.0 and self._now() - self.last_model_time <= self.model_timeout_sec
+        now = self._now()
+        fresh = self.last_model_time >= 0.0 and now - self.last_model_time <= self.model_timeout_sec
         can_drive = (
             self.connected and not self.emergency_stopped and fresh and self.model_valid
             and self.valid_frames >= self.required_valid_frames
         )
         if not can_drive:
+            within_short_loss = (
+                self.driving
+                and self.connected
+                and not self.emergency_stopped
+                and self.last_valid_model_time >= 0.0
+                and now - self.last_valid_model_time <= self.short_loss_hold_sec
+            )
+            if within_short_loss:
+                held_duty = self.last_duty_command * self.short_loss_duty_scale
+                self.servo_pub.publish(Float32(data=self.last_servo_command))
+                self.duty_pub.publish(Float32(data=held_duty))
+                if not self.holding_short_loss:
+                    self.get_logger().warn(
+                        "Lane target briefly lost: holding last steering for %.2f s at reduced duty."
+                        % self.short_loss_hold_sec
+                    )
+                    self.holding_short_loss = True
+                return
             self._stop(None)
             return
         steering = self.steering_sign * max(-self.max_steering, min(
@@ -135,6 +167,9 @@ class LaneAssistDrive(Node):
         duty = base_duty * (1.0 - self.steering_duty_reduction * steering_ratio)
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
+        self.last_servo_command = float(servo)
+        self.last_duty_command = float(max(0.0, duty))
+        self.holding_short_loss = False
         now = self._now()
         if now - self.last_command_log_time >= self.command_log_period:
             self.get_logger().info(
@@ -149,6 +184,9 @@ class LaneAssistDrive(Node):
     def _stop(self, reason: str | None) -> None:
         self.duty_pub.publish(Float32(data=0.0))
         self.servo_pub.publish(Float32(data=self.servo_center))
+        self.last_duty_command = 0.0
+        self.last_servo_command = self.servo_center
+        self.holding_short_loss = False
         if self.driving or reason:
             if reason:
                 self.get_logger().warn(f"STOP: {reason}; duty=0.")

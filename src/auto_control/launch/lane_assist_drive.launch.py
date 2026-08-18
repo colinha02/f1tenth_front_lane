@@ -22,6 +22,7 @@ def generate_launch_description():
         DeclareLaunchArgument("max_duty", default_value="0.065"),
         DeclareLaunchArgument("steering_sign", default_value="1.0"),
         DeclareLaunchArgument("max_steering", default_value="0.50"),
+        DeclareLaunchArgument("short_loss_hold_sec", default_value="0.80"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(camera_launch),
             launch_arguments={"preview_enabled": "false", "publish_enabled": "true"}.items(),
@@ -43,6 +44,7 @@ def generate_launch_description():
                 "max_duty": LaunchConfiguration("max_duty"),
                 "steering_sign": LaunchConfiguration("steering_sign"),
                 "max_steering": LaunchConfiguration("max_steering"),
+                "short_loss_hold_sec": LaunchConfiguration("short_loss_hold_sec"),
             }],
         ),
     ])
