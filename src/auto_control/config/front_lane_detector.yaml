@@ -10,10 +10,11 @@ front_lane_detector:
     processing_fps: 20.0
     publish_debug_images: false
 
-    # Simple pipeline: lower half -> grayscale -> this white threshold.
-    roi_top_ratio: 0.5
+    # Use more of the distant road while excluding the bumper and wheels.
+    roi_top_ratio: 0.40
+    roi_bottom_ratio: 0.84
     white_threshold: 180
-    seed_row_ratio: 0.75
+    seed_row_ratio: 0.68
     seed_band_height_px: 24
     # Reject wide white floor/tile regions when selecting the initial seed.
     seed_max_component_width_px: 160
@@ -36,17 +37,17 @@ front_lane_detector:
     wide_component_orientation_tolerance_deg: 35.0
     show_diagnostic_windows: true
 
-    # Display-only center/target guidance.  No vehicle command is produced.
+    # Centre/target guidance values sent to the lane-assist controller.
     show_center_guidance: true
-    close_target_y_ratio: 0.75
-    far_target_y_ratio: 0.60
+    close_target_y_ratio: 0.70
+    far_target_y_ratio: 0.58
     # Autonomous control becomes valid when CLOSE can be selected from enough
     # actual or virtual centre points. FAR is diagnostic for this stage.
     minimum_control_center_points: 5
 
     # White tape at the centre of the front bumper (image-coordinate ratio).
-    vehicle_reference_x_ratio: 0.488
-    vehicle_reference_y_ratio: 0.90
+    vehicle_reference_x_ratio: 0.501
+    vehicle_reference_y_ratio: 0.795
 
     # Learn perspective-aware lane width from stable two-lane frames.
     width_profile_required_frames: 40

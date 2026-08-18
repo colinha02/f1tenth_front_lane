@@ -29,9 +29,10 @@ class FrontLaneDetector(Node):
             "preview_fps": 20.0,
             "processing_fps": 20.0,
             "publish_debug_images": False,
-            "roi_top_ratio": 0.5,
+            "roi_top_ratio": 0.40,
+            "roi_bottom_ratio": 0.84,
             "white_threshold": 180,
-            "seed_row_ratio": 0.75,
+            "seed_row_ratio": 0.68,
             "seed_band_height_px": 24,
             "seed_max_component_width_px": 160,
             "seed_max_component_pixels": 2000,
@@ -49,12 +50,12 @@ class FrontLaneDetector(Node):
             "wide_component_orientation_tolerance_deg": 35.0,
             "show_diagnostic_windows": True,
             "show_center_guidance": True,
-            "close_target_y_ratio": 0.75,
-            "far_target_y_ratio": 0.60,
+            "close_target_y_ratio": 0.70,
+            "far_target_y_ratio": 0.58,
             "minimum_control_center_points": 5,
             # Camera-visible reference: centre of the white tape on the front bumper.
-            "vehicle_reference_x_ratio": 0.50,
-            "vehicle_reference_y_ratio": 0.90,
+            "vehicle_reference_x_ratio": 0.501,
+            "vehicle_reference_y_ratio": 0.795,
             "width_profile_required_frames": 40,
             "width_profile_min_pairs_per_frame": 6,
             "width_profile_min_samples_per_bin": 12,
@@ -80,6 +81,7 @@ class FrontLaneDetector(Node):
         self.processing_fps = max(1.0, float(value("processing_fps")))
         self.publish_debug_images = bool(value("publish_debug_images"))
         self.roi_top_ratio = float(value("roi_top_ratio"))
+        self.roi_bottom_ratio = float(value("roi_bottom_ratio"))
         self.white_threshold = int(value("white_threshold"))
         self.seed_row_ratio = float(value("seed_row_ratio"))
         self.seed_band_height_px = max(3, int(value("seed_band_height_px")))
@@ -183,9 +185,10 @@ class FrontLaneDetector(Node):
             data.reshape((rows, stride))[:, : message.width], cv2.COLOR_YUV2BGR_NV12
         )
 
-    def _binary_white_mask(self, gray: np.ndarray, top: int) -> np.ndarray:
+    def _binary_white_mask(self, gray: np.ndarray, top: int, bottom: int) -> np.ndarray:
         _, mask = cv2.threshold(gray, self.white_threshold, 255, cv2.THRESH_BINARY)
         mask[:top, :] = 0
+        mask[bottom:, :] = 0
         # Only bridge one- or two-pixel camera/compression gaps.  This does
         # not create a large colour/edge candidate region.
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
@@ -581,21 +584,22 @@ class FrontLaneDetector(Node):
         try:
             bgr = self._nv12_to_bgr(message)
             height, width = bgr.shape[:2]
-            top = int(np.clip(self.roi_top_ratio * height, 0, height - 2))
+            top = int(np.clip(self.roi_top_ratio * height, 0, height - 3))
+            bottom = int(np.clip(self.roi_bottom_ratio * height, top + 2, height))
             gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-            mask = self._binary_white_mask(gray, top)
-            seed_y = int(np.clip(self.seed_row_ratio * height, top, height - 1))
+            mask = self._binary_white_mask(gray, top, bottom)
+            seed_y = int(np.clip(self.seed_row_ratio * height, top, bottom - 1))
             band = self.seed_band_height_px // 2
             seed_y0 = max(top, seed_y - band)
-            seed_y1 = min(height, seed_y + band + 1)
+            seed_y1 = min(bottom, seed_y + band + 1)
             left_seed = self._seed_from_band(
                 mask, seed_y0, seed_y1, True, self.previous_left_seed
             )
             right_seed = self._seed_from_band(
                 mask, seed_y0, seed_y1, False, self.previous_right_seed
             )
-            left, left_windows = self._track_lane(mask, left_seed, seed_y, top, height)
-            right, right_windows = self._track_lane(mask, right_seed, seed_y, top, height)
+            left, left_windows = self._track_lane(mask, left_seed, seed_y, top, bottom)
+            right, right_windows = self._track_lane(mask, right_seed, seed_y, top, bottom)
             if left.shape[0] >= 5:
                 self.previous_left_seed = int(
                     self._nearest_y_point(left, seed_y)[0]
@@ -604,8 +608,8 @@ class FrontLaneDetector(Node):
                 self.previous_right_seed = int(
                     self._nearest_y_point(right, seed_y)[0]
                 )
-            window_height = max(8, (height - top) // self.window_count)
-            self._ensure_width_profile(top, height)
+            window_height = max(8, (bottom - top) // self.window_count)
+            self._ensure_width_profile(top, bottom)
             pairs = self._matched_lane_pairs(left, right, max_y_difference=window_height)
             normal_widths = self._normal_width_samples(pairs, left)
             self._learn_width_profile(normal_widths, width)
@@ -613,11 +617,11 @@ class FrontLaneDetector(Node):
             self._remember_center_offsets(pairs)
             virtual_centers = self._virtual_centers(
                 left, right, real_centers, max_y_difference=window_height,
-                image_width=width, top=top, bottom=height,
+                image_width=width, top=top, bottom=bottom,
             )
             centers = np.vstack((real_centers, virtual_centers)) if virtual_centers.size else real_centers
-            close_target_y = int(np.clip(self.close_target_y_ratio * height, top, height - 1))
-            far_target_y = int(np.clip(self.far_target_y_ratio * height, top, height - 1))
+            close_target_y = int(np.clip(self.close_target_y_ratio * height, top, bottom - 1))
+            far_target_y = int(np.clip(self.far_target_y_ratio * height, top, bottom - 1))
             close_target = self._nearest_y_point(centers, close_target_y)
             far_target = self._nearest_y_point(centers, far_target_y)
             vehicle_point = (
@@ -652,6 +656,7 @@ class FrontLaneDetector(Node):
 
             overlay = bgr.copy()
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
+            cv2.line(overlay, (0, bottom - 1), (width - 1, bottom - 1), (0, 165, 255), 2)
             cv2.line(overlay, (0, seed_y), (width - 1, seed_y), (0, 255, 255), 1)
             if left_seed is not None:
                 cv2.circle(overlay, (left_seed, seed_y), 8, (255, 0, 0), -1)
