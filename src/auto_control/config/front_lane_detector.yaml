@@ -39,8 +39,8 @@ front_lane_detector:
 
     # Centre/target guidance values sent to the lane-assist controller.
     show_center_guidance: true
-    close_target_y_ratio: 0.70
-    far_target_y_ratio: 0.58
+    close_target_y_ratio: 0.64
+    far_target_y_ratio: 0.52
     # Autonomous control becomes valid when CLOSE can be selected from enough
     # actual or virtual centre points. FAR is diagnostic for this stage.
     minimum_control_center_points: 5

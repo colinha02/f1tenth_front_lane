@@ -50,8 +50,8 @@ class FrontLaneDetector(Node):
             "wide_component_orientation_tolerance_deg": 35.0,
             "show_diagnostic_windows": True,
             "show_center_guidance": True,
-            "close_target_y_ratio": 0.70,
-            "far_target_y_ratio": 0.58,
+            "close_target_y_ratio": 0.64,
+            "far_target_y_ratio": 0.52,
             "minimum_control_center_points": 5,
             # Camera-visible reference: centre of the white tape on the front bumper.
             "vehicle_reference_x_ratio": 0.501,
