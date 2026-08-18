@@ -21,8 +21,11 @@ class LaneAssistDrive(Node):
             "servo_position_topic": "/vesc/servo_position",
             # Intentionally conservative first autonomous-drive values.
             "cruise_duty": 0.055,
-            "virtual_cruise_duty": 0.035,
+            # A virtual centerline is still a valid path estimate.  Keep
+            # enough torque for the car to negotiate a tight corner.
+            "virtual_cruise_duty": 0.050,
             "max_duty": 0.065,
+            "minimum_drive_duty": 0.040,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
@@ -33,7 +36,9 @@ class LaneAssistDrive(Node):
             # 0.28 was too small for the observed tight track corners.
             # Keep below 1.0 so the servo is not driven to its full endpoint.
             "max_steering": 0.50,
-            "steering_duty_reduction": 0.45,
+            # Curves should slow down only slightly; the safety stop is
+            # controlled independently by perception/connection timeouts.
+            "steering_duty_reduction": 0.15,
             "minimum_center_points": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
@@ -49,6 +54,9 @@ class LaneAssistDrive(Node):
         max_duty = abs(float(value("max_duty")))
         self.cruise_duty = min(abs(float(value("cruise_duty"))), max_duty)
         self.virtual_cruise_duty = min(abs(float(value("virtual_cruise_duty"))), max_duty)
+        self.minimum_drive_duty = min(
+            max_duty, max(0.0, abs(float(value("minimum_drive_duty"))))
+        )
         self.servo_left = float(value("servo_left"))
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
@@ -164,7 +172,13 @@ class LaneAssistDrive(Node):
             servo = self.servo_center + (self.servo_right - self.servo_center) * steering
         base_duty = self.virtual_cruise_duty if self.virtual_only else self.cruise_duty
         steering_ratio = abs(steering) / max(self.max_steering, 1e-6)
-        duty = base_duty * (1.0 - self.steering_duty_reduction * steering_ratio)
+        # Do not let steering-based speed reduction fall below the torque
+        # needed to keep moving.  Invalid perception still follows the
+        # separate short-loss / stop safety path below.
+        duty = max(
+            self.minimum_drive_duty,
+            base_duty * (1.0 - self.steering_duty_reduction * steering_ratio),
+        )
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
         self.last_servo_command = float(servo)
