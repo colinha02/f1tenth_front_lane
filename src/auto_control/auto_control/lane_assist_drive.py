@@ -30,7 +30,9 @@ class LaneAssistDrive(Node):
             # +1: smaller VESC servo value means right turn.  Change to -1
             # after a wheels-raised test if the actual steering is reversed.
             "steering_sign": 1.0,
-            "max_steering": 0.28,
+            # 0.28 was too small for the observed tight track corners.
+            # Keep below 1.0 so the servo is not driven to its full endpoint.
+            "max_steering": 0.50,
             "steering_duty_reduction": 0.45,
             "minimum_center_points": 5,
             "required_valid_frames": 10,
