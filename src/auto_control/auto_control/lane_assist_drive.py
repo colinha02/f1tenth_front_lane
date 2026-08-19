@@ -32,6 +32,10 @@ class LaneAssistDrive(Node):
             "startup_boost_sec": 0.80,
             # Live terminal adjustment multiplier for every drive duty.
             "speed_scale": 1.0,
+            # Separate scales are interpolated from straight to full curve
+            # using the CLOSE/FAR curve-ahead angle.
+            "straight_speed_scale": 1.0,
+            "curve_speed_scale": 1.0,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
@@ -73,6 +77,12 @@ class LaneAssistDrive(Node):
         self.startup_duty = min(max_duty, abs(float(value("startup_duty"))))
         self.startup_boost_sec = max(0.0, float(value("startup_boost_sec")))
         self.speed_scale = min(1.30, max(0.50, float(value("speed_scale"))))
+        self.straight_speed_scale = min(
+            1.50, max(0.50, float(value("straight_speed_scale")))
+        )
+        self.curve_speed_scale = min(
+            1.50, max(0.50, float(value("curve_speed_scale")))
+        )
         self.servo_left = float(value("servo_left"))
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
@@ -150,20 +160,29 @@ class LaneAssistDrive(Node):
     def _on_set_parameters(self, parameters) -> SetParametersResult:
         """Allow safe live speed changes through `ros2 param set`."""
         for parameter in parameters:
-            if parameter.name != "speed_scale":
+            if parameter.name not in {
+                "speed_scale", "straight_speed_scale", "curve_speed_scale"
+            }:
                 continue
             try:
                 requested = float(parameter.value)
             except (TypeError, ValueError):
-                return SetParametersResult(successful=False, reason="speed_scale must be numeric")
-            if not 0.50 <= requested <= 1.30:
+                return SetParametersResult(
+                    successful=False, reason=f"{parameter.name} must be numeric"
+                )
+            upper = 1.30 if parameter.name == "speed_scale" else 1.50
+            if not 0.50 <= requested <= upper:
                 return SetParametersResult(
                     successful=False,
-                    reason="speed_scale must be between 0.50 and 1.30",
+                    reason=f"{parameter.name} must be between 0.50 and {upper:.2f}",
                 )
-            self.speed_scale = requested
+            setattr(self, parameter.name, requested)
+        if any(parameter.name in {
+            "speed_scale", "straight_speed_scale", "curve_speed_scale"
+        } for parameter in parameters):
             self.get_logger().warn(
-                "Live speed scale set to %.2f (all duty commands scaled)." % requested
+                "Live speed scales | global=%.2f straight=%.2f curve=%.2f"
+                % (self.speed_scale, self.straight_speed_scale, self.curve_speed_scale)
             )
         return SetParametersResult(successful=True)
 
@@ -251,7 +270,14 @@ class LaneAssistDrive(Node):
         if starting_now:
             self.drive_started_at = now
         boost_active = now - self.drive_started_at <= self.startup_boost_sec
-        duty = (self.startup_duty if boost_active else normal_duty) * self.speed_scale
+        curve_speed_scale = (
+            self.straight_speed_scale
+            + curve_ratio * (self.curve_speed_scale - self.straight_speed_scale)
+        )
+        duty = (
+            (self.startup_duty if boost_active else normal_duty)
+            * self.speed_scale * curve_speed_scale
+        )
         duty = min(self.max_duty, duty)
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
