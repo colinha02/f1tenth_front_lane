@@ -55,7 +55,7 @@ class LaneAssistDrive(Node):
             # During a short visual dropout, preserve both last steering
             # command and speed instead of slowing in a corner.
             "short_loss_duty_scale": 1.0,
-            "control_rate_hz": 30.0,
+            "control_rate_hz": 40.0,
             "command_log_rate_hz": 2.0,
         }.items():
             self.declare_parameter(name, value)
