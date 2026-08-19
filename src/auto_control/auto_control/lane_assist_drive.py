@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 import rclpy
+from rcl_interfaces.msg import SetParametersResult
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import Bool, Float32, Float32MultiArray
@@ -29,6 +30,8 @@ class LaneAssistDrive(Node):
             # Overcome static friction only when beginning a newly armed run.
             "startup_duty": 0.060,
             "startup_boost_sec": 0.80,
+            # Live terminal adjustment multiplier for every drive duty.
+            "speed_scale": 1.0,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
@@ -61,6 +64,7 @@ class LaneAssistDrive(Node):
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
         max_duty = abs(float(value("max_duty")))
+        self.max_duty = max_duty
         self.cruise_duty = min(abs(float(value("cruise_duty"))), max_duty)
         self.virtual_cruise_duty = min(abs(float(value("virtual_cruise_duty"))), max_duty)
         self.minimum_drive_duty = min(
@@ -68,6 +72,7 @@ class LaneAssistDrive(Node):
         )
         self.startup_duty = min(max_duty, abs(float(value("startup_duty"))))
         self.startup_boost_sec = max(0.0, float(value("startup_boost_sec")))
+        self.speed_scale = min(1.30, max(0.50, float(value("speed_scale"))))
         self.servo_left = float(value("servo_left"))
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
@@ -115,6 +120,7 @@ class LaneAssistDrive(Node):
         self.connection_sub = self.create_subscription(
             Bool, str(value("connection_status_topic")), self._on_connection, connection_qos
         )
+        self.add_on_set_parameters_callback(self._on_set_parameters)
 
         self.connected = False
         self.emergency_stopped = False
@@ -140,6 +146,26 @@ class LaneAssistDrive(Node):
         self.connected = bool(msg.data)
         if not self.connected:
             self._stop("VESC disconnected")
+
+    def _on_set_parameters(self, parameters) -> SetParametersResult:
+        """Allow safe live speed changes through `ros2 param set`."""
+        for parameter in parameters:
+            if parameter.name != "speed_scale":
+                continue
+            try:
+                requested = float(parameter.value)
+            except (TypeError, ValueError):
+                return SetParametersResult(successful=False, reason="speed_scale must be numeric")
+            if not 0.50 <= requested <= 1.30:
+                return SetParametersResult(
+                    successful=False,
+                    reason="speed_scale must be between 0.50 and 1.30",
+                )
+            self.speed_scale = requested
+            self.get_logger().warn(
+                "Live speed scale set to %.2f (all duty commands scaled)." % requested
+            )
+        return SetParametersResult(successful=True)
 
     def _on_emergency_stop(self, msg: Bool) -> None:
         if msg.data:
@@ -225,7 +251,8 @@ class LaneAssistDrive(Node):
         if starting_now:
             self.drive_started_at = now
         boost_active = now - self.drive_started_at <= self.startup_boost_sec
-        duty = self.startup_duty if boost_active else normal_duty
+        duty = (self.startup_duty if boost_active else normal_duty) * self.speed_scale
+        duty = min(self.max_duty, duty)
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
         self.last_servo_command = float(servo)
