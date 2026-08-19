@@ -26,6 +26,9 @@ class LaneAssistDrive(Node):
             "virtual_cruise_duty": 0.050,
             "max_duty": 0.065,
             "minimum_drive_duty": 0.040,
+            # Overcome static friction only when beginning a newly armed run.
+            "startup_duty": 0.060,
+            "startup_boost_sec": 0.80,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
@@ -41,6 +44,9 @@ class LaneAssistDrive(Node):
             "curve_slowdown_full_deg": 55.0,
             "curve_duty_scale_at_full": 0.82,
             "minimum_center_points": 5,
+            # A new run may start only from a measured two-boundary centre,
+            # never from a virtual one-boundary centreline.
+            "minimum_start_real_pairs": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
             # Brief visual dropouts should not instantly straighten the car
@@ -60,6 +66,8 @@ class LaneAssistDrive(Node):
         self.minimum_drive_duty = min(
             max_duty, max(0.0, abs(float(value("minimum_drive_duty"))))
         )
+        self.startup_duty = min(max_duty, abs(float(value("startup_duty"))))
+        self.startup_boost_sec = max(0.0, float(value("startup_boost_sec")))
         self.servo_left = float(value("servo_left"))
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
@@ -80,6 +88,9 @@ class LaneAssistDrive(Node):
             1.0, max(0.0, float(value("curve_duty_scale_at_full")))
         )
         self.minimum_center_points = max(2, int(value("minimum_center_points")))
+        self.minimum_start_real_pairs = max(
+            self.minimum_center_points, int(value("minimum_start_real_pairs"))
+        )
         self.required_valid_frames = max(1, int(value("required_valid_frames")))
         self.model_timeout_sec = max(0.05, float(value("model_timeout_sec")))
         self.short_loss_hold_sec = max(0.0, float(value("short_loss_hold_sec")))
@@ -115,13 +126,14 @@ class LaneAssistDrive(Node):
         self.virtual_only = False
         self.model_valid = False
         self.driving = False
+        self.drive_started_at = -1.0
         self.last_servo_command = self.servo_center
         self.last_duty_command = 0.0
         self.holding_short_loss = False
         self.last_command_log_time = -1.0
         self.timer = self.create_timer(1.0 / max(5.0, float(value("control_rate_hz"))), self._on_timer)
         self.get_logger().warn(
-            "Lane assist armed at low duty. It starts only after stable CLOSE/FAR targets; focus preview and press SPACE to stop."
+            "Lane assist armed. It starts only after a stable real two-lane centre; focus preview and press SPACE or E to stop."
         )
 
     def _on_connection(self, msg: Bool) -> None:
@@ -138,8 +150,17 @@ class LaneAssistDrive(Node):
         if len(msg.data) < 6:
             return
         self.last_model_time = self._now()
-        valid, close_heading, _, virtual_only, center_count, _ = msg.data[:6]
-        self.model_valid = valid >= 0.5 and center_count >= self.minimum_center_points
+        valid, close_heading, _, virtual_only, center_count, real_pair_count = msg.data[:6]
+        base_valid = valid >= 0.5 and center_count >= self.minimum_center_points
+        # At a fresh start require actual left/right pairs.  Once moving,
+        # the one-sided virtual centreline is allowed to carry the vehicle
+        # through a curve without stopping.
+        startup_valid = (
+            base_valid
+            and virtual_only < 0.5
+            and real_pair_count >= self.minimum_start_real_pairs
+        )
+        self.model_valid = base_valid if self.driving else startup_valid
         if self.model_valid:
             self.valid_frames += 1
             self.last_valid_model_time = self.last_model_time
@@ -196,10 +217,15 @@ class LaneAssistDrive(Node):
         # Do not let steering-based speed reduction fall below the torque
         # needed to keep moving.  Invalid perception still follows the
         # separate short-loss / stop safety path below.
-        duty = max(
+        normal_duty = max(
             self.minimum_drive_duty,
             base_duty * curve_scale * (1.0 - self.steering_duty_reduction * steering_ratio),
         )
+        starting_now = not self.driving
+        if starting_now:
+            self.drive_started_at = now
+        boost_active = now - self.drive_started_at <= self.startup_boost_sec
+        duty = self.startup_duty if boost_active else normal_duty
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
         self.last_servo_command = float(servo)
@@ -212,9 +238,12 @@ class LaneAssistDrive(Node):
                 % (np.degrees(self.close_heading), np.degrees(self.curve_ahead), steering, servo, duty)
             )
             self.last_command_log_time = now
-        if not self.driving:
+        if starting_now:
             self.driving = True
-            self.get_logger().warn("Lane model verified. Low-speed autonomous drive started.")
+            self.get_logger().warn(
+                "Real lane centre verified. Starting with duty %.3f for %.1f s."
+                % (self.startup_duty, self.startup_boost_sec)
+            )
 
     def _stop(self, reason: str | None) -> None:
         self.duty_pub.publish(Float32(data=0.0))
@@ -222,6 +251,7 @@ class LaneAssistDrive(Node):
         self.last_duty_command = 0.0
         self.last_servo_command = self.servo_center
         self.holding_short_loss = False
+        self.drive_started_at = -1.0
         if self.driving or reason:
             if reason:
                 self.get_logger().warn(f"STOP: {reason}; duty=0.")

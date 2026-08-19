@@ -810,9 +810,9 @@ class FrontLaneDetector(Node):
             if self.preview_enabled and now >= self.next_preview_at:
                 cv2.imshow(self.preview_window_name, overlay)
                 key = cv2.waitKey(1) & 0xFF
-                if key == ord(" "):
+                if key in (ord(" "), ord("e"), ord("E")):
                     self.stop_pub.publish(Bool(data=True))
-                    self.get_logger().warn("SPACE pressed in preview: emergency stop requested.")
+                    self.get_logger().warn("SPACE/E pressed in preview: emergency stop requested.")
                 self.next_preview_at = now + 1.0 / self.preview_fps
             # Model layout for lane_assist_drive:
             # valid, close_heading_rad, far_error, virtual_mode, centre_count,
