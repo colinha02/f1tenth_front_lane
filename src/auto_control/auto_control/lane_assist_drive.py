@@ -21,11 +21,10 @@ class LaneAssistDrive(Node):
             "servo_position_topic": "/vesc/servo_position",
             # Intentionally conservative first autonomous-drive values.
             "cruise_duty": 0.055,
-            # A virtual centerline is still a valid path estimate.  Keep
-            # enough torque for the car to negotiate a tight corner.
-            "virtual_cruise_duty": 0.050,
+            # Test mode: real and virtual centerlines use the same speed.
+            "virtual_cruise_duty": 0.055,
             "max_duty": 0.065,
-            "minimum_drive_duty": 0.040,
+            "minimum_drive_duty": 0.055,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
@@ -36,16 +35,17 @@ class LaneAssistDrive(Node):
             # 0.28 was too small for the observed tight track corners.
             # Keep below 1.0 so the servo is not driven to its full endpoint.
             "max_steering": 0.50,
-            # Curves should slow down only slightly; the safety stop is
-            # controlled independently by perception/connection timeouts.
-            "steering_duty_reduction": 0.15,
+            # Do not reduce speed as steering increases for this test.
+            "steering_duty_reduction": 0.0,
             "minimum_center_points": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
             # Brief visual dropouts should not instantly straighten the car
             # in the middle of a corner.
             "short_loss_hold_sec": 0.80,
-            "short_loss_duty_scale": 0.35,
+            # During a short visual dropout, preserve both last steering
+            # command and speed instead of slowing in a corner.
+            "short_loss_duty_scale": 1.0,
             "control_rate_hz": 30.0,
             "command_log_rate_hz": 2.0,
         }.items():

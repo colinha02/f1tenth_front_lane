@@ -18,9 +18,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument("duty", default_value="0.055"),
-        DeclareLaunchArgument("virtual_duty", default_value="0.050"),
+        DeclareLaunchArgument("virtual_duty", default_value="0.055"),
         DeclareLaunchArgument("max_duty", default_value="0.065"),
-        DeclareLaunchArgument("minimum_drive_duty", default_value="0.040"),
+        DeclareLaunchArgument("minimum_drive_duty", default_value="0.055"),
         DeclareLaunchArgument("steering_sign", default_value="1.0"),
         DeclareLaunchArgument("max_steering", default_value="0.50"),
         DeclareLaunchArgument("short_loss_hold_sec", default_value="0.80"),
