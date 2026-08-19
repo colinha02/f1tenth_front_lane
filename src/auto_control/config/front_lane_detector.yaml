@@ -19,6 +19,7 @@ front_lane_detector:
     # Reject wide white floor/tile regions when selecting the initial seed.
     seed_max_component_width_px: 160
     seed_max_component_pixels: 2000
+    seed_history_max_shift_px: 180
 
     # Sliding-window tracking around each left/right histogram seed.
     window_count: 20
@@ -66,3 +67,6 @@ front_lane_detector:
     virtual_tangent_span_windows: 2
     virtual_normal_min_horizontal_ratio: 0.30
     virtual_normal_max_vertical_shift_px: 120
+    # Keep a one-sided trusted boundary until the opposite boundary has
+    # enough matched pairs to prove it is the real opposite lane.
+    side_reacquire_min_pairs: 8

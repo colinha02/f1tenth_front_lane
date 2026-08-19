@@ -21,8 +21,9 @@ class LaneAssistDrive(Node):
             "servo_position_topic": "/vesc/servo_position",
             # Intentionally conservative first autonomous-drive values.
             "cruise_duty": 0.050,
-            # Test mode: real and virtual centerlines use the same speed.
-            "virtual_cruise_duty": 0.045,
+            # Virtual centres remain driveable; speed is reduced from the
+            # predicted close/far curve rather than merely from this flag.
+            "virtual_cruise_duty": 0.050,
             "max_duty": 0.065,
             "minimum_drive_duty": 0.040,
             "servo_left": 0.98,
@@ -35,9 +36,10 @@ class LaneAssistDrive(Node):
             # Tight corners need more authority than the earlier 0.50 cap.
             # Still below 1.0 to avoid commanding the servo endpoint.
             "max_steering": 0.65,
-            # Ease speed slightly while turning, but stay above the minimum
-            # torque required to keep rolling.
-            "steering_duty_reduction": 0.10,
+            "steering_duty_reduction": 0.0,
+            "curve_slowdown_start_deg": 18.0,
+            "curve_slowdown_full_deg": 55.0,
+            "curve_duty_scale_at_full": 0.82,
             "minimum_center_points": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
@@ -66,6 +68,16 @@ class LaneAssistDrive(Node):
         self.max_steering = abs(float(value("max_steering")))
         self.steering_duty_reduction = min(
             0.95, max(0.0, float(value("steering_duty_reduction")))
+        )
+        self.curve_slowdown_start_rad = np.deg2rad(
+            max(0.0, float(value("curve_slowdown_start_deg")))
+        )
+        self.curve_slowdown_full_rad = max(
+            self.curve_slowdown_start_rad + np.deg2rad(1.0),
+            np.deg2rad(float(value("curve_slowdown_full_deg"))),
+        )
+        self.curve_duty_scale_at_full = min(
+            1.0, max(0.0, float(value("curve_duty_scale_at_full")))
         )
         self.minimum_center_points = max(2, int(value("minimum_center_points")))
         self.required_valid_frames = max(1, int(value("required_valid_frames")))
@@ -99,6 +111,7 @@ class LaneAssistDrive(Node):
         self.last_model_time = -1.0
         self.last_valid_model_time = -1.0
         self.close_heading = 0.0
+        self.curve_ahead = 0.0
         self.virtual_only = False
         self.model_valid = False
         self.driving = False
@@ -131,6 +144,7 @@ class LaneAssistDrive(Node):
             self.valid_frames += 1
             self.last_valid_model_time = self.last_model_time
             self.close_heading = float(close_heading)
+            self.curve_ahead = float(msg.data[6]) if len(msg.data) >= 7 else 0.0
             self.virtual_only = virtual_only >= 0.5
         else:
             self.valid_frames = 0
@@ -173,12 +187,18 @@ class LaneAssistDrive(Node):
             servo = self.servo_center + (self.servo_right - self.servo_center) * steering
         base_duty = self.virtual_cruise_duty if self.virtual_only else self.cruise_duty
         steering_ratio = abs(steering) / max(self.max_steering, 1e-6)
+        curve_ratio = min(1.0, max(
+            0.0,
+            (abs(self.curve_ahead) - self.curve_slowdown_start_rad)
+            / (self.curve_slowdown_full_rad - self.curve_slowdown_start_rad),
+        ))
+        curve_scale = 1.0 - curve_ratio * (1.0 - self.curve_duty_scale_at_full)
         # Do not let steering-based speed reduction fall below the torque
         # needed to keep moving.  Invalid perception still follows the
         # separate short-loss / stop safety path below.
         duty = max(
             self.minimum_drive_duty,
-            base_duty * (1.0 - self.steering_duty_reduction * steering_ratio),
+            base_duty * curve_scale * (1.0 - self.steering_duty_reduction * steering_ratio),
         )
         self.servo_pub.publish(Float32(data=float(servo)))
         self.duty_pub.publish(Float32(data=float(max(0.0, duty))))
@@ -188,8 +208,8 @@ class LaneAssistDrive(Node):
         now = self._now()
         if now - self.last_command_log_time >= self.command_log_period:
             self.get_logger().info(
-                "lane command | heading=%+.1f deg | steering=%+.3f | servo=%.3f | duty=%.3f"
-                % (np.degrees(self.close_heading), steering, servo, duty)
+                "lane command | heading=%+.1f deg | curve=%+.1f deg | steering=%+.3f | servo=%.3f | duty=%.3f"
+                % (np.degrees(self.close_heading), np.degrees(self.curve_ahead), steering, servo, duty)
             )
             self.last_command_log_time = now
         if not self.driving:

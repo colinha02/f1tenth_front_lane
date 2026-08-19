@@ -18,7 +18,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument("duty", default_value="0.050"),
-        DeclareLaunchArgument("virtual_duty", default_value="0.045"),
+        # Curve-ahead angle, rather than virtual/real mode alone, controls
+        # the small speed reduction.
+        DeclareLaunchArgument("virtual_duty", default_value="0.050"),
         DeclareLaunchArgument("max_duty", default_value="0.065"),
         DeclareLaunchArgument("minimum_drive_duty", default_value="0.040"),
         DeclareLaunchArgument("steering_sign", default_value="1.0"),

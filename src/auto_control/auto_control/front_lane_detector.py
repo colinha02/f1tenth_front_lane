@@ -36,6 +36,9 @@ class FrontLaneDetector(Node):
             "seed_band_height_px": 24,
             "seed_max_component_width_px": 160,
             "seed_max_component_pixels": 2000,
+            # Once a boundary is acquired, preserve its identity even when
+            # the vehicle yaws enough for it to cross the image midpoint.
+            "seed_history_max_shift_px": 180,
             "window_count": 20,
             "window_margin_px": 90,
             "minimum_window_pixels": 20,
@@ -68,6 +71,10 @@ class FrontLaneDetector(Node):
             "virtual_tangent_span_windows": 2,
             "virtual_normal_min_horizontal_ratio": 0.30,
             "virtual_normal_max_vertical_shift_px": 120,
+            # A briefly reappearing opposite boundary must prove that it
+            # agrees with the trusted boundary before it replaces virtual
+            # centre guidance.
+            "side_reacquire_min_pairs": 8,
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -93,6 +100,9 @@ class FrontLaneDetector(Node):
         self.minimum_window_pixels = max(3, int(value("minimum_window_pixels")))
         self.seed_max_component_pixels = max(
             self.minimum_window_pixels, int(value("seed_max_component_pixels"))
+        )
+        self.seed_history_max_shift_px = max(
+            20, int(value("seed_history_max_shift_px"))
         )
         self.maximum_missing_windows = max(0, int(value("maximum_missing_windows")))
         self.maximum_component_pixels = max(
@@ -148,6 +158,9 @@ class FrontLaneDetector(Node):
         self.virtual_normal_max_vertical_shift_px = max(
             1, int(value("virtual_normal_max_vertical_shift_px"))
         )
+        self.side_reacquire_min_pairs = max(
+            self.one_side_min_points, int(value("side_reacquire_min_pairs"))
+        )
         self.width_profile_y: np.ndarray | None = None
         self.width_profile_samples: list[list[float]] = []
         self.width_profile_frames = 0
@@ -160,6 +173,7 @@ class FrontLaneDetector(Node):
         self.center_offset_age_frames = self.virtual_center_max_age_frames + 1
         self.previous_left_seed: int | None = None
         self.previous_right_seed: int | None = None
+        self.preferred_boundary: str | None = None
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
@@ -227,7 +241,12 @@ class FrontLaneDetector(Node):
             center_x = int(round(
                 float(stats[label, cv2.CC_STAT_LEFT]) + component_width / 2.0
             ))
-            if (left and center_x >= midpoint) or (not left and center_x < midpoint):
+            if previous_seed is None:
+                if (left and center_x >= midpoint) or (not left and center_x < midpoint):
+                    continue
+            elif abs(center_x - previous_seed) > self.seed_history_max_shift_px:
+                # Do not swap to a distant white object merely because a
+                # boundary passed across the image midpoint.
                 continue
             candidates.append((abs(center_x - expected_x), -area, center_x))
         if not candidates:
@@ -609,6 +628,31 @@ class FrontLaneDetector(Node):
                     self._nearest_y_point(right, seed_y)[0]
                 )
             window_height = max(8, (bottom - top) // self.window_count)
+            raw_pairs = self._matched_lane_pairs(left, right, max_y_difference=window_height)
+
+            left_ready = left.shape[0] >= self.one_side_min_points
+            right_ready = right.shape[0] >= self.one_side_min_points
+            if left_ready and not right_ready:
+                self.preferred_boundary = "left"
+            elif right_ready and not left_ready:
+                self.preferred_boundary = "right"
+            elif self.preferred_boundary == "left" and left_ready:
+                # Keep following the proven left boundary until the newly
+                # seen right boundary yields enough geometrically matched
+                # pairs.  This prevents a crossed/image-side-swapped stripe
+                # from abruptly becoming the right lane.
+                if raw_pairs.shape[0] < self.side_reacquire_min_pairs:
+                    right = np.empty((0, 2), dtype=np.int32)
+                else:
+                    self.preferred_boundary = None
+            elif self.preferred_boundary == "right" and right_ready:
+                if raw_pairs.shape[0] < self.side_reacquire_min_pairs:
+                    left = np.empty((0, 2), dtype=np.int32)
+                else:
+                    self.preferred_boundary = None
+            elif left_ready and right_ready:
+                self.preferred_boundary = None
+
             self._ensure_width_profile(top, bottom)
             pairs = self._matched_lane_pairs(left, right, max_y_difference=window_height)
             normal_widths = self._normal_width_samples(pairs, left)
@@ -650,6 +694,19 @@ class FrontLaneDetector(Node):
                 (far_target[0] - vehicle_point[0]) / (width / 2.0)
                 if far_target is not None else 0.0
             )
+            # Compare the current Vehicle->CLOSE direction with the next
+            # CLOSE->FAR path direction.  Their angular difference indicates
+            # a curve ahead before CLOSE itself reaches the bend.
+            curve_ahead = 0.0
+            if close_target is not None and far_target is not None:
+                path_heading = float(np.arctan2(
+                    far_target[0] - close_target[0],
+                    max(1, close_target[1] - far_target[1]),
+                ))
+                curve_ahead = float(np.arctan2(
+                    np.sin(path_heading - close_heading),
+                    np.cos(path_heading - close_heading),
+                ))
             # Any virtual points mean at least one boundary is incomplete;
             # the drive node should reduce duty for that interval.
             virtual_mode = bool(virtual_centers.shape[0] > 0)
@@ -731,6 +788,8 @@ class FrontLaneDetector(Node):
                 heading_text = f"close heading: {np.degrees(close_heading):+.1f} deg"
                 cv2.putText(overlay, heading_text, (20, height - 120),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
+                cv2.putText(overlay, f"curve ahead: {np.degrees(curve_ahead):+.1f} deg", (20, height - 145),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2, cv2.LINE_AA)
 
             left_fit, right_fit = self._fit(left), self._fit(right)
             confidence = 1.0 if left_fit is not None and right_fit is not None else 0.0
@@ -756,10 +815,12 @@ class FrontLaneDetector(Node):
                     self.get_logger().warn("SPACE pressed in preview: emergency stop requested.")
                 self.next_preview_at = now + 1.0 / self.preview_fps
             # Model layout for lane_assist_drive:
-            # valid, close_heading_rad, far_error, virtual_mode, centre_count, real_pair_count.
+            # valid, close_heading_rad, far_error, virtual_mode, centre_count,
+            # real_pair_count, curve_ahead_rad.
             self.model_pub.publish(Float32MultiArray(data=[
                 float(control_valid), float(close_heading), float(far_error),
                 float(virtual_mode), float(centers.shape[0]), float(real_centers.shape[0]),
+                float(curve_ahead),
             ]))
         except Exception as error:
             self.get_logger().error(f"Front lane frame rejected: {error}")
