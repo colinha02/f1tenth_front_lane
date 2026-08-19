@@ -17,12 +17,12 @@ def generate_launch_description():
     camera_launch = os.path.join(camera_share, "launch", "camera_driver.launch.py")
 
     return LaunchDescription([
-        DeclareLaunchArgument("duty", default_value="0.055"),
-        DeclareLaunchArgument("virtual_duty", default_value="0.055"),
+        DeclareLaunchArgument("duty", default_value="0.050"),
+        DeclareLaunchArgument("virtual_duty", default_value="0.045"),
         DeclareLaunchArgument("max_duty", default_value="0.065"),
-        DeclareLaunchArgument("minimum_drive_duty", default_value="0.055"),
+        DeclareLaunchArgument("minimum_drive_duty", default_value="0.040"),
         DeclareLaunchArgument("steering_sign", default_value="1.0"),
-        DeclareLaunchArgument("max_steering", default_value="0.50"),
+        DeclareLaunchArgument("max_steering", default_value="0.65"),
         DeclareLaunchArgument("short_loss_hold_sec", default_value="0.80"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(camera_launch),

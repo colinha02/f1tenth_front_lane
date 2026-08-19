@@ -20,23 +20,24 @@ class LaneAssistDrive(Node):
             "duty_topic": "/vesc/duty",
             "servo_position_topic": "/vesc/servo_position",
             # Intentionally conservative first autonomous-drive values.
-            "cruise_duty": 0.055,
+            "cruise_duty": 0.050,
             # Test mode: real and virtual centerlines use the same speed.
-            "virtual_cruise_duty": 0.055,
+            "virtual_cruise_duty": 0.045,
             "max_duty": 0.065,
-            "minimum_drive_duty": 0.055,
+            "minimum_drive_duty": 0.040,
             "servo_left": 0.98,
             "servo_center": 0.46,
             "servo_right": 0.02,
-            "heading_gain": 0.65,
+            "heading_gain": 0.80,
             # +1: smaller VESC servo value means right turn.  Change to -1
             # after a wheels-raised test if the actual steering is reversed.
             "steering_sign": 1.0,
-            # 0.28 was too small for the observed tight track corners.
-            # Keep below 1.0 so the servo is not driven to its full endpoint.
-            "max_steering": 0.50,
-            # Do not reduce speed as steering increases for this test.
-            "steering_duty_reduction": 0.0,
+            # Tight corners need more authority than the earlier 0.50 cap.
+            # Still below 1.0 to avoid commanding the servo endpoint.
+            "max_steering": 0.65,
+            # Ease speed slightly while turning, but stay above the minimum
+            # torque required to keep rolling.
+            "steering_duty_reduction": 0.10,
             "minimum_center_points": 5,
             "required_valid_frames": 10,
             "model_timeout_sec": 0.20,
