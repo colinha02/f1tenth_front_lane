@@ -29,10 +29,10 @@ class FrontLaneDetector(Node):
             "preview_fps": 30.0,
             "processing_fps": 30.0,
             "publish_debug_images": False,
-            "roi_top_ratio": 0.40,
-            "roi_bottom_ratio": 0.84,
+            "roi_top_ratio": 0.56,
+            "roi_bottom_ratio": 1.00,
             "white_threshold": 180,
-            "seed_row_ratio": 0.68,
+            "seed_row_ratio": 0.84,
             "seed_band_height_px": 24,
             "seed_max_component_width_px": 160,
             "seed_max_component_pixels": 2000,
@@ -53,12 +53,12 @@ class FrontLaneDetector(Node):
             "wide_component_orientation_tolerance_deg": 35.0,
             "show_diagnostic_windows": True,
             "show_center_guidance": True,
-            "close_target_y_ratio": 0.64,
-            "far_target_y_ratio": 0.52,
+            "close_target_y_ratio": 0.80,
+            "far_target_y_ratio": 0.68,
             "minimum_control_center_points": 5,
             # Camera-visible reference: centre of the white tape on the front bumper.
             "vehicle_reference_x_ratio": 0.501,
-            "vehicle_reference_y_ratio": 0.795,
+            "vehicle_reference_y_ratio": 0.955,
             "width_profile_required_frames": 40,
             "width_profile_min_pairs_per_frame": 6,
             "width_profile_min_samples_per_bin": 12,
@@ -713,7 +713,10 @@ class FrontLaneDetector(Node):
 
             overlay = bgr.copy()
             cv2.line(overlay, (0, top), (width - 1, top), (0, 165, 255), 2)
-            cv2.line(overlay, (0, bottom - 1), (width - 1, bottom - 1), (0, 165, 255), 2)
+            # With the lower ROI edge opened to the image bottom there is no
+            # artificial bottom boundary to display.
+            if bottom < height:
+                cv2.line(overlay, (0, bottom - 1), (width - 1, bottom - 1), (0, 165, 255), 2)
             cv2.line(overlay, (0, seed_y), (width - 1, seed_y), (0, 255, 255), 1)
             if left_seed is not None:
                 cv2.circle(overlay, (left_seed, seed_y), 8, (255, 0, 0), -1)

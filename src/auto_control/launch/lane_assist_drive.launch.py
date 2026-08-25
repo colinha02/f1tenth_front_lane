@@ -30,11 +30,11 @@ def generate_launch_description():
         DeclareLaunchArgument("short_loss_hold_sec", default_value="0.80"),
         # Camera-mount calibration.  These are image-height ratios, so they
         # remain meaningful if the camera resolution changes.
-        DeclareLaunchArgument("roi_top_ratio", default_value="0.40"),
-        DeclareLaunchArgument("seed_row_ratio", default_value="0.68"),
-        DeclareLaunchArgument("vehicle_reference_y_ratio", default_value="0.795"),
-        DeclareLaunchArgument("close_target_y_ratio", default_value="0.64"),
-        DeclareLaunchArgument("far_target_y_ratio", default_value="0.52"),
+        DeclareLaunchArgument("roi_top_ratio", default_value="0.56"),
+        DeclareLaunchArgument("seed_row_ratio", default_value="0.84"),
+        DeclareLaunchArgument("vehicle_reference_y_ratio", default_value="0.955"),
+        DeclareLaunchArgument("close_target_y_ratio", default_value="0.80"),
+        DeclareLaunchArgument("far_target_y_ratio", default_value="0.68"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(camera_launch),
             launch_arguments={"preview_enabled": "false", "publish_enabled": "true"}.items(),
