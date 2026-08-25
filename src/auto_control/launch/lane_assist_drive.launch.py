@@ -28,6 +28,13 @@ def generate_launch_description():
         DeclareLaunchArgument("steering_sign", default_value="1.0"),
         DeclareLaunchArgument("max_steering", default_value="0.65"),
         DeclareLaunchArgument("short_loss_hold_sec", default_value="0.80"),
+        # Camera-mount calibration.  These are image-height ratios, so they
+        # remain meaningful if the camera resolution changes.
+        DeclareLaunchArgument("roi_top_ratio", default_value="0.40"),
+        DeclareLaunchArgument("seed_row_ratio", default_value="0.68"),
+        DeclareLaunchArgument("vehicle_reference_y_ratio", default_value="0.795"),
+        DeclareLaunchArgument("close_target_y_ratio", default_value="0.64"),
+        DeclareLaunchArgument("far_target_y_ratio", default_value="0.52"),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(camera_launch),
             launch_arguments={"preview_enabled": "false", "publish_enabled": "true"}.items(),
@@ -38,7 +45,16 @@ def generate_launch_description():
         ),
         Node(
             package="auto_control", executable="front_lane_detector",
-            name="front_lane_detector", output="screen", parameters=[detector_params],
+            name="front_lane_detector", output="screen", parameters=[
+                detector_params,
+                {
+                    "roi_top_ratio": LaunchConfiguration("roi_top_ratio"),
+                    "seed_row_ratio": LaunchConfiguration("seed_row_ratio"),
+                    "vehicle_reference_y_ratio": LaunchConfiguration("vehicle_reference_y_ratio"),
+                    "close_target_y_ratio": LaunchConfiguration("close_target_y_ratio"),
+                    "far_target_y_ratio": LaunchConfiguration("far_target_y_ratio"),
+                },
+            ],
         ),
         Node(
             package="auto_control", executable="lane_assist_drive",
