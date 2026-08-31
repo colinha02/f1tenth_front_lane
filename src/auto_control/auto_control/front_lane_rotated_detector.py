@@ -35,6 +35,12 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             "rotated_window_width_px": 180,
             "rotated_step_px": 14,
             "rotated_turn_side_extra_px": 35,
+            # These are the safeguards used by the BEV tracker.  They make
+            # the local direction follow a curve gradually instead of making
+            # a single noisy window rotate the tracker abruptly.
+            "rotated_max_turn_deg_per_window": 18.0,
+            "rotated_max_turn_change_deg_per_window": 10.0,
+            "rotated_heading_update_gain": 0.45,
             "show_rotated_window_diagnostics": True,
             "rotated_diagnostic_window_name": "Rotated sliding-window diagnostic",
         }.items():
@@ -55,6 +61,15 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         self.rotated_turn_side_extra_px = max(
             0, int(value("rotated_turn_side_extra_px"))
         )
+        self.rotated_max_turn_rad = math.radians(
+            max(1.0, float(value("rotated_max_turn_deg_per_window")))
+        )
+        self.rotated_max_turn_change_rad = math.radians(
+            max(0.5, float(value("rotated_max_turn_change_deg_per_window")))
+        )
+        self.rotated_heading_update_gain = float(np.clip(
+            float(value("rotated_heading_update_gain")), 0.05, 1.0
+        ))
         self.show_rotated_window_diagnostics = bool(
             value("show_rotated_window_diagnostics")
         )
@@ -77,6 +92,25 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
     def _tangent_change(first: np.ndarray, second: np.ndarray) -> float:
         dot = float(np.clip(np.dot(first, second), -1.0, 1.0))
         return float(math.acos(dot))
+
+    @staticmethod
+    def _signed_turn(first: np.ndarray, second: np.ndarray) -> float:
+        """Signed image-plane rotation from ``first`` to ``second``."""
+        cross = float(first[0] * second[1] - first[1] * second[0])
+        dot = float(np.clip(np.dot(first, second), -1.0, 1.0))
+        return float(math.atan2(cross, dot))
+
+    @staticmethod
+    def _rotate(vector: np.ndarray, angle: float) -> np.ndarray:
+        cosine = math.cos(angle)
+        sine = math.sin(angle)
+        return np.array(
+            (
+                cosine * vector[0] - sine * vector[1],
+                sine * vector[0] + cosine * vector[1],
+            ),
+            dtype=np.float32,
+        )
 
     def _find_region_candidate(
         self,
@@ -110,8 +144,11 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             if xs.size < self.minimum_window_pixels:
                 continue
             coordinates = np.column_stack((xs + x0, ys + y0)).astype(np.float32)
-            # Median is robust to the filled width of the tape.
-            point = np.median(coordinates, axis=0)
+            # This is the actual centre of the detected white stripe inside
+            # the oriented window, equivalent to the response centroid used
+            # by the BEV implementation.  The mask is binary, so its mean is
+            # the weighted centroid with equal white-pixel weights.
+            point = np.mean(coordinates, axis=0)
             offset = point - predicted
             normal_error = abs(float(np.dot(offset, normal)))
             longitudinal_error = abs(float(np.dot(offset, tangent)))
@@ -162,6 +199,7 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         curve_mode = False
         straight_windows = 0
         misses = 0
+        previous_applied_turn = 0.0
         points: list[tuple[int, int]] = []
         windows: list[tuple[int, int, int, int, bool]] = []
 
@@ -172,7 +210,11 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             if not (0 <= last[0] < width and top <= last[1] < bottom):
                 break
             normal = np.array((-tangent[1], tangent[0]), dtype=np.float32)
-            if curve_mode:
+            # The forward/upward arm is the only one used for predicting the
+            # road ahead.  The short downward arm is retained for the
+            # existing centre/width logic, but never enters rotated mode.
+            use_rotated_window = curve_mode and direction < 0
+            if use_rotated_window:
                 predicted = last + tangent * float(self.rotated_step_px)
                 polygon = self._rotated_polygon(
                     predicted, tangent, widen_on_positive_normal=(tangent[0] > 0.0)
@@ -223,7 +265,27 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             # Never let a noisy candidate reverse the intended travel axis.
             if measured[1] * direction < -0.05:
                 measured = tangent.copy()
-            tangent = self._unit(0.55 * tangent + 0.45 * measured, tangent)
+
+            # Core BEV behaviour: calculate the observed turn from the
+            # white-stripe centroid, clamp both the turn and its frame-to-
+            # frame change, then rotate the predicted direction gradually.
+            # On a straight the normal windows remain in use; this direction
+            # estimate simply preserves the existing tangent prediction.
+            desired_turn = float(np.clip(
+                self._signed_turn(tangent, measured),
+                -self.rotated_max_turn_rad,
+                self.rotated_max_turn_rad,
+            ))
+            desired_turn = float(np.clip(
+                desired_turn,
+                previous_applied_turn - self.rotated_max_turn_change_rad,
+                previous_applied_turn + self.rotated_max_turn_change_rad,
+            ))
+            applied_turn = previous_applied_turn + self.rotated_heading_update_gain * (
+                desired_turn - previous_applied_turn
+            )
+            tangent = self._unit(self._rotate(tangent, applied_turn), tangent)
+            previous_applied_turn = applied_turn
             tangent_history.append(tangent.copy())
             if len(tangent_history) > self.rotated_turn_history_windows:
                 tangent_history.pop(0)
@@ -231,7 +293,11 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
                 self._tangent_change(tangent_history[0], tangent_history[-1])
                 if len(tangent_history) >= self.rotated_turn_history_windows else 0.0
             )
-            if not curve_mode and turn >= self.rotated_turn_enter_rad:
+            if (
+                direction < 0
+                and not curve_mode
+                and turn >= self.rotated_turn_enter_rad
+            ):
                 curve_mode = True
                 straight_windows = 0
             elif curve_mode:
@@ -251,14 +317,28 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         self, mask: np.ndarray, seed_x: int | None, seed_y: int,
         top: int, bottom: int,
     ) -> tuple[np.ndarray, list[tuple[int, int, int, int, bool]]]:
-        points, windows = super()._track_lane(mask, seed_x, seed_y, top, bottom)
-        # The base callback calls this once for each boundary; retain points
-        # solely for the supplementary rotated-window diagnostic view.
+        # Do not call the base implementation here: it only returns ordinary
+        # horizontal windows.  Keep its two-direction output contract so all
+        # existing width profile, virtual-centreline and control code stays
+        # exactly unchanged.
+        upward, up_windows = self._track_direction(
+            mask, seed_x, seed_y, top, bottom, -1
+        )
+        downward, down_windows = self._track_direction(
+            mask, seed_x, seed_y, top, bottom, 1
+        )
+        points = upward + downward
+        points_array = (
+            np.asarray(points, dtype=np.int32)
+            if points else np.empty((0, 2), dtype=np.int32)
+        )
+        windows = up_windows + down_windows
+        # Retain points solely for the supplementary rotated-window view.
         if seed_x is not None and seed_x < mask.shape[1] // 2:
-            self._diagnostic_left = points
+            self._diagnostic_left = points_array
         else:
-            self._diagnostic_right = points
-        return points, windows
+            self._diagnostic_right = points_array
+        return points_array, windows
 
     def _on_image(self, message: Image) -> None:
         self._rotated_polygons = []

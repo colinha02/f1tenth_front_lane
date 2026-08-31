@@ -23,3 +23,11 @@ front_lane_rotated_detector:
     rotated_window_width_px: 180
     rotated_step_px: 14
     rotated_turn_side_extra_px: 35
+    rotated_max_turn_deg_per_window: 18.0
+    rotated_max_turn_change_deg_per_window: 10.0
+    rotated_heading_update_gain: 0.45
+
+    # The base preview can draw only axis-aligned bounding boxes.  Keep it
+    # off here and use the separate diagnostic window, which draws the true
+    # rotated polygons without the misleading overlapping squares.
+    show_diagnostic_windows: false
