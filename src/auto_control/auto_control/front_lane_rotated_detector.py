@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Experimental front-lane tracker with curve-only rotated search windows.
+"""Experimental front-lane tracker with tangent-aligned search windows.
 
-The stable ``front_lane_detector`` remains untouched.  This node keeps its
-ordinary horizontal-band windows on a straight, then switches each boundary to
-an oriented search rectangle only after its local tangent has *changed*
-consistently.  A fixed perspective slope alone is therefore not considered a
-curve.
+The stable ``front_lane_detector`` remains untouched.  Every sliding window
+uses the current lane tangent, including on a straight.  Thus the fixed
+perspective tilt of the front camera is handled by the window orientation too.
 """
 
 from __future__ import annotations
@@ -21,20 +19,15 @@ from sensor_msgs.msg import Image
 
 
 class RotatedWindowFrontLaneDetector(FrontLaneDetector):
-    """Base lane detector with a curve-only oriented sliding-window tracker."""
+    """Base lane detector with one tangent-aligned sliding-window tracker."""
 
     def __init__(self) -> None:
         super().__init__()
         for name, value in {
-            # A curve is a change in tangent, not a fixed camera-perspective
-            # slope.  Enter/exit thresholds form hysteresis.
-            "rotated_turn_enter_deg": 12.0,
-            "rotated_turn_exit_deg": 5.0,
-            "rotated_turn_history_windows": 3,
             "rotated_window_length_px": 28,
-            "rotated_window_width_px": 180,
+            "rotated_window_width_px": 90,
             "rotated_step_px": 14,
-            "rotated_turn_side_extra_px": 35,
+            "rotated_turn_side_extra_px": 0,
             # These are the safeguards used by the BEV tracker.  They make
             # the local direction follow a curve gradually instead of making
             # a single noisy window rotate the tracker abruptly.
@@ -46,15 +39,6 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
-        self.rotated_turn_enter_rad = math.radians(
-            max(1.0, float(value("rotated_turn_enter_deg")))
-        )
-        self.rotated_turn_exit_rad = math.radians(
-            max(0.1, float(value("rotated_turn_exit_deg")))
-        )
-        self.rotated_turn_history_windows = max(
-            2, int(value("rotated_turn_history_windows"))
-        )
         self.rotated_window_length_px = max(8, int(value("rotated_window_length_px")))
         self.rotated_window_width_px = max(20, int(value("rotated_window_width_px")))
         self.rotated_step_px = max(4, int(value("rotated_step_px")))
@@ -80,7 +64,7 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         self._diagnostic_left = np.empty((0, 2), dtype=np.int32)
         self._diagnostic_right = np.empty((0, 2), dtype=np.int32)
         self.get_logger().info(
-            "Experimental tracker ready: straight windows + tangent-change rotated windows."
+            "Experimental tracker ready: tangent-aligned rotated windows for every lane step."
         )
 
     @staticmethod
@@ -195,9 +179,6 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         base_height = max(8, (bottom - top) // self.window_count)
         last = np.array((float(seed_x), float(seed_y)), dtype=np.float32)
         tangent = np.array((0.0, float(direction)), dtype=np.float32)
-        tangent_history: list[np.ndarray] = []
-        curve_mode = False
-        straight_windows = 0
         misses = 0
         previous_applied_turn = 0.0
         points: list[tuple[int, int]] = []
@@ -210,33 +191,17 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             if not (0 <= last[0] < width and top <= last[1] < bottom):
                 break
             normal = np.array((-tangent[1], tangent[0]), dtype=np.float32)
-            # The forward/upward arm is the only one used for predicting the
-            # road ahead.  The short downward arm is retained for the
-            # existing centre/width logic, but never enters rotated mode.
-            use_rotated_window = curve_mode and direction < 0
-            if use_rotated_window:
-                predicted = last + tangent * float(self.rotated_step_px)
-                polygon = self._rotated_polygon(
-                    predicted, tangent, widen_on_positive_normal=(tangent[0] > 0.0)
-                )
-                step_is_curve = True
-            else:
-                next_y = last[1] + direction * base_height
-                if next_y < top or next_y >= bottom:
-                    break
-                # Retain the original tracker behaviour on a straight: its
-                # fixed perspective tilt is predicted, but does not activate
-                # rotated windows by itself.
-                slope = tangent[0] / tangent[1] if abs(float(tangent[1])) > 1e-3 else 0.0
-                predicted = np.array(
-                    (last[0] + slope * (next_y - last[1]), next_y), dtype=np.float32
-                )
-                polygon = self._axis_polygon(
-                    predicted[0] - self.window_margin_px,
-                    predicted[0] + self.window_margin_px,
-                    min(last[1], next_y), max(last[1], next_y),
-                )
-                step_is_curve = False
+            # The first window refines the seed itself.  Every following
+            # window advances along the current tangent, on both straight and
+            # curved road sections.  ``width`` is 90 px: half of the former
+            # 181 px axis-aligned search range.
+            predicted = last if not points else (
+                last + tangent * float(self.rotated_step_px)
+            )
+            polygon = self._rotated_polygon(
+                predicted, tangent, widen_on_positive_normal=False
+            )
+            step_is_curve = True
 
             candidate = self._find_region_candidate(
                 mask, polygon, predicted, tangent, normal
@@ -286,28 +251,6 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             )
             tangent = self._unit(self._rotate(tangent, applied_turn), tangent)
             previous_applied_turn = applied_turn
-            tangent_history.append(tangent.copy())
-            if len(tangent_history) > self.rotated_turn_history_windows:
-                tangent_history.pop(0)
-            turn = (
-                self._tangent_change(tangent_history[0], tangent_history[-1])
-                if len(tangent_history) >= self.rotated_turn_history_windows else 0.0
-            )
-            if (
-                direction < 0
-                and not curve_mode
-                and turn >= self.rotated_turn_enter_rad
-            ):
-                curve_mode = True
-                straight_windows = 0
-            elif curve_mode:
-                if turn <= self.rotated_turn_exit_rad:
-                    straight_windows += 1
-                    if straight_windows >= self.rotated_turn_history_windows:
-                        curve_mode = False
-                        straight_windows = 0
-                else:
-                    straight_windows = 0
             points.append((int(round(next_point[0])), int(round(next_point[1]))))
             last = next_point
             misses = 0
@@ -359,7 +302,7 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             if self._diagnostic_right.shape[0] > 1:
                 cv2.polylines(diagnostic, [self._diagnostic_right], False, (0, 0, 255), 3)
             cv2.putText(
-                diagnostic, "gray = straight / orange = rotated curve windows",
+                diagnostic, "orange = tangent-aligned sliding windows",
                 (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2, cv2.LINE_AA,
             )
             cv2.imshow(self.rotated_diagnostic_window_name, diagnostic)
