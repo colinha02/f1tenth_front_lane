@@ -604,6 +604,26 @@ class FrontLaneDetector(Node):
         """
         del overlay
 
+    def _reset_tracking_state(self) -> None:
+        """Forget the previous run so the current view can be acquired anew.
+
+        This is intentionally a detector-only reset.  A new vehicle start is
+        still gated by the drive node's real-two-boundary/valid-frame checks,
+        so pressing R while stopped cannot start from a stale virtual path.
+        """
+        self.width_profile_y = None
+        self.width_profile_samples = []
+        self.width_profile_frames = 0
+        self.last_left_center_offsets = np.empty((0, 3), dtype=np.float32)
+        self.last_right_center_offsets = np.empty((0, 3), dtype=np.float32)
+        self.center_offset_age_frames = self.virtual_center_max_age_frames + 1
+        self.previous_left_seed = None
+        self.previous_right_seed = None
+        self.preferred_boundary = None
+        self.get_logger().warn(
+            "R pressed in preview: lane seed, boundary lock and width profile reset."
+        )
+
     def _on_image(self, message: Image) -> None:
         now = time.monotonic()
         if now < self.next_process_at:
@@ -826,6 +846,8 @@ class FrontLaneDetector(Node):
                 if key in (ord(" "), ord("e"), ord("E")):
                     self.stop_pub.publish(Bool(data=True))
                     self.get_logger().warn("SPACE/E pressed in preview: emergency stop requested.")
+                elif key in (ord("r"), ord("R")):
+                    self._reset_tracking_state()
                 self.next_preview_at = now + 1.0 / self.preview_fps
             # Model layout for lane_assist_drive:
             # valid, close_heading_rad, far_error, virtual_mode, centre_count,
