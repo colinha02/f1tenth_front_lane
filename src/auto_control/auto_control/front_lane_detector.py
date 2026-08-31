@@ -595,6 +595,15 @@ class FrontLaneDetector(Node):
         msg.data = image.tobytes()
         return msg
 
+    def _draw_preview_extras(self, overlay: np.ndarray) -> None:
+        """Optional detector-specific graphics drawn on the main preview.
+
+        The standard detector intentionally adds nothing.  Experimental
+        detectors can override this hook without duplicating the detection,
+        centreline and ROS publishing path.
+        """
+        del overlay
+
     def _on_image(self, message: Image) -> None:
         now = time.monotonic()
         if now < self.next_process_at:
@@ -731,6 +740,7 @@ class FrontLaneDetector(Node):
                             (min(width - 1, x1 - 1), y1),
                             color if found else (80, 80, 80), 1,
                         )
+            self._draw_preview_extras(overlay)
             for points, color in ((left, (255, 0, 0)), (right, (0, 0, 255))):
                 if points.shape[0] >= 2:
                     ordered = points[np.argsort(points[:, 1])]

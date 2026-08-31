@@ -11,9 +11,6 @@ front_lane_rotated_detector:
     close_target_y_ratio: 0.70
     far_target_y_ratio: 0.60
     vehicle_reference_y_ratio: 0.955
-    show_rotated_window_diagnostics: true
-    rotated_diagnostic_window_name: "Rotated sliding-window diagnostic"
-
     # All windows use the local lane tangent.  The 90 px normal width is half
     # of the former 181 px axis-aligned horizontal search range.
     rotated_window_length_px: 28

@@ -34,8 +34,6 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             "rotated_max_turn_deg_per_window": 18.0,
             "rotated_max_turn_change_deg_per_window": 10.0,
             "rotated_heading_update_gain": 0.45,
-            "show_rotated_window_diagnostics": True,
-            "rotated_diagnostic_window_name": "Rotated sliding-window diagnostic",
         }.items():
             self.declare_parameter(name, value)
         value = lambda name: self.get_parameter(name).value
@@ -54,15 +52,7 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
         self.rotated_heading_update_gain = float(np.clip(
             float(value("rotated_heading_update_gain")), 0.05, 1.0
         ))
-        self.show_rotated_window_diagnostics = bool(
-            value("show_rotated_window_diagnostics")
-        )
-        self.rotated_diagnostic_window_name = str(
-            value("rotated_diagnostic_window_name")
-        )
         self._rotated_polygons: list[tuple[np.ndarray, bool, bool]] = []
-        self._diagnostic_left = np.empty((0, 2), dtype=np.int32)
-        self._diagnostic_right = np.empty((0, 2), dtype=np.int32)
         self.get_logger().info(
             "Experimental tracker ready: tangent-aligned rotated windows for every lane step."
         )
@@ -276,45 +266,25 @@ class RotatedWindowFrontLaneDetector(FrontLaneDetector):
             if points else np.empty((0, 2), dtype=np.int32)
         )
         windows = up_windows + down_windows
-        # Retain points solely for the supplementary rotated-window view.
-        if seed_x is not None and seed_x < mask.shape[1] // 2:
-            self._diagnostic_left = points_array
-        else:
-            self._diagnostic_right = points_array
         return points_array, windows
 
     def _on_image(self, message: Image) -> None:
         self._rotated_polygons = []
-        self._diagnostic_left = np.empty((0, 2), dtype=np.int32)
-        self._diagnostic_right = np.empty((0, 2), dtype=np.int32)
         super()._on_image(message)
-        if not (self.preview_enabled and self.show_rotated_window_diagnostics):
-            return
-        try:
-            diagnostic = self._nv12_to_bgr(message)
-            for polygon, found, curve in self._rotated_polygons:
-                color = (0, 165, 255) if curve else (120, 120, 120)
-                if not found:
-                    color = (70, 70, 180) if curve else (70, 70, 70)
-                cv2.polylines(diagnostic, [np.round(polygon).astype(np.int32)], True, color, 1)
-            if self._diagnostic_left.shape[0] > 1:
-                cv2.polylines(diagnostic, [self._diagnostic_left], False, (255, 0, 0), 3)
-            if self._diagnostic_right.shape[0] > 1:
-                cv2.polylines(diagnostic, [self._diagnostic_right], False, (0, 0, 255), 3)
-            cv2.putText(
-                diagnostic, "orange = tangent-aligned sliding windows",
-                (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 255), 2, cv2.LINE_AA,
-            )
-            cv2.imshow(self.rotated_diagnostic_window_name, diagnostic)
-        except Exception as error:
-            self.get_logger().warn(f"rotated diagnostic error: {error}")
 
-    def destroy_node(self) -> bool:
-        try:
-            cv2.destroyWindow(self.rotated_diagnostic_window_name)
-        except cv2.error:
-            pass
-        return super().destroy_node()
+    def _draw_preview_extras(self, overlay: np.ndarray) -> None:
+        """Draw true rotated polygons in the same preview as lane guidance."""
+        for polygon, found, _ in self._rotated_polygons:
+            color = (0, 165, 255) if found else (70, 70, 180)
+            cv2.polylines(
+                overlay, [np.round(polygon).astype(np.int32)], True,
+                color, 1, cv2.LINE_AA,
+            )
+        cv2.putText(
+            overlay, "orange = tangent-aligned sliding windows",
+            (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.65,
+            (0, 255, 255), 2, cv2.LINE_AA,
+        )
 
 
 def main(args: list[str] | None = None) -> None:
