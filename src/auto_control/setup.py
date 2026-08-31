@@ -25,6 +25,7 @@ setup(
     entry_points={
         "console_scripts": [
             "front_lane_detector = auto_control.front_lane_detector:main",
+            "front_lane_rotated_detector = auto_control.front_lane_rotated_detector:main",
             "lane_assist_drive = auto_control.lane_assist_drive:main",
         ],
     },

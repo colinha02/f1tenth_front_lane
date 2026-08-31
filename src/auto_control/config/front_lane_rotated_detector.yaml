@@ -1,0 +1,25 @@
+front_lane_rotated_detector:
+  ros__parameters:
+    # Experimental node: original front_lane_detector.yaml is unchanged.
+    preview_enabled: true
+    preview_window_name: "Front lane detection - rotated experiment"
+    preview_fps: 30.0
+    processing_fps: 30.0
+    roi_top_ratio: 0.56
+    roi_bottom_ratio: 1.00
+    seed_row_ratio: 0.75
+    close_target_y_ratio: 0.70
+    far_target_y_ratio: 0.60
+    vehicle_reference_y_ratio: 0.955
+    show_rotated_window_diagnostics: true
+    rotated_diagnostic_window_name: "Rotated sliding-window diagnostic"
+
+    # Fixed perspective tilt does not enter this decision.  Only the local
+    # tangent change across these windows enables rotated search.
+    rotated_turn_enter_deg: 12.0
+    rotated_turn_exit_deg: 5.0
+    rotated_turn_history_windows: 3
+    rotated_window_length_px: 28
+    rotated_window_width_px: 180
+    rotated_step_px: 14
+    rotated_turn_side_extra_px: 35
