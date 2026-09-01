@@ -37,12 +37,9 @@ class LaneAssistDrive(Node):
             # Vehicle->FAR look-ahead heading.  The stable launch leaves this
             # at zero; the rotated-window experiment enables it explicitly.
             "far_heading_weight": 0.0,
-            # Release the FAR preview term at a corner exit, while keeping
-            # CLOSE active to correct the vehicle's actual lane error.
-            "curve_exit_straight_deg": 12.0,
-            "curve_exit_opposition_deg": 20.0,
-            "far_weight_release_rate": 6.0,
-            "far_weight_engage_rate": 2.0,
+            # When the close-to-far path becomes straight, test an explicit
+            # steering-centre command at the corner exit.
+            "straight_release_curve_deg": 12.0,
             # +1: smaller VESC servo value means right turn.  Change to -1
             # after a wheels-raised test if the actual steering is reversed.
             "steering_sign": 1.0,
@@ -83,14 +80,9 @@ class LaneAssistDrive(Node):
         self.servo_right = float(value("servo_right"))
         self.heading_gain = float(value("heading_gain"))
         self.far_heading_weight = min(1.0, max(0.0, float(value("far_heading_weight"))))
-        self.curve_exit_straight_rad = np.deg2rad(
-            max(0.0, float(value("curve_exit_straight_deg")))
+        self.straight_release_curve_rad = np.deg2rad(
+            max(0.0, float(value("straight_release_curve_deg")))
         )
-        self.curve_exit_opposition_rad = np.deg2rad(
-            max(0.0, float(value("curve_exit_opposition_deg")))
-        )
-        self.far_weight_release_rate = max(0.1, float(value("far_weight_release_rate")))
-        self.far_weight_engage_rate = max(0.1, float(value("far_weight_engage_rate")))
         self.steering_sign = 1.0 if float(value("steering_sign")) >= 0.0 else -1.0
         self.max_steering = abs(float(value("max_steering")))
         self.steering_duty_reduction = min(
@@ -143,8 +135,6 @@ class LaneAssistDrive(Node):
         self.close_heading = 0.0
         self.far_heading = 0.0
         self.curve_ahead = 0.0
-        self.effective_far_heading_weight = 0.0
-        self.last_control_time = -1.0
         self.virtual_only = False
         self.model_valid = False
         self.driving = False
@@ -221,40 +211,19 @@ class LaneAssistDrive(Node):
                 return
             self._stop(None)
             return
-        # At a corner exit, the near heading and predicted turn may oppose
-        # each other.  FAR then stops holding the old turn; CLOSE remains the
-        # active correction signal instead of forcing steering to zero.
-        opposite_turn = (
-            abs(self.curve_ahead) >= self.curve_exit_opposition_rad
-            and self.close_heading * self.curve_ahead < 0.0
-        )
-        curve_exit = abs(self.curve_ahead) <= self.curve_exit_straight_rad or opposite_turn
-        desired_far_weight = 0.0 if curve_exit else self.far_heading_weight
-        dt = 1.0 / 40.0 if self.last_control_time < 0.0 else max(0.0, now - self.last_control_time)
-        self.last_control_time = now
-        weight_rate = (
-            self.far_weight_release_rate
-            if desired_far_weight < self.effective_far_heading_weight
-            else self.far_weight_engage_rate
-        )
-        weight_step = weight_rate * dt
-        self.effective_far_heading_weight += float(np.clip(
-            desired_far_weight - self.effective_far_heading_weight,
-            -weight_step,
-            weight_step,
-        ))
-        # Circular averaging prevents an angle-wrap discontinuity.  During a
-        # stable curve this is CLOSE 70% + FAR 30%; at an exit FAR fades out.
+        # Circular averaging prevents an angle-wrap discontinuity.  The
+        # rotated launch keeps CLOSE 70% + FAR 30% in every non-straight path.
         blended_heading = float(np.arctan2(
-            (1.0 - self.effective_far_heading_weight) * np.sin(self.close_heading)
-            + self.effective_far_heading_weight * np.sin(self.far_heading),
-            (1.0 - self.effective_far_heading_weight) * np.cos(self.close_heading)
-            + self.effective_far_heading_weight * np.cos(self.far_heading),
+            (1.0 - self.far_heading_weight) * np.sin(self.close_heading)
+            + self.far_heading_weight * np.sin(self.far_heading),
+            (1.0 - self.far_heading_weight) * np.cos(self.close_heading)
+            + self.far_heading_weight * np.cos(self.far_heading),
         ))
-        steering = self.steering_sign * max(-self.max_steering, min(
-            self.max_steering,
-            self.heading_gain * blended_heading,
-        ))
+        straight_release = abs(self.curve_ahead) <= self.straight_release_curve_rad
+        steering = 0.0 if straight_release else self.steering_sign * max(
+            -self.max_steering,
+            min(self.max_steering, self.heading_gain * blended_heading),
+        )
         if steering < 0.0:
             servo = self.servo_center + (self.servo_left - self.servo_center) * (-steering)
         else:
@@ -287,8 +256,8 @@ class LaneAssistDrive(Node):
         now = self._now()
         if now - self.last_command_log_time >= self.command_log_period:
             self.get_logger().info(
-                "lane command | close=%+.1f deg | far=%+.1f deg | curve=%+.1f deg | far_w=%.2f | steering=%+.3f | servo=%.3f | duty=%.3f"
-                % (np.degrees(self.close_heading), np.degrees(self.far_heading), np.degrees(self.curve_ahead), self.effective_far_heading_weight, steering, servo, duty)
+                "lane command | close=%+.1f deg | far=%+.1f deg | curve=%+.1f deg | straight_release=%d | steering=%+.3f | servo=%.3f | duty=%.3f"
+                % (np.degrees(self.close_heading), np.degrees(self.far_heading), np.degrees(self.curve_ahead), straight_release, steering, servo, duty)
             )
             self.last_command_log_time = now
         if starting_now:
