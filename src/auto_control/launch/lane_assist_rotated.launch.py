@@ -26,12 +26,15 @@ def generate_launch_description():
     camera_launch = os.path.join(camera_share, "launch", "camera_driver.launch.py")
 
     return LaunchDescription([
-        DeclareLaunchArgument("duty", default_value="0.050"),
-        DeclareLaunchArgument("virtual_duty", default_value="0.050"),
+        # Baseline was 0.050.  Keep a small speed reduction in a detected
+        # curve: straight = 1.20x (0.060), full curve = 1.10x (0.055).
+        DeclareLaunchArgument("duty", default_value="0.060"),
+        DeclareLaunchArgument("virtual_duty", default_value="0.060"),
         DeclareLaunchArgument("max_duty", default_value="0.065"),
         DeclareLaunchArgument("minimum_drive_duty", default_value="0.040"),
         DeclareLaunchArgument("startup_duty", default_value="0.060"),
         DeclareLaunchArgument("startup_boost_sec", default_value="0.80"),
+        DeclareLaunchArgument("curve_duty_scale_at_full", default_value="0.9167"),
         DeclareLaunchArgument("steering_sign", default_value="1.0"),
         DeclareLaunchArgument("max_steering", default_value="0.65"),
         DeclareLaunchArgument("short_loss_hold_sec", default_value="0.80"),
@@ -65,6 +68,7 @@ def generate_launch_description():
                 "minimum_drive_duty": LaunchConfiguration("minimum_drive_duty"),
                 "startup_duty": LaunchConfiguration("startup_duty"),
                 "startup_boost_sec": LaunchConfiguration("startup_boost_sec"),
+                "curve_duty_scale_at_full": LaunchConfiguration("curve_duty_scale_at_full"),
                 "steering_sign": LaunchConfiguration("steering_sign"),
                 "max_steering": LaunchConfiguration("max_steering"),
                 "short_loss_hold_sec": LaunchConfiguration("short_loss_hold_sec"),
