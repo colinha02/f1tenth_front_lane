@@ -726,8 +726,16 @@ class FrontLaneDetector(Node):
             # Compare the current Vehicle->CLOSE direction with the next
             # CLOSE->FAR path direction.  Their angular difference indicates
             # a curve ahead before CLOSE itself reaches the bend.
+            far_heading = close_heading
             curve_ahead = 0.0
             if close_target is not None and far_target is not None:
+                # The Vehicle->FAR direction is a look-ahead steering cue.
+                # It is kept separate from curve_ahead, which compares the
+                # near and far path tangents for speed planning.
+                far_heading = float(np.arctan2(
+                    far_target[0] - vehicle_point[0],
+                    max(1, vehicle_point[1] - far_target[1]),
+                ))
                 path_heading = float(np.arctan2(
                     far_target[0] - close_target[0],
                     max(1, close_target[1] - far_target[1]),
@@ -851,11 +859,11 @@ class FrontLaneDetector(Node):
                 self.next_preview_at = now + 1.0 / self.preview_fps
             # Model layout for lane_assist_drive:
             # valid, close_heading_rad, far_error, virtual_mode, centre_count,
-            # real_pair_count, curve_ahead_rad.
+            # real_pair_count, curve_ahead_rad, far_heading_rad.
             self.model_pub.publish(Float32MultiArray(data=[
                 float(control_valid), float(close_heading), float(far_error),
                 float(virtual_mode), float(centers.shape[0]), float(real_centers.shape[0]),
-                float(curve_ahead),
+                float(curve_ahead), float(far_heading),
             ]))
         except Exception as error:
             self.get_logger().error(f"Front lane frame rejected: {error}")

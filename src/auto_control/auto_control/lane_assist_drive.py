@@ -33,6 +33,10 @@ class LaneAssistDrive(Node):
             "servo_center": 0.46,
             "servo_right": 0.02,
             "heading_gain": 0.80,
+            # Blend the immediate Vehicle->CLOSE heading with the longer
+            # Vehicle->FAR look-ahead heading.  The stable launch leaves this
+            # at zero; the rotated-window experiment enables it explicitly.
+            "far_heading_weight": 0.0,
             # +1: smaller VESC servo value means right turn.  Change to -1
             # after a wheels-raised test if the actual steering is reversed.
             "steering_sign": 1.0,
@@ -72,6 +76,7 @@ class LaneAssistDrive(Node):
         self.servo_center = float(value("servo_center"))
         self.servo_right = float(value("servo_right"))
         self.heading_gain = float(value("heading_gain"))
+        self.far_heading_weight = min(1.0, max(0.0, float(value("far_heading_weight"))))
         self.steering_sign = 1.0 if float(value("steering_sign")) >= 0.0 else -1.0
         self.max_steering = abs(float(value("max_steering")))
         self.steering_duty_reduction = min(
@@ -122,6 +127,7 @@ class LaneAssistDrive(Node):
         self.last_model_time = -1.0
         self.last_valid_model_time = -1.0
         self.close_heading = 0.0
+        self.far_heading = 0.0
         self.curve_ahead = 0.0
         self.virtual_only = False
         self.model_valid = False
@@ -166,6 +172,7 @@ class LaneAssistDrive(Node):
             self.last_valid_model_time = self.last_model_time
             self.close_heading = float(close_heading)
             self.curve_ahead = float(msg.data[6]) if len(msg.data) >= 7 else 0.0
+            self.far_heading = float(msg.data[7]) if len(msg.data) >= 8 else self.close_heading
             self.virtual_only = virtual_only >= 0.5
         else:
             self.valid_frames = 0
@@ -198,9 +205,17 @@ class LaneAssistDrive(Node):
                 return
             self._stop(None)
             return
+        # Circular averaging prevents an angle-wrap discontinuity.  With the
+        # rotated launch's 0.30 weight: CLOSE 70% + FAR 30%.
+        blended_heading = float(np.arctan2(
+            (1.0 - self.far_heading_weight) * np.sin(self.close_heading)
+            + self.far_heading_weight * np.sin(self.far_heading),
+            (1.0 - self.far_heading_weight) * np.cos(self.close_heading)
+            + self.far_heading_weight * np.cos(self.far_heading),
+        ))
         steering = self.steering_sign * max(-self.max_steering, min(
             self.max_steering,
-            self.heading_gain * self.close_heading,
+            self.heading_gain * blended_heading,
         ))
         if steering < 0.0:
             servo = self.servo_center + (self.servo_left - self.servo_center) * (-steering)
@@ -234,8 +249,8 @@ class LaneAssistDrive(Node):
         now = self._now()
         if now - self.last_command_log_time >= self.command_log_period:
             self.get_logger().info(
-                "lane command | heading=%+.1f deg | curve=%+.1f deg | steering=%+.3f | servo=%.3f | duty=%.3f"
-                % (np.degrees(self.close_heading), np.degrees(self.curve_ahead), steering, servo, duty)
+                "lane command | close=%+.1f deg | far=%+.1f deg | curve=%+.1f deg | steering=%+.3f | servo=%.3f | duty=%.3f"
+                % (np.degrees(self.close_heading), np.degrees(self.far_heading), np.degrees(self.curve_ahead), steering, servo, duty)
             )
             self.last_command_log_time = now
         if starting_now:
