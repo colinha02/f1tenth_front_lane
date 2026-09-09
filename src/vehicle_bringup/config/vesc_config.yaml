@@ -15,7 +15,7 @@
     connection_status_topic: "/vesc/connected"     # std_msgs/msg/Bool
 
     min_duty: -0.08        # 수동 후진 설정과 동일한 하한
-    max_duty: 0.10         # 수동 전진 설정과 동일한 상한
+    max_duty: 1.0         # 수동 전진 설정과 동일한 상한
     max_brake_current_amps: 8.0  # ROS 명령 안전 상한; VESC 자체 한도보다 낮게 유지
     servo_min: 0.0         # VESC servo position 하한
     servo_max: 1.0         # VESC servo position 상한
