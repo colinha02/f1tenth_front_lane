@@ -1,5 +1,31 @@
 # camera_driver
 
+## Tunnel IR flood experiment
+
+On an OAK Pro device, the driving camera pipeline can enable the uniform IR
+flood light independently of the structured-light dot projector.  For the
+first tunnel lane test, use a mono camera (`CAM_B` or `CAM_C`), leave the dot
+projector off, and increase only the flood intensity in small steps.
+
+The integrated autonomous launch can show the stabilized perspective camera
+image and the BEV lane result at the same time:
+
+```bash
+ros2 launch vehicle_bringup auto_drive.launch.py \
+  camera_params_file:=$PWD/camera_mono_left_test.yaml \
+  camera_preview_enabled:=true \
+  preview_enabled:=true \
+  ir_flood_intensity:=0.3 \
+  ir_dot_projector_intensity:=0.0 \
+  auto_enabled:=false
+```
+
+Both IR intensity parameters accept `0.0` (off) through `1.0` (maximum) and
+default to off.  A nonzero setting fails startup with a clear error if the
+connected device does not expose the requested Pro-series emitter.  Shutdown
+explicitly turns both emitters off.  Do not open the same OAK from a second
+process merely to change IR intensity.
+
 ## BEV startup reference 연동
 
 `bev_processor`와 함께 실행하면 `/camera/startup_ground_normal`의

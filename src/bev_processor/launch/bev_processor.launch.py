@@ -105,6 +105,11 @@ def generate_launch_description():
         "bev_input_bottom_fraction"
     )
     preview_enabled = LaunchConfiguration("preview_enabled")
+    camera_preview_enabled = LaunchConfiguration("camera_preview_enabled")
+    ir_flood_intensity = LaunchConfiguration("ir_flood_intensity")
+    ir_dot_projector_intensity = LaunchConfiguration(
+        "ir_dot_projector_intensity"
+    )
     bev_interpolation = LaunchConfiguration("bev_interpolation")
     performance_measurement_parameter = ParameterValue(
         performance_measurement_enabled,
@@ -456,6 +461,25 @@ def generate_launch_description():
                 description="Show or completely disable the BEV GUI preview.",
             ),
             DeclareLaunchArgument(
+                "camera_preview_enabled",
+                default_value="false",
+                description=(
+                    "Show the stabilized source-camera preview alongside BEV."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "ir_flood_intensity",
+                default_value="0.0",
+                description="OAK Pro IR flood intensity from 0.0 to 1.0.",
+            ),
+            DeclareLaunchArgument(
+                "ir_dot_projector_intensity",
+                default_value="0.0",
+                description=(
+                    "OAK Pro structured-light dot intensity from 0.0 to 1.0."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "bev_interpolation",
                 default_value=_PARAMETER_FILE_DEFAULT,
                 description="Interpolation used by the CUDA NV12-to-BEV warp.",
@@ -516,9 +540,20 @@ def generate_launch_description():
                         parameters=[
                             LaunchConfiguration("camera_params_file"),
                             {
-                                "preview_enabled": False,
+                                "preview_enabled": ParameterValue(
+                                    camera_preview_enabled,
+                                    value_type=bool,
+                                ),
                                 "publish_enabled": False,
                                 "fused_bev_output_enabled": True,
+                                "ir_flood_intensity": ParameterValue(
+                                    ir_flood_intensity,
+                                    value_type=float,
+                                ),
+                                "ir_dot_projector_intensity": ParameterValue(
+                                    ir_dot_projector_intensity,
+                                    value_type=float,
+                                ),
                                 "bev_input_bottom_fraction": ParameterValue(
                                     bev_input_bottom_fraction,
                                     value_type=float,

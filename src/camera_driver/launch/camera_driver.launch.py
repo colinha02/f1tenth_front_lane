@@ -43,6 +43,10 @@ def generate_launch_description():
         "imu_stabilization_invalid_correction_hold_frames"
     )
     publish_enabled = LaunchConfiguration("publish_enabled")
+    ir_flood_intensity = LaunchConfiguration("ir_flood_intensity")
+    ir_dot_projector_intensity = LaunchConfiguration(
+        "ir_dot_projector_intensity"
+    )
 
     return LaunchDescription(
         [
@@ -145,6 +149,18 @@ def generate_launch_description():
                 default_value="false",
                 description="Publish sensor_msgs/Image frames.",
             ),
+            DeclareLaunchArgument(
+                "ir_flood_intensity",
+                default_value="0.0",
+                description="OAK Pro IR flood intensity from 0.0 to 1.0.",
+            ),
+            DeclareLaunchArgument(
+                "ir_dot_projector_intensity",
+                default_value="0.0",
+                description=(
+                    "OAK Pro structured-light dot intensity from 0.0 to 1.0."
+                ),
+            ),
             ComposableNodeContainer(
                 name="camera_container",
                 namespace="",
@@ -221,6 +237,14 @@ def generate_launch_description():
                                     value_type=int,
                                 ),
                                 "publish_enabled": publish_enabled,
+                                "ir_flood_intensity": ParameterValue(
+                                    ir_flood_intensity,
+                                    value_type=float,
+                                ),
+                                "ir_dot_projector_intensity": ParameterValue(
+                                    ir_dot_projector_intensity,
+                                    value_type=float,
+                                ),
                                 # The CAN dynamics monitor needs camera yaw.
                                 "imu_bridge_enabled": True,
                             },

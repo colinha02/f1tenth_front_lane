@@ -438,6 +438,10 @@ private:
       "frame_id", "camera_optical_frame");
     image_topic_ = node_.declare_parameter<std::string>(
       "image_topic", "/camera/image_rect");
+    ir_flood_intensity_ = node_.declare_parameter<double>(
+      "ir_flood_intensity", 0.0);
+    ir_dot_projector_intensity_ = node_.declare_parameter<double>(
+      "ir_dot_projector_intensity", 0.0);
     imu_bridge_enabled_ =
       node_.declare_parameter<bool>("imu_bridge_enabled", false);
     imu_topic_ = node_.declare_parameter<std::string>(
@@ -698,6 +702,16 @@ private:
     require_positive(queue_size_, "queue_size");
     require_positive(startup_timeout_sec_, "startup_timeout_sec");
     require_positive(status_log_interval_sec_, "status_log_interval_sec");
+    if (
+      !std::isfinite(ir_flood_intensity_) ||
+      ir_flood_intensity_ < 0.0 || ir_flood_intensity_ > 1.0 ||
+      !std::isfinite(ir_dot_projector_intensity_) ||
+      ir_dot_projector_intensity_ < 0.0 ||
+      ir_dot_projector_intensity_ > 1.0)
+    {
+      throw std::invalid_argument(
+              "IR flood and dot projector intensities must be in [0, 1]");
+    }
     imu_stream_enabled_ =
       imu_bridge_enabled_ || imu_stabilization_enabled_;
     if (imu_stream_enabled_) {
@@ -1192,9 +1206,9 @@ private:
 
   void start_pipeline()
   {
-    auto device = std::make_shared<dai::Device>(
+    device_ = std::make_shared<dai::Device>(
       dai::UsbSpeed::SUPER);
-    pipeline_ = std::make_unique<dai::Pipeline>(device);
+    pipeline_ = std::make_unique<dai::Pipeline>(device_);
     pipeline_->setXLinkChunkSize(0);
 
     // CAM_A is the native color/NV12 path. The stereo sensors on CAM_B/C are
@@ -1220,7 +1234,7 @@ private:
 
     if (imu_stream_enabled_) {
       try {
-        const auto imu_name = device->getConnectedIMU();
+        const auto imu_name = device_->getConnectedIMU();
         if (imu_name.empty()) {
           throw std::runtime_error("the OAK device reported no connected IMU");
         }
@@ -1228,7 +1242,7 @@ private:
         // CALIBRATED reports already contain the EEPROM IMU output rotation.
         // Apply only the relative rotation from that calibrated output frame
         // to the selected camera optical frame, avoiding a double rotation.
-        const auto calibration = device->getCalibration();
+        const auto calibration = device_->getCalibration();
         const cv::Matx33d imu_to_camera_rotation =
           matrix3x3_from_calibration(
           calibration.getImuToCameraExtrinsics(camera_socket_, false),
@@ -1286,13 +1300,38 @@ private:
 
     pipeline_->start();
 
+    // The flood illuminator improves the mono cameras in low light.  The dot
+    // projector is kept independent because its structured-light pattern is
+    // useful for stereo depth but can look like white lane noise.  Explicitly
+    // apply zero as well so a previous startup-measurement pipeline cannot
+    // leave either emitter enabled on a Pro-series device.
+    const bool flood_applied = device_->setIrFloodLightIntensity(
+      static_cast<float>(ir_flood_intensity_));
+    const bool dot_applied = device_->setIrLaserDotProjectorIntensity(
+      static_cast<float>(ir_dot_projector_intensity_));
+    if (ir_flood_intensity_ > 0.0 && !flood_applied) {
+      throw std::runtime_error(
+              "failed to enable the OAK IR flood light; verify that the "
+              "connected camera is a Pro-series model");
+    }
+    if (ir_dot_projector_intensity_ > 0.0 && !dot_applied) {
+      throw std::runtime_error(
+              "failed to enable the OAK IR dot projector; verify that the "
+              "connected camera is a Pro-series model");
+    }
+
     RCLCPP_INFO(
       node_.get_logger(),
       "OAK: full sensor %dx%d @ %.1f FPS on %s, USB=%s, "
       "transport=%s, XLink chunks=off, XLink device queue=1/non-blocking",
       width_, height_, sensor_fps_, camera_socket_name_.c_str(),
-      usb_speed_name(device->getUsbSpeed()),
+      usb_speed_name(device_->getUsbSpeed()),
       gray8_transport_ ? "GRAY8 (host neutral-chroma NV12 adapter)" : "NV12");
+    RCLCPP_INFO(
+      node_.get_logger(),
+      "OAK IR illumination: flood=%.2f (%s), dot=%.2f (%s)",
+      ir_flood_intensity_, flood_applied ? "applied" : "unsupported/off",
+      ir_dot_projector_intensity_, dot_applied ? "applied" : "unsupported/off");
     RCLCPP_INFO(
       node_.get_logger(),
       "Options: undistort=%s, image_publish=%s, fused_bev_publish=%s, "
@@ -2760,6 +2799,10 @@ private:
     imu_queue_.reset();
     if (pipeline_) {
       try {
+        if (device_) {
+          (void)device_->setIrFloodLightIntensity(0.0F);
+          (void)device_->setIrLaserDotProjectorIntensity(0.0F);
+        }
         if (pipeline_->isRunning()) {
           pipeline_->stop();
           pipeline_->wait();
@@ -2772,6 +2815,7 @@ private:
       }
       pipeline_.reset();
     }
+    device_.reset();
   }
 
   static void join_thread(std::thread & thread)
@@ -2795,6 +2839,8 @@ private:
   bool queue_blocking_{false};
   std::string frame_id_;
   std::string image_topic_;
+  double ir_flood_intensity_{0.0};
+  double ir_dot_projector_intensity_{0.0};
   bool imu_bridge_enabled_{false};
   bool imu_stream_enabled_{false};
   std::string imu_topic_;
@@ -2851,6 +2897,7 @@ private:
   bool gray8_transport_{false};
   dai::ImgResizeMode resize_mode_{dai::ImgResizeMode::CROP};
 
+  std::shared_ptr<dai::Device> device_;
   std::unique_ptr<dai::Pipeline> pipeline_;
   std::shared_ptr<dai::MessageQueue> output_queue_;
   std::shared_ptr<dai::MessageQueue> imu_queue_;

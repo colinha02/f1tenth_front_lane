@@ -87,10 +87,14 @@ def _apply_parameter_file_defaults(
 
 
 def generate_launch_description():
+    camera_share = get_package_share_directory("camera_driver")
     bev_share = get_package_share_directory("bev_processor")
     auto_control_share = get_package_share_directory("auto_control")
     vehicle_bringup_share = get_package_share_directory("vehicle_bringup")
     bev_config = os.path.join(bev_share, "config", "bev_config.yaml")
+    camera_config = os.path.join(
+        camera_share, "config", "camera_config.yaml"
+    )
     auto_control_config = os.path.join(
         auto_control_share, "config", "auto_control.yaml"
     )
@@ -102,8 +106,14 @@ def generate_launch_description():
 
     vesc_port = LaunchConfiguration("vesc_port")
     bev_params_file = LaunchConfiguration("bev_params_file")
+    camera_params_file = LaunchConfiguration("camera_params_file")
     auto_control_params_file = LaunchConfiguration("auto_control_params_file")
     preview_enabled = LaunchConfiguration("preview_enabled")
+    camera_preview_enabled = LaunchConfiguration("camera_preview_enabled")
+    ir_flood_intensity = LaunchConfiguration("ir_flood_intensity")
+    ir_dot_projector_intensity = LaunchConfiguration(
+        "ir_dot_projector_intensity"
+    )
     bev_argument_fallbacks = [
         ("lane_seed_roi_height_ratio", "0.25"),
         ("lane_seed_temporal_side_lock_reset_frames", "100"),
@@ -323,10 +333,14 @@ def generate_launch_description():
     bev_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(bev_launch_path),
         launch_arguments={
+            "camera_params_file": camera_params_file,
             "bev_params_file": bev_params_file,
             # Autonomous mode shows only measured lanes and the centerline.
             # preview_enabled:=false disables the OpenCV window completely.
             "preview_enabled": preview_enabled,
+            "camera_preview_enabled": camera_preview_enabled,
+            "ir_flood_intensity": ir_flood_intensity,
+            "ir_dot_projector_intensity": ir_dot_projector_intensity,
             "lane_preview_enabled": "true",
             "lane_preview_result_only_enabled": "true",
             "lane_preview_sliding_windows_enabled": "false",
@@ -358,6 +372,11 @@ def generate_launch_description():
         [
             DeclareLaunchArgument("vesc_port", default_value="/dev/ttyTHS1"),
             DeclareLaunchArgument(
+                "camera_params_file",
+                default_value=camera_config,
+                description="Camera driver parameter override YAML",
+            ),
+            DeclareLaunchArgument(
                 "bev_params_file",
                 default_value=bev_config,
                 description="BEV parameter override YAML",
@@ -372,6 +391,25 @@ def generate_launch_description():
                 default_value=_PARAMETER_FILE_DEFAULT,
                 description=(
                     "Show result-only BEV lane preview. Set false for no GUI."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "camera_preview_enabled",
+                default_value="false",
+                description=(
+                    "Show the stabilized source-camera preview alongside BEV."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "ir_flood_intensity",
+                default_value="0.0",
+                description="OAK Pro IR flood intensity from 0.0 to 1.0.",
+            ),
+            DeclareLaunchArgument(
+                "ir_dot_projector_intensity",
+                default_value="0.0",
+                description=(
+                    "OAK Pro structured-light dot intensity from 0.0 to 1.0."
                 ),
             ),
             *[
