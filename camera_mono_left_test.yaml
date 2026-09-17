@@ -29,6 +29,16 @@ camera_driver:
     # ir_flood_intensity:=0.3. Keep dots off for lane-image evaluation.
     ir_flood_intensity: 0.0
     ir_dot_projector_intensity: 0.0
+    # Runtime Flood/Dot experiment diagnostics on the lower road ROI.
+    ir_analysis_enabled: true
+    ir_analysis_overlay_enabled: true
+    ir_analysis_roi_left_ratio: 0.15
+    ir_analysis_roi_right_ratio: 0.85
+    ir_analysis_roi_top_ratio: 0.50
+    ir_analysis_roi_bottom_ratio: 0.95
+    ir_analysis_dark_threshold: 40
+    ir_analysis_saturation_threshold: 245
+    ir_analysis_sample_step_px: 4
 
     # IMU 토픽 발행은 선택 사항이며 영상 안정화는 내부 IMU를 직접 사용한다.
     imu_bridge_enabled: false

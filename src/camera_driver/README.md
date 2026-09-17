@@ -26,6 +26,41 @@ connected device does not expose the requested Pro-series emitter.  Shutdown
 explicitly turns both emitters off.  Do not open the same OAK from a second
 process merely to change IR intensity.
 
+While the node is running, change either emitter without restarting the OAK
+pipeline:
+
+```bash
+ros2 param set /camera_driver ir_dot_projector_intensity 0.0
+ros2 param set /camera_driver ir_flood_intensity 0.2
+ros2 param set /camera_driver ir_flood_intensity 0.4
+ros2 param set /camera_driver ir_flood_intensity 0.6
+```
+
+The request is rejected when the value is outside `[0.0, 1.0]`, the camera is
+not running, or the connected device cannot apply a nonzero emitter value.
+Successful changes print `Runtime IR applied` immediately.
+
+With `ir_analysis_enabled: true`, the camera status log also prints one
+machine-readable `[IR_ANALYSIS]` line per `status_log_interval_sec`. It contains
+the applied Flood/Dot values, exposure in microseconds, ISO, road-ROI mean and
+median brightness, dark/saturated pixel ratios, and frame-to-frame mean change.
+When the perspective preview is enabled, the same values and the yellow road
+ROI are drawn over the stabilized source image. The B-button capture remains a
+clean image without the diagnostic overlay.
+
+To keep a text record of the experiment, capture the launch output with `tee`:
+
+```bash
+mkdir -p tunnel_logs
+ros2 launch bev_processor bev_processor.launch.py \
+  camera_params_file:=$PWD/camera_mono_left_test.yaml \
+  camera_preview_enabled:=true \
+  preview_enabled:=true \
+  ir_flood_intensity:=0.0 \
+  ir_dot_projector_intensity:=0.0 \
+  2>&1 | tee tunnel_logs/flood_test_$(date +%Y%m%d_%H%M%S).log
+```
+
 ## BEV startup reference 연동
 
 `bev_processor`와 함께 실행하면 `/camera/startup_ground_normal`의

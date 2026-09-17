@@ -3,6 +3,7 @@
 #include "camera_driver/msg/bev_input.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cctype>
 #include <chrono>
@@ -19,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -31,6 +33,7 @@
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "sensor_msgs/msg/imu.hpp"
@@ -349,6 +352,8 @@ public:
 
     try {
       start_pipeline();
+      parameter_callback_handle_ = node_.add_on_set_parameters_callback(
+        std::bind(&Impl::on_set_parameters, this, std::placeholders::_1));
       started_at_ = std::chrono::steady_clock::now();
       last_status_at_ = started_at_;
       const auto status_period =
@@ -408,6 +413,20 @@ private:
     double lateral_mps2;
   };
 
+  struct SourceImageAnalysis
+  {
+    bool valid{false};
+    std::int64_t device_sequence{0};
+    std::int64_t exposure_time_us{0};
+    int sensitivity_iso{0};
+    double mean_brightness{0.0};
+    double median_brightness{0.0};
+    double dark_pixel_ratio{0.0};
+    double saturation_ratio{0.0};
+    double brightness_delta{0.0};
+    std::uint64_t sampled_pixel_count{0U};
+  };
+
   template<typename IntegerT>
   static void require_positive(IntegerT value, const char * parameter_name)
   {
@@ -442,6 +461,24 @@ private:
       "ir_flood_intensity", 0.0);
     ir_dot_projector_intensity_ = node_.declare_parameter<double>(
       "ir_dot_projector_intensity", 0.0);
+    ir_analysis_enabled_ = node_.declare_parameter<bool>(
+      "ir_analysis_enabled", true);
+    ir_analysis_overlay_enabled_ = node_.declare_parameter<bool>(
+      "ir_analysis_overlay_enabled", true);
+    ir_analysis_roi_left_ratio_ = node_.declare_parameter<double>(
+      "ir_analysis_roi_left_ratio", 0.15);
+    ir_analysis_roi_right_ratio_ = node_.declare_parameter<double>(
+      "ir_analysis_roi_right_ratio", 0.85);
+    ir_analysis_roi_top_ratio_ = node_.declare_parameter<double>(
+      "ir_analysis_roi_top_ratio", 0.50);
+    ir_analysis_roi_bottom_ratio_ = node_.declare_parameter<double>(
+      "ir_analysis_roi_bottom_ratio", 0.95);
+    ir_analysis_dark_threshold_ = node_.declare_parameter<int>(
+      "ir_analysis_dark_threshold", 40);
+    ir_analysis_saturation_threshold_ = node_.declare_parameter<int>(
+      "ir_analysis_saturation_threshold", 245);
+    ir_analysis_sample_step_px_ = node_.declare_parameter<int>(
+      "ir_analysis_sample_step_px", 4);
     imu_bridge_enabled_ =
       node_.declare_parameter<bool>("imu_bridge_enabled", false);
     imu_topic_ = node_.declare_parameter<std::string>(
@@ -711,6 +748,28 @@ private:
     {
       throw std::invalid_argument(
               "IR flood and dot projector intensities must be in [0, 1]");
+    }
+    if (
+      !std::isfinite(ir_analysis_roi_left_ratio_) ||
+      !std::isfinite(ir_analysis_roi_right_ratio_) ||
+      !std::isfinite(ir_analysis_roi_top_ratio_) ||
+      !std::isfinite(ir_analysis_roi_bottom_ratio_) ||
+      ir_analysis_roi_left_ratio_ < 0.0 ||
+      ir_analysis_roi_right_ratio_ > 1.0 ||
+      ir_analysis_roi_left_ratio_ >= ir_analysis_roi_right_ratio_ ||
+      ir_analysis_roi_top_ratio_ < 0.0 ||
+      ir_analysis_roi_bottom_ratio_ > 1.0 ||
+      ir_analysis_roi_top_ratio_ >= ir_analysis_roi_bottom_ratio_ ||
+      ir_analysis_dark_threshold_ < 0 ||
+      ir_analysis_dark_threshold_ > 255 ||
+      ir_analysis_saturation_threshold_ < 0 ||
+      ir_analysis_saturation_threshold_ > 255 ||
+      ir_analysis_dark_threshold_ >= ir_analysis_saturation_threshold_ ||
+      ir_analysis_sample_step_px_ <= 0 ||
+      ir_analysis_sample_step_px_ > 32)
+    {
+      throw std::invalid_argument(
+              "invalid IR analysis ROI, threshold, or sample step");
     }
     imu_stream_enabled_ =
       imu_bridge_enabled_ || imu_stabilization_enabled_;
@@ -1204,6 +1263,308 @@ private:
     return vehicle_axes_camera_;
   }
 
+  rcl_interfaces::msg::SetParametersResult on_set_parameters(
+    const std::vector<rclcpp::Parameter> & parameters)
+  {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    result.reason = "success";
+
+    double requested_flood =
+      applied_ir_flood_intensity_.load(std::memory_order_relaxed);
+    double requested_dot =
+      applied_ir_dot_projector_intensity_.load(std::memory_order_relaxed);
+    bool update_flood = false;
+    bool update_dot = false;
+
+    try {
+      for (const auto & parameter : parameters) {
+        if (parameter.get_name() == "ir_flood_intensity") {
+          requested_flood = parameter.as_double();
+          update_flood = true;
+        } else if (parameter.get_name() == "ir_dot_projector_intensity") {
+          requested_dot = parameter.as_double();
+          update_dot = true;
+        }
+      }
+    } catch (const rclcpp::ParameterTypeException & exception) {
+      result.successful = false;
+      result.reason = exception.what();
+      return result;
+    }
+
+    if (!update_flood && !update_dot) {
+      return result;
+    }
+    if (
+      !std::isfinite(requested_flood) || requested_flood < 0.0 ||
+      requested_flood > 1.0 || !std::isfinite(requested_dot) ||
+      requested_dot < 0.0 || requested_dot > 1.0)
+    {
+      result.successful = false;
+      result.reason = "IR flood and dot intensities must be in [0.0, 1.0]";
+      return result;
+    }
+
+    std::lock_guard<std::mutex> lock(ir_device_mutex_);
+    if (
+      shutdown_started_.load(std::memory_order_acquire) || !device_ ||
+      !pipeline_ || !pipeline_->isRunning())
+    {
+      result.successful = false;
+      result.reason = "DepthAI device is not running";
+      return result;
+    }
+
+    const double previous_flood =
+      applied_ir_flood_intensity_.load(std::memory_order_relaxed);
+    const double previous_dot =
+      applied_ir_dot_projector_intensity_.load(std::memory_order_relaxed);
+    try {
+      if (update_flood) {
+        const bool applied = device_->setIrFloodLightIntensity(
+          static_cast<float>(requested_flood));
+        if (requested_flood > 0.0 && !applied) {
+          result.successful = false;
+          result.reason =
+            "OAK rejected IR flood intensity; verify a Pro-series device";
+          return result;
+        }
+      }
+      if (update_dot) {
+        const bool applied = device_->setIrLaserDotProjectorIntensity(
+          static_cast<float>(requested_dot));
+        if (requested_dot > 0.0 && !applied) {
+          if (update_flood) {
+            (void)device_->setIrFloodLightIntensity(
+              static_cast<float>(previous_flood));
+          }
+          (void)device_->setIrLaserDotProjectorIntensity(
+            static_cast<float>(previous_dot));
+          result.successful = false;
+          result.reason =
+            "OAK rejected IR dot intensity; verify a Pro-series device";
+          return result;
+        }
+      }
+    } catch (const std::exception & exception) {
+      if (update_flood) {
+        try {
+          (void)device_->setIrFloodLightIntensity(
+            static_cast<float>(previous_flood));
+        } catch (const std::exception &) {
+        }
+      }
+      if (update_dot) {
+        try {
+          (void)device_->setIrLaserDotProjectorIntensity(
+            static_cast<float>(previous_dot));
+        } catch (const std::exception &) {
+        }
+      }
+      result.successful = false;
+      result.reason = std::string("DepthAI IR update failed: ") +
+        exception.what();
+      return result;
+    }
+
+    if (update_flood) {
+      ir_flood_intensity_ = requested_flood;
+      applied_ir_flood_intensity_.store(
+        requested_flood, std::memory_order_relaxed);
+    }
+    if (update_dot) {
+      ir_dot_projector_intensity_ = requested_dot;
+      applied_ir_dot_projector_intensity_.store(
+        requested_dot, std::memory_order_relaxed);
+    }
+    RCLCPP_INFO(
+      node_.get_logger(),
+      "Runtime IR applied: flood=%.2f, dot=%.2f (camera kept running).",
+      applied_ir_flood_intensity_.load(std::memory_order_relaxed),
+      applied_ir_dot_projector_intensity_.load(std::memory_order_relaxed));
+    return result;
+  }
+
+  void update_source_image_analysis(dai::ImgFrame & packet)
+  {
+    if (!ir_analysis_enabled_) {
+      return;
+    }
+
+    const auto & frame_data = packet.getData();
+    const int frame_width = static_cast<int>(packet.getWidth());
+    const int frame_height = static_cast<int>(packet.getHeight());
+    const std::size_t stride = packet.getStride() > 0U ?
+      static_cast<std::size_t>(packet.getStride()) :
+      static_cast<std::size_t>(frame_width);
+    if (
+      frame_width <= 0 || frame_height <= output_crop_top_px_ ||
+      frame_data.size() < stride * static_cast<std::size_t>(frame_height))
+    {
+      return;
+    }
+
+    const int visible_height = frame_height - output_crop_top_px_;
+    const int x_begin = std::clamp(
+      static_cast<int>(std::lround(
+        ir_analysis_roi_left_ratio_ * frame_width)), 0, frame_width - 1);
+    const int x_end = std::clamp(
+      static_cast<int>(std::lround(
+        ir_analysis_roi_right_ratio_ * frame_width)), x_begin + 1, frame_width);
+    const int y_begin = output_crop_top_px_ + std::clamp(
+      static_cast<int>(std::lround(
+        ir_analysis_roi_top_ratio_ * visible_height)), 0, visible_height - 1);
+    const int y_end = output_crop_top_px_ + std::clamp(
+      static_cast<int>(std::lround(
+        ir_analysis_roi_bottom_ratio_ * visible_height)),
+      y_begin - output_crop_top_px_ + 1, visible_height);
+
+    std::array<std::uint64_t, 256> histogram{};
+    std::uint64_t brightness_sum = 0U;
+    std::uint64_t dark_count = 0U;
+    std::uint64_t saturation_count = 0U;
+    std::uint64_t sample_count = 0U;
+    for (int y = y_begin; y < y_end; y += ir_analysis_sample_step_px_) {
+      const auto * row = frame_data.data() + static_cast<std::size_t>(y) * stride;
+      for (int x = x_begin; x < x_end; x += ir_analysis_sample_step_px_) {
+        const std::uint8_t brightness = row[x];
+        ++histogram[brightness];
+        brightness_sum += brightness;
+        dark_count += brightness <= ir_analysis_dark_threshold_ ? 1U : 0U;
+        saturation_count +=
+          brightness >= ir_analysis_saturation_threshold_ ? 1U : 0U;
+        ++sample_count;
+      }
+    }
+    if (sample_count == 0U) {
+      return;
+    }
+
+    const std::uint64_t median_target = (sample_count + 1U) / 2U;
+    std::uint64_t cumulative = 0U;
+    int median = 0;
+    for (; median < 256; ++median) {
+      cumulative += histogram[static_cast<std::size_t>(median)];
+      if (cumulative >= median_target) {
+        break;
+      }
+    }
+
+    SourceImageAnalysis analysis;
+    analysis.valid = true;
+    analysis.device_sequence = packet.getSequenceNum();
+    analysis.exposure_time_us = packet.getExposureTime().count();
+    analysis.sensitivity_iso = packet.getSensitivity();
+    analysis.mean_brightness =
+      static_cast<double>(brightness_sum) / static_cast<double>(sample_count);
+    analysis.median_brightness = static_cast<double>(median);
+    analysis.dark_pixel_ratio =
+      static_cast<double>(dark_count) / static_cast<double>(sample_count);
+    analysis.saturation_ratio =
+      static_cast<double>(saturation_count) / static_cast<double>(sample_count);
+    analysis.sampled_pixel_count = sample_count;
+
+    std::lock_guard<std::mutex> lock(source_analysis_mutex_);
+    if (latest_source_analysis_.valid) {
+      analysis.brightness_delta =
+        analysis.mean_brightness - latest_source_analysis_.mean_brightness;
+    }
+    latest_source_analysis_ = analysis;
+  }
+
+  SourceImageAnalysis latest_source_image_analysis()
+  {
+    std::lock_guard<std::mutex> lock(source_analysis_mutex_);
+    return latest_source_analysis_;
+  }
+
+  cv::Rect analysis_roi_for_frame(const cv::Mat & frame) const
+  {
+    const int x_begin = std::clamp(
+      static_cast<int>(std::lround(ir_analysis_roi_left_ratio_ * frame.cols)),
+      0, frame.cols - 1);
+    const int x_end = std::clamp(
+      static_cast<int>(std::lround(ir_analysis_roi_right_ratio_ * frame.cols)),
+      x_begin + 1, frame.cols);
+    const int y_begin = std::clamp(
+      static_cast<int>(std::lround(ir_analysis_roi_top_ratio_ * frame.rows)),
+      0, frame.rows - 1);
+    const int y_end = std::clamp(
+      static_cast<int>(std::lround(ir_analysis_roi_bottom_ratio_ * frame.rows)),
+      y_begin + 1, frame.rows);
+    return cv::Rect(x_begin, y_begin, x_end - x_begin, y_end - y_begin);
+  }
+
+  void draw_ir_analysis_overlay(cv::Mat & frame)
+  {
+    if (!ir_analysis_enabled_ || !ir_analysis_overlay_enabled_ || frame.empty()) {
+      return;
+    }
+
+    const auto analysis = latest_source_image_analysis();
+    cv::rectangle(
+      frame, analysis_roi_for_frame(frame), cv::Scalar(0, 255, 255), 2,
+      cv::LINE_AA);
+
+    std::vector<std::string> lines;
+    {
+      std::ostringstream text;
+      text.setf(std::ios::fixed);
+      text.precision(2);
+      text << "IR flood="
+           << applied_ir_flood_intensity_.load(std::memory_order_relaxed)
+           << " dot="
+           << applied_ir_dot_projector_intensity_.load(
+                std::memory_order_relaxed);
+      lines.push_back(text.str());
+    }
+    if (analysis.valid) {
+      {
+        std::ostringstream text;
+        text.setf(std::ios::fixed);
+        text.precision(3);
+        text << "EXP=" << static_cast<double>(analysis.exposure_time_us) / 1000.0
+             << "ms ISO=" << analysis.sensitivity_iso
+             << " seq=" << analysis.device_sequence;
+        lines.push_back(text.str());
+      }
+      {
+        std::ostringstream text;
+        text.setf(std::ios::fixed);
+        text.precision(1);
+        text << "ROAD mean=" << analysis.mean_brightness
+             << " median=" << analysis.median_brightness
+             << " dMean=" << analysis.brightness_delta;
+        lines.push_back(text.str());
+      }
+      {
+        std::ostringstream text;
+        text.setf(std::ios::fixed);
+        text.precision(1);
+        text << "dark=" << 100.0 * analysis.dark_pixel_ratio
+             << "% sat=" << 100.0 * analysis.saturation_ratio << "%";
+        lines.push_back(text.str());
+      }
+    } else {
+      lines.emplace_back("image analysis waiting for a valid frame");
+    }
+
+    constexpr int x = 12;
+    constexpr int line_height = 24;
+    const int panel_height = 12 + line_height * static_cast<int>(lines.size());
+    cv::rectangle(
+      frame, cv::Rect(5, 5, std::min(650, frame.cols - 5), panel_height),
+      cv::Scalar(0, 0, 0), cv::FILLED);
+    for (std::size_t index = 0; index < lines.size(); ++index) {
+      cv::putText(
+        frame, lines[index],
+        cv::Point(x, 27 + static_cast<int>(index) * line_height),
+        cv::FONT_HERSHEY_SIMPLEX, 0.55, cv::Scalar(255, 255, 255), 1,
+        cv::LINE_AA);
+    }
+  }
+
   void start_pipeline()
   {
     device_ = std::make_shared<dai::Device>(
@@ -1319,6 +1680,10 @@ private:
               "failed to enable the OAK IR dot projector; verify that the "
               "connected camera is a Pro-series model");
     }
+    applied_ir_flood_intensity_.store(
+      ir_flood_intensity_, std::memory_order_relaxed);
+    applied_ir_dot_projector_intensity_.store(
+      ir_dot_projector_intensity_, std::memory_order_relaxed);
 
     RCLCPP_INFO(
       node_.get_logger(),
@@ -1498,6 +1863,8 @@ private:
               width_, height_, gray8_transport_ ? "GRAY8" : "NV12");
             continue;
           }
+
+          update_source_image_analysis(*packet);
 
           std::shared_ptr<const FrameSnapshot> snapshot =
             std::make_shared<FrameSnapshot>(
@@ -2447,6 +2814,7 @@ private:
             if (preview_grid_enabled_) {
               draw_preview_grid(preview_frame);
             }
+            draw_ir_analysis_overlay(preview_frame);
             resize_preview_window(preview_frame);
             cv::imshow(preview_window_name_, preview_frame);
             previewed_total_.fetch_add(1);
@@ -2756,6 +3124,34 @@ private:
       }
     }
 
+    if (ir_analysis_enabled_) {
+      const auto analysis = latest_source_image_analysis();
+      if (analysis.valid) {
+        RCLCPP_INFO(
+          node_.get_logger(),
+          "[IR_ANALYSIS] seq=%ld flood=%.2f dot=%.2f "
+          "exposure_us=%ld ISO=%d road_mean=%.2f road_median=%.1f "
+          "dark_ratio=%.4f saturation_ratio=%.4f brightness_delta=%.2f "
+          "samples=%lu",
+          static_cast<long>(analysis.device_sequence),
+          applied_ir_flood_intensity_.load(std::memory_order_relaxed),
+          applied_ir_dot_projector_intensity_.load(
+            std::memory_order_relaxed),
+          static_cast<long>(analysis.exposure_time_us),
+          analysis.sensitivity_iso,
+          analysis.mean_brightness,
+          analysis.median_brightness,
+          analysis.dark_pixel_ratio,
+          analysis.saturation_ratio,
+          analysis.brightness_delta,
+          static_cast<unsigned long>(analysis.sampled_pixel_count));
+      } else {
+        RCLCPP_INFO(
+          node_.get_logger(),
+          "[IR_ANALYSIS] waiting for the first valid camera frame");
+      }
+    }
+
     const auto running_for =
       std::chrono::duration<double>(now - started_at_).count();
     if (!first_frame_received_.load() &&
@@ -2782,6 +3178,9 @@ private:
       return;
     }
 
+    // Stop accepting runtime IR updates before the device is torn down.
+    parameter_callback_handle_.reset();
+
     stop_requested_.store(true);
     frame_available_.notify_all();
 
@@ -2799,9 +3198,15 @@ private:
     imu_queue_.reset();
     if (pipeline_) {
       try {
-        if (device_) {
-          (void)device_->setIrFloodLightIntensity(0.0F);
-          (void)device_->setIrLaserDotProjectorIntensity(0.0F);
+        {
+          std::lock_guard<std::mutex> lock(ir_device_mutex_);
+          if (device_) {
+            (void)device_->setIrFloodLightIntensity(0.0F);
+            (void)device_->setIrLaserDotProjectorIntensity(0.0F);
+            applied_ir_flood_intensity_.store(0.0, std::memory_order_relaxed);
+            applied_ir_dot_projector_intensity_.store(
+              0.0, std::memory_order_relaxed);
+          }
         }
         if (pipeline_->isRunning()) {
           pipeline_->stop();
@@ -2841,6 +3246,15 @@ private:
   std::string image_topic_;
   double ir_flood_intensity_{0.0};
   double ir_dot_projector_intensity_{0.0};
+  bool ir_analysis_enabled_{true};
+  bool ir_analysis_overlay_enabled_{true};
+  double ir_analysis_roi_left_ratio_{0.15};
+  double ir_analysis_roi_right_ratio_{0.85};
+  double ir_analysis_roi_top_ratio_{0.50};
+  double ir_analysis_roi_bottom_ratio_{0.95};
+  int ir_analysis_dark_threshold_{40};
+  int ir_analysis_saturation_threshold_{245};
+  int ir_analysis_sample_step_px_{4};
   bool imu_bridge_enabled_{false};
   bool imu_stream_enabled_{false};
   std::string imu_topic_;
@@ -2916,6 +3330,8 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr
     capture_joy_subscription_;
   rclcpp::TimerBase::SharedPtr status_timer_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
+    parameter_callback_handle_;
 
   std::thread capture_thread_;
   std::thread imu_thread_;
@@ -2924,6 +3340,11 @@ private:
   std::atomic<bool> stop_requested_{false};
   std::atomic<bool> shutdown_started_{false};
   std::atomic<bool> preview_active_{false};
+  std::mutex ir_device_mutex_;
+  std::atomic<double> applied_ir_flood_intensity_{0.0};
+  std::atomic<double> applied_ir_dot_projector_intensity_{0.0};
+  std::mutex source_analysis_mutex_;
+  SourceImageAnalysis latest_source_analysis_;
   std::mutex wait_mutex_;
   std::condition_variable frame_available_;
 

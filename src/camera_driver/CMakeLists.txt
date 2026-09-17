@@ -14,6 +14,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rcl_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -74,6 +75,7 @@ target_include_directories(camera_driver_component
 ament_target_dependencies(camera_driver_component
   rclcpp
   rclcpp_components
+  rcl_interfaces
   geometry_msgs
   sensor_msgs
   std_msgs
@@ -150,7 +152,8 @@ install(
 
 ament_export_targets(export_camera_driver HAS_LIBRARY_TARGET)
 ament_export_dependencies(
-  OpenCV rclcpp rclcpp_components geometry_msgs rosidl_default_runtime
+  OpenCV rclcpp rclcpp_components rcl_interfaces geometry_msgs
+  rosidl_default_runtime
   sensor_msgs std_msgs)
 
 ament_package()
