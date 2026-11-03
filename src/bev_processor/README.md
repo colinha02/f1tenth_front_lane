@@ -1,324 +1,224 @@
 # bev_processor
 
-`camera_driver`가 원본 1280x720 NV12와 같은 프레임의 안정화 homography를
-묶어 발행하면, CUDA에서 안정화와 컬러 BEV 변환을 한 번에 수행하는 ROS 2
-C++ 패키지다. 시작할 때 카메라 높이·roll·하향 pitch를 반드시 측정한다.
+`bev_processor`는 `camera_driver`의 하단 rectified NV12와 프레임별 IMU 보정
+행렬을 받아 CUDA에서 컬러 BEV를 생성한다. 차선과 중앙선은 `line_detactor`가 담당한다.
+기존 Gray/Top-hat, 상대 대비 시드, 슬라이딩 윈도우, 규칙 기반 중앙선 생성과
+관련 `lane_*` 파라미터·launch 인자는 제거했다. `/camera/image_bev_lane`도 발행하지 않는다.
+기존 외부 BEV YAML에 남은 `lane_*` 키는 읽지 않으며 삭제해도 된다.
 
-## 작동 순서
+## 처리 순서
 
-1. `bev_processor`가 OAK를 먼저 단독으로 연다.
-2. 차량이 정지한 상태에서 stereo depth 중앙 ROI의 노면 평면과 IMU 중력
-   방향을 측정한다.
-3. IMU 1200개를 3개 독립 블록으로 나눠 중력 방향 roll과 하향 pitch의
-   반복성을 검사하고 블록 중앙 방향을 채택한다.
-4. depth RANSAC/PCA 노면 평면 45개도 3개 블록으로 나눠 offset 높이와
-   평면 법선의 반복성을 검사하고 블록 중앙 높이를 채택한다.
-5. 측정한 높이·roll·pitch와 설정 파일의 X/Y/yaw로 BEV LUT를 한 번 만든다.
-6. OAK 측정 파이프라인을 닫고 `camera_driver`를 시작한다.
-7. 카메라 드라이버가 프레임 시각의 roll/pitch 보정 homography를 계산한다.
-8. CUDA가 시작 LUT의 BEV 좌표를 homography로 원본 NV12에 역투영하여,
-   영상 하단 70%만 안정화와 BEV 변환을 한 번에 수행한다.
+1. 시작 시 설정에 따라 OAK stereo depth와 IMU로 카메라 높이·roll·pitch를 측정한다.
+2. 측정 자세와 설정된 카메라 X/Y/yaw로 고정 BEV LUT를 만든다.
+3. OAK 측정 파이프라인을 닫고 `camera_driver`를 시작한다.
+4. CUDA가 NV12 안정화, BEV sampling, BGR 생성을 한 번에 수행한다.
+5. 독립 실행은 `/camera/image_bev`를 발행하고, `auto_drive.launch.py`는
+   같은 프로세스의 딥러닝 검출기에 CUDA BGR BEV 버퍼를 직접 넘긴다.
+   기본 결과 프리뷰는 이 버퍼를 TensorRT 입력으로 사용하므로 CPU BEV
+   다운로드를 생략한다. 원본 오버레이·저장·ROS 영상 발행이 필요할 때만
+   호스트 복사를 생성한다.
 
-높이는 depth 노면 평면 offset으로 구하고, 지면이 수평이라는 전제에서
-roll/pitch는 IMU 중력 방향으로 구한다. Depth 법선은 평면 후보 품질을
-검증하고 IMU와의 차이도 함께 기록한다. 시작 측정에 실패하면 임의의
-수동 외부 파라미터로 계속하지 않고 노드 시작을 중단한다. LUT 생성 후에는
-BEV 노드가 IMU를 구독하거나 자세 변화에 따라 LUT를 다시 만들지 않는다.
-
-카메라 X/Y 위치와 yaw는 시작 측정으로 구하지 않으므로 실제 장착값을
-`config/bev_config.yaml`에 입력해야 한다. 높이·roll·pitch 입력 항목은 없고
-시작 측정 결과만 사용한다. 자동 모드의 roll/pitch 출처는 기본 `imu`다.
+차량은 시작 측정이 완료될 때까지 정지해야 한다.
 
 ## 실행
 
-측정이 끝날 때까지 차량을 완전히 정지시키고, 카메라 중앙에 장애물 없는
-평평한 노면이 보이게 한다. 이후 기존 `camera_driver`의 1초 IMU 폐기와
-4초 기준 자세 측정이 끝날 때까지 계속 정지 상태를 유지한다.
+저장소 루트에서 빌드하고 실행한다.
 
 ```bash
+source /opt/ros/humble/setup.bash
+colcon build \
+  --packages-up-to bev_processor \
+  --cmake-clean-cache \
+  --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
 ros2 launch bev_processor bev_processor.launch.py
 ```
 
-SSH 터미널에서 GUI 부하 없이 흔들림 보정과 BEV 변환 속도를
-측정할 때는 연산 측정 모드를 켠다.
+## 학습 데이터 수집
+
+자동수집의 `dataset_collection_enabled:=true` 또는 수동수집의
+`dataset_collection_manual_capture_mode:=true`로 실행하면 지정한 root의
+기존 `dataset_숫자` 폴더를 검색해 다음 번호를 생성한다. 수집을 새로
+시작할 때마다 `dataset_001`, `dataset_002`, ... 순서로 늘어난다.
+
+```text
+datasets/dataset_001/
+└── origin_bev/<capture_time_ns>_<matching_number>.png
+```
+
+기본 BEV는 세로 300행×가로 120열이다. `origin_bev`에 오버레이 없는 BGR만 저장한다.
+규칙 기반 검출을 제거했으므로 `filtered_bev`, `result_bev`, `label`은 새로 생성하지 않는다.
+기존 수집 폴더는 유지하며, 새 수집의 라벨링은 별도로 수행해야 한다.
+
+자동주행에서는 기존 명령에 수집 인자만 추가하면 된다. 값을
+`bev_params_file`의 `bev_processor.ros__parameters`에 넣어도 동일하다.
+
+```bash
+ros2 launch vehicle_bringup auto_drive.launch.py \
+  bev_params_file:=/absolute/path/bev_config_test.yaml \
+  auto_control_params_file:=/absolute/path/auto_control_test.yaml \
+  auto_enabled:=true \
+  preview_enabled:=true \
+  dataset_collection_enabled:=true \
+  dataset_collection_root_directory:=/absolute/path/datasets \
+  dataset_collection_fps:=10.0 \
+  dataset_collection_target_count:=1000
+```
+
+목표 개수를 채우면 수집 스레드가 종료되고, 기본값으로
+`/auto/enabled=false`를 발행해 자동주행을 정지한다. 이 발행이 필요
+없으면 `dataset_collection_stop_auto_on_complete:=false`로 지정한다.
+수동 버튼 수집에서는 `bev_processor`를 수동 캡처 모드로 실행한다.
+`/autopilot03/joy`의 컨트롤러 A 버튼(SDL index 0)을 누르는 상승 에지마다
+자동수집과 동일하게 원본 BEV 한 장을 저장한다. 기존 B 버튼은
+`capture_directory`에 원본 BEV 한 장만 저장하는 기능으로 그대로 남는다.
+자동 FPS 수집과 수동 캡처 모드는 동시에 활성화할 수 없다.
+
+```bash
+# 터미널 1: BEV 처리 + A 버튼 데이터셋 수집
+ros2 launch bev_processor bev_processor.launch.py \
+  preview_enabled:=true \
+  dataset_collection_manual_capture_mode:=true \
+  dataset_collection_root_directory:=/home/autopilot03/Desktop/0906ML/f1tenth_project_repo/datasets \
+  dataset_collection_target_count:=1000 \
+  capture_joy_topic:=/autopilot03/joy
+
+# 터미널 2: 조이스틱 수동주행
+ros2 launch vehicle_bringup manual_drive.launch.py \
+  vehicle_namespace:=autopilot03 \
+  vesc_port:=/dev/ttyTHS1 \
+  controller_name_contains:=8BitDo
+```
+
+CAN과 주행 중 가속도계 보정을 모두 끄고 gyro 고주파 진동만 억제하려면:
+
+```bash
+ros2 launch bev_processor bev_processor.launch.py \
+  preview_enabled:=true \
+  imu_stabilization_enabled:=true \
+  imu_stabilization_high_frequency_only:=true \
+  imu_stabilization_high_frequency_vibration_cutoff_hz:=3.0 \
+  imu_stabilization_gyroscope_correction_gain:=1.0 \
+  imu_stabilization_invalid_correction_hold_frames:=2
+```
+
+`cutoff_hz`를 높이면 더 빠른 진동만 보정하고, 낮추면 느린 흔들림까지
+포함한다. `gyroscope_correction_gain`은 `0.0`이면 영상 회전 보정을 적용하지
+않고 `1.0`이면 추정된 고주파 회전을 전량 상쇄한다. 권장 시작값은
+`cutoff=3.0 Hz`, `gain=1.0`이다. 이 모드에서는 CAN dynamics가 필요 없다.
+
+CAN 차량 가속도 보정을 사용하려면 먼저 다른 터미널에서
+`vehicle_dynamics_monitor`를 SocketCAN 모드로 실행한다.
+
+```bash
+ros2 launch vehicle_bringup manual_drive_with_dynamics.launch.py \
+  input_mode:=socketcan can_interface:=can0 can_controller_id:=112
+
+# 다른 터미널
+ros2 launch bev_processor bev_processor.launch.py \
+  imu_stabilization_can_longitudinal_compensation_gain:=0.7 \
+  imu_stabilization_can_lateral_compensation_gain:=0.7 \
+  imu_stabilization_moving_accelerometer_nudge_strength:=0.15 \
+  imu_stabilization_moving_gravity_anchor_maximum_correction_rate_degps:=0.50 \
+  imu_stabilization_invalid_correction_hold_frames:=2
+```
+
+BEV의 빠른 진동 보정은 기존과 동일한 gyro 전체 대역 방식을 유지한다. CAN
+종·횡가속도를 IMU 가속도에서 제거한 잔여 중력은 주행 자세 drift를 줄이는
+저주파 persistent anchor와 비누적 bounded nudge에 사용한다. 두 CAN gain과
+nudge 강도는 `0.0~1.0`, anchor 최대 변화율은 `deg/s` 단위로 실행할 때
+조절할 수 있다. camera/IMU 매칭이 한두 프레임 실패하면 직전 정상 보정 행렬을
+유지하고, 지정 횟수를 넘긴 연속 실패에만 zoom-only로 돌아간다.
+
+CUDA 컴파일러를 자동으로 찾지 못하면 빌드 인자에
+`-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc`를 추가한다.
+
+GUI 없이 성능을 확인하려면 다음과 같이 실행한다.
 
 ```bash
 ros2 launch bev_processor bev_processor.launch.py \
   performance_measurement_enabled:=true
 ```
 
-연산 측정 모드는 카메라와 BEV의 OpenCV GUI 프리뷰를 모두 강제로
-끈다. `status_log_interval_sec` 주기마다 다음 형식의 로그가 같은
-터미널에 출력된다.
+`performance_measurement_enabled`가 true이면 이 launch의 카메라와 BEV GUI가
+꺼지고 CUDA 변환 FPS·지연·처리 시간을 기록한다.
 
-```text
-[PERF][CAMERA] capture_fps=110.0 camera_output_fps=109.8 \
-frame_prepare_ms(avg/max)=.../... \
-latency_ms(depthai_to_host_avg/max=.../...,\
-host_to_camera_output_avg/max=.../...,\
-depthai_to_camera_output_avg/max=.../...) ...
-[PERF][PIPELINE] camera_input_fps=109.8 bev_ready_fps=109.6 \
-processed_fps=109.6 \
-latency_ms(depthai_to_bev_input_avg/max=.../...,\
-depthai_to_bev_ready_avg/max=.../...,\
-bev_input_to_ready_avg/max=.../...) \
-bev_compute_ms(avg/max)=... skipped=0 errors(...)=0/0/0
-```
+## BEV 보간과 프리뷰
 
-- `CAMERA.camera_output_fps`: 원본 NV12+homography 결합 프레임 발행 속도
-- `frame_prepare_ms`: 프레임별 homography 계산과 NV12 메시지 준비까지의
-  평균/최대 시간
-- `depthai_to_host`: DepthAI 프레임의 `getTimestamp()`부터 Jetson의
-  카메라 캡처 스레드가 패킷을 꺼낸 시점까지의 평균/최대 시간
-- `host_to_camera_output`: Jetson 패킷 수신부터 원본 NV12+homography
-  메시지 준비까지의 평균/최대 시간. 발행 스레드 대기 시간도 포함한다.
-- `depthai_to_camera_output`: 같은 DepthAI timestamp부터 결합 메시지
-  준비까지의 전체 평균/최대 시간
-- `PIPELINE.camera_input_fps`: 결합 프레임이 BEV 입력
-  콜백에 도착한 속도
-- `bev_ready_fps`: BEV BGR8 결과가 다음 알고리즘용 ROS 출력으로
-  발행 완료된 속도
-- `depthai_to_bev_input`: DepthAI timestamp부터 BEV 입력 콜백까지의
-  평균/최대 프레임 나이
-- `depthai_to_bev_ready`: DepthAI timestamp부터 BEV 발행 완료까지의
-  평균/최대 프레임 나이
-- `bev_input_to_ready`: BEV 입력 콜백부터 BEV 발행 완료까지
-  `steady_clock`으로 직접 잰 평균/최대 시간. timestamp 변환 오차의
-  영향을 받지 않는다.
-- `bev_compute_ms`: NV12 업로드, CUDA 커널, BGR8 다운로드, CUDA stream
-  동기화와 활성화된 차선 재구성까지의 평균/최대 시간
+`bev_interpolation`은 `bilinear`, `bicubic`, `adaptive`를 지원한다.
+`edge_*`는 원거리 BEV 영상의 보간 품질에 쓰는 설정이므로 유지한다.
+이 설정은 차선 검출이나 슬라이딩 윈도우가 아니다.
 
-지연 위치는 다음처럼 판별한다.
-
-- `depthai_to_host`가 크면 OAK 내부 출력, USB/XLink 또는 DepthAI
-  출력 큐 구간을 우선 확인한다.
-- `host_to_camera_output`이 크면 Jetson 발행 스레드 대기와 프레임
-  준비 경로를 확인한다.
-- `depthai_to_camera_output`은 작은데 `depthai_to_bev_input`만 크면
-  카메라 ROS 발행부터 BEV 콜백 디스패치 구간을 확인한다.
-- `bev_input_to_ready`가 크면 BEV 큐, 변환 또는 출력 메시지 준비
-  구간을 확인한다.
-
-`depthai_to_bev_ready`는 BEV 노드의 `publish()` 반환 시점까지다.
-후속 주행 노드가 실제로 메시지를 받은 시점까지 확인하려면 그 노드의
-구독 콜백에서 `now - message.header.stamp`를 추가로 측정한다.
-
-`stabilizer=warmup`인 구간은 측정에서 제외하고 `ready`가 된 다음
-값을 확인한다.
-
-사용 파일은 하나씩이다.
-
-- launch: `launch/bev_processor.launch.py`
-- BEV 설정: `config/bev_config.yaml`
-- 카메라 설정: `camera_driver/config/camera_config.yaml`
-
-launch는 두 노드를 같은 multi-threaded component container에 올리고
-intra-process 통신을 사용한다. BEV 시작 측정이 OAK 장치를 반환한 다음
-카메라 드라이버가 장치를 연다. 카메라 원본 프리뷰는 끄고 작은 BEV 결과만
-프리뷰한다.
-
-## 변환 로직
-
-`CudaBevProcessor`는 다음 처리를 한 커널에서 수행한다.
-
-1. BEV LUT 좌표 중 안정화 영상 하단 70%(`y>=216`)만 유지한다.
-2. 프레임별 안정화 homography의 역행렬로 원본 NV12 좌표를 구한다.
-3. 원본 NV12 Y/UV 값을 한 번만 bilinear 보간한다.
-4. YUV를 BGR로 변환하고 `bgr8` BEV를 발행한다.
-
-Sobel, 미분 필터, 대비 강화, 밝기 임계값, morphology, 차선 추출과 상단
-크롭은 CUDA 변환에는 적용하지 않는다. CUDA 변환 뒤의 선택적 CPU 단계인
-`BevLaneReconstructor`가 컬러 BEV를 밝기 기반으로 검사한다.
-
-## 차선 곡선 재구성
-
-기본 설정에서는 두 결과를 동시에 발행한다.
-
-- `/camera/image_bev` (`bgr8`): 변경하지 않은 원본 컬러 BEV
-- `/camera/image_bev_lane` (`mono8`): 검은 배경에 흰색 좌·우 차선만 다시 그린 결과
-
-GUI 프리뷰는 기본적으로 원본 BEV 위에 검출 차선을 불투명한 빨간색, 투명도
-`1.0`으로 합성한다. 이 오버레이는 위 두 발행 토픽에는 들어가지 않는다.
-`lane_preview_enabled:=false`로 실행하면 프리뷰도 원본 BEV만 표시한다.
-
-재구성 단계는 다음 순서로 동작한다.
-
-1. 컬러 BEV를 grayscale 밝기로 변환한다. 1.8m 이후에는 임계값을
-   `lane_far_minimum_brightness`까지 점진적으로 낮춰 흐린 픽셀도 남긴다.
-2. HSV saturation 80 이하인 흰색·회색 후보만 남겨 컬러 풍경을 제거한다.
-3. 후보 양옆 5cm가 어둡고 중심과 배경의 밝기 차가 35 이상인지 검사한다.
-4. `0.20~1.00m`의 가까운 행에서 폭 8cm 이하인 좌·우 시작점을 고른다.
-5. 이전 실제 측정점의 방향으로 회전형 슬라이딩 윈도우의 다음 위치만 예측한다.
-6. 윈도우의 밝은 픽셀을 횡방향 덩어리로 나누고, 예측점에 가장 가까우며
-   거리별 허용 폭 안에 있는 실제 덩어리 하나만 선택해 위치를 90% 보정한다.
-7. 1.8m 이후에는 윈도우 반폭을 12cm에서 최대 22cm까지 넓혀 번진 곡선의
-   중앙을 계속 측정한다.
-8. 전역 다항식 없이 측정점 85%와 양옆 측정점 각각 7.5%만 섞어 국소 평활화한다.
-9. Odometry 없이 이전 승인 라인과 같은 X의 위치·방향을 비교한다. 큰 변화는
-   2프레임 연속일 때만 승인하고, 검출 소실 시 이전 라인은 2프레임만 유지한다.
-10. 한쪽 차선의 국소 법선 방향 55~70cm에서 반대편 실제 픽셀을 다시 찾는다.
-    픽셀이 가려진 위치만 승인된 차선 폭으로 보완한다.
-11. 실제 마지막 측정점 이후에는 마지막 진행 방향으로 최대 20cm만 연장한다.
-
-실제로 검출된 반대편 픽셀이 있으면 추정점보다 실제 픽셀을 우선한다. 픽셀이
-없는 부분만 보이는 차선의 접선에 수직인 방향으로 보완하므로 곡선에서도 단순
-Y 이동보다 차선 폭을 잘 유지한다. 낮은 신뢰도의 새 라인은 즉시 승인하지 않고,
-이전 라인도 2프레임을 넘겨 계속 만들지 않는다.
-
-실행하면서 값을 바꾸는 예시는 다음과 같다.
+단독 실행의 `preview_enabled:=true`는 원본 BGR BEV를 표시한다.
+자동주행 launch는 이 창을 끄고 `line_detactor`의 좌우 차선·노란 중앙선 프리뷰를 표시한다.
 
 ```bash
 ros2 launch bev_processor bev_processor.launch.py \
-  lane_observation_maximum_x_m:=1.8 \
-  lane_reconstruction_maximum_x_m:=2.7 \
-  lane_maximum_extrapolation_m:=0.2 \
-  lane_minimum_brightness:=160 \
-  lane_far_minimum_brightness:=110 \
-  lane_minimum_local_contrast:=35 \
-  lane_sliding_window_measurement_weight:=0.90 \
-  lane_expected_width_m:=0.625 \
-  lane_output_line_thickness_m:=0.02 \
-  lane_preview_overlay_alpha:=1.0
+  bev_params_file:=/absolute/path/bev_config_test.yaml \
+  camera_params_file:=/absolute/path/camera_config_test.yaml \
+  publish_enabled:=true \
+  preview_enabled:=true
 ```
 
-시간 연속성과 한쪽 가림 보완을 조절하는 예시는 다음과 같다.
-
-```bash
-ros2 launch bev_processor bev_processor.launch.py \
-  lane_temporal_maximum_lateral_jump_near_m:=0.06 \
-  lane_temporal_maximum_lateral_jump_far_m:=0.12 \
-  lane_temporal_confirmation_frames:=2 \
-  lane_temporal_hold_frames:=2 \
-  lane_correspondence_minimum_width_m:=0.55 \
-  lane_correspondence_maximum_width_m:=0.70
-```
-
-원거리 곡선을 놓치면 far 밝기 임계값과 원거리 윈도우 폭을 다음처럼 조절한다.
-
-```bash
-ros2 launch bev_processor bev_processor.launch.py \
-  lane_far_minimum_brightness:=95 \
-  lane_sliding_window_half_width_far_m:=0.25
-```
-
-다른 밝은 물체를 따라가면 `lane_far_minimum_brightness` 또는
-`lane_minimum_local_contrast`를 높이고 `lane_sliding_window_half_width_far_m`나
-`lane_tracked_mark_width_far_m`를 줄인다. 컬러 물체가 남으면
-`lane_maximum_saturation:=60`처럼 더 엄격하게 설정한다. 실제 차선까지
-끊기면 이 값들을 반대 방향으로 한 단계씩 완화한다.
-
-모든 조절 가능한 차선 인자는 다음 명령으로 확인한다.
-
-```bash
-ros2 launch bev_processor bev_processor.launch.py --show-args
-```
-
-주기 상태 로그의 `lane_compute_ms(avg/max)`는 `reconstruct()`만 측정하므로
-CUDA BEV 변환, ROS 발행, GUI 프리뷰 시간을 포함하지 않는다. Jetson에서 이
-값을 확인하면 차선 검출 단계의 실제 평균·최대 계산 시간을 바로 알 수 있다.
-
-필터 없는 원본 컬러 프리뷰를 보려면 `lane_preview_enabled:=false`, 차선
-재구성을 완전히 끄려면 `lane_reconstruction_enabled:=false`를 사용한다.
-
-## 시작 측정
-
-OAK stereo depth의 설정된 ROI에 RANSAC/PCA 평면을 맞추어 노면 inlier를
-찾는다. 정지 상태의 calibrated accel/gyro 1200개를 400Hz로 측정하고
-400개씩 3개 블록의 중력 방향을 독립 계산한다. roll/pitch는 세 블록의
-중앙 방향을 사용하며, 블록 간 방향 RMS가 기준을 통과해야 한다.
-높이는 45개 depth 평면을 15개씩 3개 블록으로 나눠 블록별 중앙 offset과
-평균 법선을 구한 뒤 중앙값을 사용한다. 전체 프레임 안정성과 블록 간
-높이·법선 반복성 조건을 모두 통과해야 성공한다.
-Pro-series OAK의 IR dot projector는 시작 측정 동안 `1.0`으로 사용한다.
-
-초기 Depth 평면 측정 중에는 `Startup depth ROI` 프리뷰가 잠시 열리고,
-실제 평면 추정에 사용하는 영역을 빨간색 1px 사각형으로 표시한다. 측정이
-끝나면 창은 자동으로 닫힌다. Depth 영상 좌상단이 `(0, 0)`이며 x는
-오른쪽, y는 아래쪽으로 증가한다. ROI 위치는 다음 파라미터로 조절한다.
-
-```yaml
-measurement_roi_width: 456
-measurement_roi_height: 228
-measurement_roi_center_x: -1
-measurement_roi_center_y: -1
-measurement_depth_preview_enabled: true
-measurement_depth_preview_window_name: "Startup depth ROI"
-```
-
-중심 좌표가 `-1`이면 해당 축의 영상 중앙을 자동 사용한다. 예를 들어
-1280x800 Depth에서 ROI를 아래쪽으로 옮기려면
-`measurement_roi_center_y: 500`처럼 지정한다. ROI가 영상 경계를 벗어나면
-측정을 시작하지 않고 파라미터 오류를 출력한다. `q`, `Q`, `Esc`로 프리뷰만
-닫을 수 있으며 Depth 측정은 계속된다. `performance_measurement_enabled`가
-켜졌거나 그래픽 디스플레이가 없으면 시작 프리뷰도 자동으로 꺼진다.
-
-높이를 수동으로 쓰려면 `config/bev_config.yaml`에서 다음과 같이
-설정한다. 높이는 지면에서 카메라 광학 중심까지의 수직 거리다.
-
-```yaml
-manual_camera_height_enabled: true
-manual_camera_height_m: 0.20
-```
-
-수동 모드에서는 stereo depth 파이프라인·IR projector·노면 평면 측정을
-생략한다. 단, roll/pitch를 위한 calibrated IMU 안정화와 bias 보정은
-기존과 동일하게 수행한다. `false`면 위 Origin depth 평면 방식으로
-자동 측정한다. 수동 높이는 `measurement_minimum_height_m`과
-`measurement_maximum_height_m` 범위 내에 있어야 한다.
-
-Stereo는 1280x800, FAST_ACCURACY, LR check(5), confidence threshold 55,
-5-bit subpixel을 사용하며 post-processing filter는 적용하지 않는다.
-RVC2에서 CAM_A RGB 정렬 depth와 동일한 좌표계를 유지하기 위해 disparity
-shift는 0으로 고정한다. Extended disparity도 사용하지 않는다. DepthAI 3.6의
-암묵적 AutoCalibration은 사용자 EEPROM을 변경하지 않도록 명시적으로 끈다.
-
-각 측정 파라미터의 선정 방법과 조정 방향은 `config/bev_config.yaml`의
-한글 주석에 적혀 있다. IMU 장착 bias는
-`measurement_imu_roll_bias_deg`와 `measurement_imu_pitch_bias_deg`로
-보정하며, 평평한 기준면에서 반복 측정한 일정한 편차가 확인되기 전에는
-0을 유지한다.
-
-정상 시작 로그에는 다음 항목이 출력된다.
-
-```text
-[bev_processor] Measuring startup camera height ... roll/pitch ... source ...
-[bev_processor] BEV_STARTUP_MEASUREMENT: height_source=..., attitude_source=..., height=..., roll=..., ...
-[bev_processor] Startup IMU: ...
-[bev_processor] Startup attitude selection: selected=..., ...
-[bev_processor] Startup ground-plane diagnostics: ...
-[bev_processor] BEV LUT installed from IMU attitude + depth-plane offset height: ...
-```
-
-상태 로그의 `extrinsics=startup_measured, fixed_lut=true`는 시작 측정 자세의
-고정 LUT를 사용 중이라는 뜻이다.
+차선 폭, 중앙선 평활화, 코너 바깥 차선 가중치는
+`line_detactor/config/line_detactor.yaml`에서 조정한다. 자동주행에서는
+`line_detactor_params_file:=/absolute/path/line_detactor_test.yaml`로 전달한다.
 
 ## BEV 범위
 
-BEV 범위와 현재 값은 `config/bev_config.yaml`에서 관리한다. 출력 크기는
-다음 식과 일치해야 한다.
+BEV 출력 크기는 다음 식과 일치해야 한다.
 
 ```text
 output_width  = round((y_max_m - y_min_m) / meter_per_pixel)
 output_height = round((x_max_m - x_min_m) / meter_per_pixel)
 ```
 
-## 빌드
+기본 범위는 전방 0~3m, 좌우 -0.6~+0.6m, 1cm/pixel이며 출력은
+120x300이다. `bev_interpolation`은 `bilinear`(기본),
+`bicubic`, `adaptive` 중 하나를 사용한다.
 
-```bash
-source /opt/ros/humble/setup.bash
-colcon build \
-  --packages-select camera_driver bev_processor \
-  --cmake-clean-cache \
-  --cmake-args -DCMAKE_BUILD_TYPE=Release
-source install/setup.bash
+## 시작 측정과 자세 공유
+
+자동 모드는 OAK stereo depth 중앙 ROI의 노면에 RANSAC/PCA 평면을 맞춰
+높이·roll·pitch를 구한다. IMU는 평면 후보 검증과 정지 상태 판정에
+사용한다. 측정에 실패하면 임의 외부 파라미터로 계속하지 않고 노드 시작을
+중단한다.
+
+`measurement_roi_vertical_offset_px`는 영상 중앙을 기준으로 ROI를
+세로로 이동한다. 양수는 아래쪽, 음수는 위쪽이며 기본값 `80`은
+ROI를 80px 아래로 내린다. `measurement_roi_preview_enabled:=true`이면
+시작 depth 측정 동안 회색 depth 영상에 ROI를 1px 빨간색 테두리로
+표시하고, 측정이 끝나면 창을 자동으로 닫는다. 그래픽 화면이 없거나
+`performance_measurement_enabled:=true`인 경우에는 프리뷰를 끄고 측정을
+계속한다.
+
+측정 후 사용한 지면 법선은 `/camera/startup_ground_normal`에
+reliable + transient-local QoS로 한 번 발행한다. `camera_driver`도
+같은 기준을 받아 프레임별 안정화 행렬을 만든다. LUT 생성 후에는 주행 중
+자세 변화에 따라 LUT를 다시 만들지 않으며, 동적 보정 행렬이 CUDA sampling에
+매 프레임 반영된다.
+
+높이를 수동으로 쓰려면 `config/bev_config.yaml`에서 다음 값을
+설정한다.
+
+```yaml
+manual_camera_height_enabled: true
+manual_camera_height_m: 0.20
 ```
 
-차선 재구성 합성 테스트만 실행하려면 다음을 사용한다.
+수동 높이 모드에서도 roll/pitch를 위한 IMU 안정화와 bias 보정은 수행한다.
+카메라 X/Y/yaw는 자동 측정 대상이 아니므로 실제 장착값을 설정해야 한다.
 
-```bash
-colcon test --packages-select bev_processor \
-  --ctest-args -R bev_lane_reconstructor_test --output-on-failure
-```
+사용 파일:
 
-CUDA 컴파일러를 자동으로 찾지 못하면
-`-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc`를 추가한다.
+- launch: `launch/bev_processor.launch.py`
+- BEV 투영·수집 설정: `config/bev_config.yaml`
+- 카메라 설정: `camera_driver/config/camera_config.yaml`
+
+초기 IMU·바닥 평면 측정 구현은 `oak_startup` 공용 패키지로 분리되어 `depth_lidar`도 같은 알고리즘을 사용합니다. BEV의 기존 측정 파라미터와 처리 순서는 유지합니다. 기존 설치에서도 `oak_startup`과 `bev_processor`를 함께 다시 빌드해야 합니다.
+
+## auto_control 장애물 매핑용 기하 공유
+
+`obstacles.share_reference`를 켜면 시작 측정한 장치 ID·카메라 자세·BEV 범위를 같은 프로세스의
+`auto_control::ObstacleDetectorNode`에 공유한다. 바닥 제거/군집 검출은 auto_control 패키지에서
+수행하고 결과는 기존 차선 프리뷰에 합성한다. [통합 실행](../auto_control/AUTO_CONTROL_OBSTACLES.md).

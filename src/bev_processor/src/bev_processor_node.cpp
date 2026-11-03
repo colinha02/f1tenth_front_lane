@@ -7,29 +7,39 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
+#include <filesystem>
+#include <fstream>
 #include <functional>
+#include <iomanip>
 #include <memory>
 #include <mutex>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/joy.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/header.hpp>
 
-#include "camera_driver/msg/deferred_stabilized_nv12.hpp"
-
+#include "bev_handoff/direct_bev_handoff.hpp"
 #include "bev_processor/bev_geometry.hpp"
-#include "bev_processor/bev_lane_reconstructor.hpp"
+#include "bev_handoff/direct_obstacle_handoff.hpp"
 #include "bev_processor/cuda_bev_processor.hpp"
 #include "bev_processor/oak_startup_measurement.hpp"
+#include "camera_driver/msg/bev_input.hpp"
 
 namespace bev_processor
 {
@@ -39,14 +49,7 @@ namespace
 
 using SteadyClock = std::chrono::steady_clock;
 
-struct BevFrame
-{
-  cv::Mat image;
-  cv::Mat lane_mask;
-  std_msgs::msg::Header header;
-  SteadyClock::time_point input_received_at;
-  std::uint64_t generation{0U};
-};
+using BevFrame = bev_handoff::DirectBevFrame;
 
 bool graphicalDisplayAvailable()
 {
@@ -61,85 +64,34 @@ bool graphicalDisplayAvailable()
 #endif
 }
 
-std::unique_ptr<sensor_msgs::msg::Image> makeMono8Message(
-  const BevFrame & frame,
-  const std::string & frame_id)
-{
-  if (frame.lane_mask.type() != CV_8UC1) {
-    throw std::invalid_argument("BEV lane output must be a MONO8 image");
-  }
-
-  auto message = std::make_unique<sensor_msgs::msg::Image>();
-  message->header = frame.header;
-  message->header.frame_id = frame_id;
-  message->height = static_cast<std::uint32_t>(frame.lane_mask.rows);
-  message->width = static_cast<std::uint32_t>(frame.lane_mask.cols);
-  message->encoding = sensor_msgs::image_encodings::MONO8;
-  message->is_bigendian = false;
-  message->step = static_cast<std::uint32_t>(frame.lane_mask.cols);
-  message->data.resize(
-    static_cast<std::size_t>(message->step) *
-    static_cast<std::size_t>(message->height));
-
-  for (int row = 0; row < frame.lane_mask.rows; ++row) {
-    std::memcpy(
-      message->data.data() +
-      static_cast<std::size_t>(row) * message->step,
-      frame.lane_mask.ptr(row),
-      message->step);
-  }
-  return message;
-}
-
 std::unique_ptr<sensor_msgs::msg::Image> makeBgr8Message(
   const BevFrame & frame,
   const std::string & frame_id)
 {
-  if (frame.image.type() != CV_8UC3) {
+  if (frame.bgr.type() != CV_8UC3) {
     throw std::invalid_argument("BEV output must be a BGR8 image");
   }
 
   auto message = std::make_unique<sensor_msgs::msg::Image>();
   message->header = frame.header;
   message->header.frame_id = frame_id;
-  message->height = static_cast<std::uint32_t>(frame.image.rows);
-  message->width = static_cast<std::uint32_t>(frame.image.cols);
+  message->height = static_cast<std::uint32_t>(frame.bgr.rows);
+  message->width = static_cast<std::uint32_t>(frame.bgr.cols);
   message->encoding = sensor_msgs::image_encodings::BGR8;
   message->is_bigendian = false;
-  message->step = static_cast<std::uint32_t>(frame.image.cols * 3);
+  message->step = static_cast<std::uint32_t>(frame.bgr.cols * 3);
   message->data.resize(
     static_cast<std::size_t>(message->step) *
     static_cast<std::size_t>(message->height));
 
-  for (int row = 0; row < frame.image.rows; ++row) {
+  for (int row = 0; row < frame.bgr.rows; ++row) {
     std::memcpy(
       message->data.data() +
       static_cast<std::size_t>(row) * message->step,
-      frame.image.ptr(row),
+      frame.bgr.ptr(row),
       message->step);
   }
   return message;
-}
-
-cv::Mat makeLaneOverlayPreview(
-  const cv::Mat & bev_bgr,
-  const cv::Mat & lane_mask,
-  const double alpha)
-{
-  if (
-    bev_bgr.type() != CV_8UC3 || lane_mask.type() != CV_8UC1 ||
-    bev_bgr.size() != lane_mask.size())
-  {
-    throw std::invalid_argument(
-            "lane preview overlay expects matching BGR8 and MONO8 images");
-  }
-  cv::Mat highlighted = bev_bgr.clone();
-  // OpenCV uses BGR, so (0, 0, 255) renders the detected lane in red.
-  highlighted.setTo(cv::Scalar(0, 0, 255), lane_mask);
-  cv::Mat blended;
-  cv::addWeighted(
-    highlighted, alpha, bev_bgr, 1.0 - alpha, 0.0, blended);
-  return blended;
 }
 
 }  // namespace
@@ -153,16 +105,23 @@ public:
     declareParameters();
     readParameters();
     validateParameters();
-    if (lane_reconstruction_enabled_) {
-      lane_reconstructor_ = std::make_unique<BevLaneReconstructor>(
-        lane_reconstructor_config_);
-    }
+    initializeInputCropGeometry();
 
     if (performance_measurement_enabled_) {
+      startup_measurement_config_.roi_preview_enabled = false;
       RCLCPP_INFO(
         get_logger(),
         "Performance measurement mode enabled: all GUI previews are off; "
         "stabilized-input and BEV-ready pipeline metrics will be reported.");
+    } else if (
+      startup_measurement_config_.roi_preview_enabled &&
+      !graphicalDisplayAvailable())
+    {
+      startup_measurement_config_.roi_preview_enabled = false;
+      RCLCPP_WARN(
+        get_logger(),
+        "Startup measurement ROI preview disabled because "
+        "DISPLAY/WAYLAND_DISPLAY is unavailable.");
     }
 
     if (startup_measurement_config_.manual_camera_height_enabled) {
@@ -173,57 +132,44 @@ public:
         startup_measurement_config_.manual_camera_height_m);
       RCLCPP_INFO(
         get_logger(),
-        "Measurement quality: warmup=%.1fs, IMU=%d samples/%d blocks, "
+        "Measurement quality: warmup=%.1fs, IMU=%d samples, "
         "depth/IR ground-plane measurement=disabled, attitude=imu.",
         startup_measurement_config_.warmup_sec,
-        startup_measurement_config_.imu_sample_count,
-        startup_measurement_config_.imu_block_count);
+        startup_measurement_config_.imu_sample_count);
     } else {
-      const int measurement_roi_center_x =
-        startup_measurement_config_.roi_center_x < 0 ?
-        startup_measurement_config_.stereo_width / 2 :
-        startup_measurement_config_.roi_center_x;
-      const int measurement_roi_center_y =
-        startup_measurement_config_.roi_center_y < 0 ?
-        startup_measurement_config_.stereo_height / 2 :
-        startup_measurement_config_.roi_center_y;
       RCLCPP_INFO(
         get_logger(),
         "Measuring startup camera height from the OAK stereo ground plane "
         "and roll/pitch from the configured '%s' source. "
-        "Keep the vehicle stationary and the configured ROI on flat ground.",
+        "Keep the vehicle stationary and the center view on flat ground.",
         startupAttitudeSourceName(startup_measurement_config_.attitude_source));
       RCLCPP_INFO(
         get_logger(),
-        "Measurement quality: warmup=%.1fs, IR-dot=%.2f, "
-        "IMU=%d samples/%d blocks, "
+        "Measurement quality: warmup=%.1fs, IR-dot=%.2f, IMU=%d samples, "
         "stereo=%dx%d@%.1fHz/5-bit-subpixel/shift=%d, "
-        "depth ROI=%dx%d center=(%d,%d) step=%d "
-        "(%d valid points minimum), preview=%s, "
-        "RANSAC=%d iterations, stable planes=%d frames/%d blocks, "
-        "attitude=%s.",
+        "depth ROI=%dx%d offset_y=%+dpx preview=%s step=%d "
+        "(%d valid points minimum), "
+        "RANSAC=%d iterations, stable planes=%d frames, attitude=%s.",
         startup_measurement_config_.warmup_sec,
         startup_measurement_config_.ir_dot_projector_intensity,
         startup_measurement_config_.imu_sample_count,
-        startup_measurement_config_.imu_block_count,
         startup_measurement_config_.stereo_width,
         startup_measurement_config_.stereo_height,
         startup_measurement_config_.stereo_fps,
         startup_measurement_config_.stereo_disparity_shift,
         startup_measurement_config_.roi_width,
         startup_measurement_config_.roi_height,
-        measurement_roi_center_x,
-        measurement_roi_center_y,
+        startup_measurement_config_.roi_vertical_offset_px,
+        startup_measurement_config_.roi_preview_enabled ? "on" : "off",
         startup_measurement_config_.point_sample_step,
         startup_measurement_config_.minimum_valid_points,
-        startup_measurement_config_.depth_preview_enabled ? "on" : "off",
         startup_measurement_config_.plane_ransac_iterations,
         startup_measurement_config_.stable_plane_frame_count,
-        startup_measurement_config_.plane_block_count,
         startupAttitudeSourceName(startup_measurement_config_.attitude_source));
     }
     const auto measurement =
       measureOakStartupExtrinsics(startup_measurement_config_);
+    const bool share_obstacle_reference=get_parameter("obstacles.share_reference").as_bool();
     camera_model_.position_vehicle_m[2] = measurement.height_m;
     startup_roll_deg_ = measurement.roll_deg;
     startup_pitch_down_deg_ = measurement.pitch_down_deg;
@@ -232,8 +178,7 @@ public:
       "BEV_STARTUP_MEASUREMENT: height_source=%s, attitude_source=%s, "
       "height=%.4fm, roll=%.3fdeg, "
       "pitch=%.3fdeg, downward_pitch=%.3fdeg, "
-      "frame_height_stddev=%.4fm, frame_plane_RMS=%.3fdeg, "
-      "block_height_stddev=%.4fm, block_plane_RMS=%.3fdeg",
+      "height_stddev=%.4fm, plane_normal_RMS=%.3fdeg",
       measurement.height_source.c_str(),
       measurement.attitude_source.c_str(),
       measurement.height_m,
@@ -241,38 +186,19 @@ public:
       -measurement.pitch_down_deg,
       measurement.pitch_down_deg,
       measurement.height_stddev_m,
-      measurement.plane_normal_rms_deg,
-      measurement.plane_block_height_stddev_m,
-      measurement.plane_block_normal_rms_deg);
+      measurement.plane_normal_rms_deg);
     RCLCPP_INFO(
       get_logger(),
       "Startup IMU: measured=(roll=%.3f,pitch_down=%.3fdeg), "
       "corrected=(roll=%.3f,pitch_down=%.3fdeg), "
-      "sample_RMS=%.3fdeg, block_RMS=%.3fdeg, "
-      "gyro_mean/stddev=%.3f/%.3fdegps",
+      "direction_RMS=%.3fdeg, gyro_mean/stddev=%.3f/%.3fdegps",
       measurement.imu_roll_deg,
       measurement.imu_pitch_down_deg,
       measurement.corrected_imu_roll_deg,
       measurement.corrected_imu_pitch_down_deg,
       measurement.imu_direction_rms_deg,
-      measurement.imu_block_normal_rms_deg,
       measurement.imu_gyroscope_mean_degps,
       measurement.imu_gyroscope_stddev_degps);
-    for (
-      std::size_t index = 0U;
-      index < measurement.imu_block_roll_deg.size() &&
-      index < measurement.imu_block_pitch_down_deg.size();
-      ++index)
-    {
-      RCLCPP_INFO(
-        get_logger(),
-        "Startup repeat IMU block %zu/%zu: "
-        "corrected_roll=%.3fdeg, corrected_pitch_down=%.3fdeg",
-        index + 1U,
-        measurement.imu_block_roll_deg.size(),
-        measurement.imu_block_roll_deg[index],
-        measurement.imu_block_pitch_down_deg[index]);
-    }
     if (!startup_measurement_config_.manual_camera_height_enabled) {
       RCLCPP_INFO(
         get_logger(),
@@ -294,23 +220,6 @@ public:
         measurement.plane_inlier_count,
         100.0 * measurement.plane_inlier_ratio,
         measurement.plane_residual_mad_m);
-      for (
-        std::size_t index = 0U;
-        index < measurement.depth_block_height_m.size() &&
-        index < measurement.depth_block_roll_deg.size() &&
-        index < measurement.depth_block_pitch_down_deg.size();
-        ++index)
-      {
-        RCLCPP_INFO(
-          get_logger(),
-          "Startup repeat Depth block %zu/%zu: "
-          "height=%.4fm, roll=%.3fdeg, pitch_down=%.3fdeg",
-          index + 1U,
-          measurement.depth_block_height_m.size(),
-          measurement.depth_block_height_m[index],
-          measurement.depth_block_roll_deg[index],
-          measurement.depth_block_pitch_down_deg[index]);
-      }
     }
     installProcessor(
       startup_roll_deg_,
@@ -321,47 +230,78 @@ public:
       "depth-plane attitude + depth-plane offset height" :
       "IMU attitude + depth-plane offset height");
 
-    const auto image_qos = rclcpp::SensorDataQoS().keep_last(1);
-    if (deferred_stabilization_enabled_) {
-      deferred_input_subscription_ = create_subscription<
-        camera_driver::msg::DeferredStabilizedNv12>(
-        input_topic_,
-        image_qos,
-        [this](
-          camera_driver::msg::DeferredStabilizedNv12::ConstSharedPtr message)
-        {
-          onDeferredImage(std::move(message));
-        });
-    } else {
-      input_subscription_ = create_subscription<sensor_msgs::msg::Image>(
-        input_topic_,
-        image_qos,
-        [this](sensor_msgs::msg::Image::ConstSharedPtr message) {
-          onImage(std::move(message), cv::Matx33d::eye());
-        });
+    if (share_obstacle_reference) {
+      auto reference=std::make_shared<bev_handoff::ObstacleReference>();
+      reference->device_id=measurement.device_id; reference->frame_id=output_frame_id_;
+      reference->input_topic=input_topic_; reference->settle_sec=stabilization_settle_sec_;
+      reference->rotation_vehicle_from_camera=mountRotationVehicleFromCamera(
+        degToRad(startup_roll_deg_),degToRad(startup_pitch_down_deg_),degToRad(camera_yaw_deg_));
+      reference->position_vehicle_m=camera_model_.position_vehicle_m;
+      reference->fx=camera_model_.fx; reference->fy=camera_model_.fy;
+      reference->cx=camera_model_.cx; reference->cy=camera_model_.cy;
+      reference->source_width=camera_model_.image_width; reference->source_height=camera_model_.image_height;
+      reference->x_min=bev_config_.x_min_m; reference->x_max=bev_config_.x_max_m;
+      reference->y_min=bev_config_.y_min_m; reference->y_max=bev_config_.y_max_m;
+      reference->meter_per_pixel=bev_config_.meter_per_pixel;
+      reference->width=bev_config_.output_width; reference->height=bev_config_.output_height;
+      bev_handoff::publishObstacleReference(std::move(reference));
     }
+
+    auto reference_qos = rclcpp::QoS(rclcpp::KeepLast(1));
+    reference_qos.reliable().transient_local();
+    // Humble's intra-process path cannot provide transient-local durability
+    // to the camera driver that is loaded after this one-shot publication.
+    rclcpp::PublisherOptions reference_publisher_options;
+    reference_publisher_options.use_intra_process_comm =
+      rclcpp::IntraProcessSetting::Disable;
+    startup_ground_reference_publisher_ =
+      create_publisher<geometry_msgs::msg::Vector3Stamped>(
+      startup_ground_reference_topic_, reference_qos,
+      reference_publisher_options);
+    publishStartupGroundReference(measurement.attitude_source);
+
+    const auto image_qos = rclcpp::SensorDataQoS().keep_last(1);
+    input_subscription_ = create_subscription<camera_driver::msg::BevInput>(
+      input_topic_,
+      image_qos,
+      [this](camera_driver::msg::BevInput::ConstSharedPtr message) {
+        onBevInput(std::move(message));
+      });
     if (publish_enabled_) {
       output_publisher_ = create_publisher<sensor_msgs::msg::Image>(
         output_topic_, image_qos);
     }
-    if (lane_reconstruction_enabled_) {
-      lane_output_publisher_ = create_publisher<sensor_msgs::msg::Image>(
-        lane_output_topic_, image_qos);
-    }
+    preview_stop_publisher_ = create_publisher<std_msgs::msg::Bool>(
+      preview_stop_topic_, rclcpp::QoS(rclcpp::KeepLast(1)).reliable());
+    capture_joy_subscription_ = create_subscription<sensor_msgs::msg::Joy>(
+      capture_joy_topic_,
+      rclcpp::SensorDataQoS().keep_last(1),
+      [this](sensor_msgs::msg::Joy::ConstSharedPtr message) {
+        onCaptureJoy(std::move(message));
+      });
 
+    if (preview_enabled_ && !graphicalDisplayAvailable()) {
+      preview_enabled_ = false;
+      RCLCPP_WARN(
+        get_logger(),
+        "Preview disabled because DISPLAY/WAYLAND_DISPLAY is unavailable.");
+    }
+    if (
+      dataset_collection_enabled_ ||
+      dataset_collection_manual_capture_mode_)
+    {
+      initializeDatasetCollection();
+    }
     processing_thread_ = std::thread(&BevProcessorNode::processingLoop, this);
-    if (publish_enabled_ || lane_reconstruction_enabled_) {
+    if (publish_enabled_) {
       publishing_thread_ = std::thread(&BevProcessorNode::publishingLoop, this);
     }
     if (preview_enabled_) {
-      if (graphicalDisplayAvailable()) {
-        preview_thread_ = std::thread(&BevProcessorNode::previewLoop, this);
-      } else {
-        preview_enabled_ = false;
-        RCLCPP_WARN(
-          get_logger(),
-          "Preview disabled because DISPLAY/WAYLAND_DISPLAY is unavailable.");
-      }
+      preview_thread_ = std::thread(&BevProcessorNode::previewLoop, this);
+    }
+    if (dataset_collection_enabled_) {
+      dataset_collection_thread_ = std::thread(
+        &BevProcessorNode::datasetCollectionLoop, this);
     }
 
     status_started_at_ = SteadyClock::now();
@@ -376,16 +316,21 @@ public:
     RCLCPP_INFO(
       get_logger(),
       "BEV processor started: input=%s "
-      "(%dx%d NV12, expected=%.1fHz), "
+      "(%dx%d bottom crop of %dx%d, top=%dpx, expected=%.1fHz), "
       "output=%s (%dx%d), "
       "range X=[%.2f, %.2f]m Y=[%.2f, %.2f]m, %.3fm/px, "
       "camera=(x=%.3f, y=%.3f, z=%.3fm, "
       "roll=%.2f, pitch_down=%.2f, yaw=%.2fdeg), "
-      "valid_lut=%.2f%%, GPU=%s, processing=%s/bottom-%.0f%%/latest-only, "
-      "ROS=%s (max=%.1fHz, 0=unlimited), preview=%s (max=%.1fHz)",
+      "valid_lut=%.2f%%, GPU=%s, interpolation=%s, "
+      "processing=NV12-to-BEV/latest-only, "
+      "direct=%s (host_copy=%s), ROS=%s (max=%.1fHz, 0=unlimited), "
+      "preview=%s (max=%.1fHz)",
       input_topic_.c_str(),
+      input_crop_width_,
+      input_crop_height_,
       camera_model_.image_width,
       camera_model_.image_height,
+      input_crop_top_,
       expected_input_fps_,
       output_topic_.c_str(),
       bev_config_.output_width,
@@ -403,59 +348,19 @@ public:
       camera_yaw_deg_,
       valid_lut_percent_.load(std::memory_order_relaxed),
       startup_processor->deviceName().c_str(),
-      deferred_stabilization_enabled_ ?
-      "deferred-stabilization+NV12-to-BEV" : "NV12-to-BEV",
-      100.0 * stabilized_bottom_roi_ratio_,
+      bev_interpolation_.c_str(),
+      direct_output_enabled_ ? "on" : "off",
+      direct_host_copy_enabled_ ? "on" : "off",
       publish_enabled_ ? "on" : "off",
       publish_max_fps_,
       preview_enabled_ ? "on" : "off",
       preview_max_fps_);
-    if (lane_reconstruction_enabled_) {
-      RCLCPP_INFO(
-        get_logger(),
-        "BEV lane reconstruction: output=%s mono8, "
-        "seed/trusted X=[%.2f, %.2f]m, track to %.2fm, "
-        "maximum extrapolation=%.2fm, brightness near/far=%d/%d, "
-        "window near/far=%.2f/%.2fm, pixel weight=%.2f, "
-        "expected width=%.3fm, line=%.3fm",
-        lane_output_topic_.c_str(),
-        lane_reconstructor_config_.observation_minimum_x_m,
-        lane_reconstructor_config_.observation_maximum_x_m,
-        lane_reconstructor_config_.reconstruction_maximum_x_m,
-        lane_reconstructor_config_.maximum_extrapolation_m,
-        lane_reconstructor_config_.minimum_brightness,
-        lane_reconstructor_config_.far_minimum_brightness,
-        lane_reconstructor_config_.sliding_window_half_width_near_m,
-        lane_reconstructor_config_.sliding_window_half_width_far_m,
-        lane_reconstructor_config_.sliding_window_measurement_weight,
-        lane_reconstructor_config_.expected_lane_width_m,
-        lane_reconstructor_config_.output_line_thickness_m);
-      RCLCPP_INFO(
-        get_logger(),
-        "BEV lane appearance gate: saturation<=%d, local contrast>=%d, "
-        "background<=%d, tracked width near/far=%.2f/%.2fm, "
-        "preview overlay=%s alpha=%.2f",
-        lane_reconstructor_config_.maximum_saturation,
-        lane_reconstructor_config_.minimum_local_contrast,
-        lane_reconstructor_config_.maximum_local_background_brightness,
-        lane_reconstructor_config_.tracked_lane_mark_width_near_m,
-        lane_reconstructor_config_.tracked_lane_mark_width_far_m,
-        lane_preview_enabled_ ? "on" : "off",
-        lane_preview_overlay_alpha_);
-      RCLCPP_INFO(
-        get_logger(),
-        "BEV lane continuity: temporal=%s, lateral jump near/far="
-        "%.2f/%.2fm, heading jump=%.1fdeg, confirm/hold=%d/%d frames, "
-        "normal correspondence=%.2f..%.2fm",
-        lane_reconstructor_config_.temporal_tracking_enabled ? "on" : "off",
-        lane_reconstructor_config_.temporal_maximum_lateral_jump_near_m,
-        lane_reconstructor_config_.temporal_maximum_lateral_jump_far_m,
-        lane_reconstructor_config_.temporal_maximum_heading_jump_deg,
-        lane_reconstructor_config_.temporal_confirmation_frames,
-        lane_reconstructor_config_.temporal_hold_frames,
-        lane_reconstructor_config_.correspondence_minimum_width_m,
-        lane_reconstructor_config_.correspondence_maximum_width_m);
-    }
+    RCLCPP_INFO(
+      get_logger(),
+      "BEV capture: directory=%s, joy=%s button=%d (B), keyboard=B.",
+      capture_directory_.c_str(),
+      capture_joy_topic_.c_str(),
+      capture_joy_button_);
     RCLCPP_INFO(
       get_logger(),
       "Startup extrinsics: height_source=%s, "
@@ -490,6 +395,9 @@ public:
     if (preview_thread_.joinable()) {
       preview_thread_.join();
     }
+    if (dataset_collection_thread_.joinable()) {
+      dataset_collection_thread_.join();
+    }
   }
 
 private:
@@ -498,31 +406,52 @@ private:
     // A missing or node-name-mismatched YAML must not fall back silently to
     // C++ defaults because the measured pose and BEV bounds are safety-critical.
     declare_parameter<int>("configuration_version", 0);
+    rcl_interfaces::msg::ParameterDescriptor obstacle_descriptor;
+    obstacle_descriptor.read_only=true;
+    declare_parameter<bool>("obstacles.share_reference",false,obstacle_descriptor);
     declare_parameter<bool>("performance_measurement_enabled", false);
 
-    declare_parameter<std::string>("input_topic", "/camera/image_rect");
-    declare_parameter<bool>("deferred_stabilization_enabled", false);
-    declare_parameter<double>("stabilized_bottom_roi_ratio", 1.0);
+    declare_parameter<std::string>("input_topic", "/camera/bev_input");
     declare_parameter<std::string>("output_topic", "/camera/image_bev");
     declare_parameter<std::string>("output_frame_id", "front_axle_bev");
-    declare_parameter<double>("expected_input_fps", 110.0);
+    declare_parameter<std::string>(
+      "startup_ground_reference_topic", "/camera/startup_ground_normal");
+    declare_parameter<std::string>(
+      "startup_ground_reference_frame_id", "camera_optical_frame");
+    declare_parameter<double>("expected_input_fps", 80.0);
+    declare_parameter<double>("input_bottom_fraction", 0.70);
 
     declare_parameter<bool>("publish_enabled", true);
+    declare_parameter<bool>("direct_output_enabled", false);
+    declare_parameter<bool>("direct_host_copy_enabled", false);
     declare_parameter<double>("publish_max_fps", 0.0);
     declare_parameter<bool>("preview_enabled", true);
-    declare_parameter<double>("preview_max_fps", 30.0);
+    declare_parameter<double>("preview_max_fps", 60.0);
     declare_parameter<std::string>("preview_window_name", "BEV image");
+    declare_parameter<std::string>("preview_stop_topic", "/auto/enabled");
     declare_parameter<int>("preview_max_width", 1280);
-    declare_parameter<int>("preview_max_height", 720);
+    declare_parameter<int>("preview_max_height", 800);
+    declare_parameter<std::string>("capture_directory", ".");
+    declare_parameter<std::string>("capture_joy_topic", "/joy");
+    declare_parameter<int>("capture_joy_button", 1);
+    declare_parameter<bool>("dataset_collection_enabled", false);
+    declare_parameter<bool>(
+      "dataset_collection_manual_capture_mode", false);
+    declare_parameter<int>("dataset_collection_manual_capture_button", 0);
+    declare_parameter<std::string>(
+      "dataset_collection_root_directory", "datasets");
+    declare_parameter<double>("dataset_collection_fps", 10.0);
+    declare_parameter<int>("dataset_collection_target_count", 1000);
+    declare_parameter<bool>("dataset_collection_stop_auto_on_complete", true);
 
     declare_parameter<int>("input_width", 1280);
-    declare_parameter<int>("input_height", 720);
+    declare_parameter<int>("input_height", 800);
     declare_parameter<double>("fx", 701.751174926);
     declare_parameter<double>("fy", 701.420440674);
     declare_parameter<double>("cx", 643.032653809);
-    declare_parameter<double>("cy", 352.621124268);
+    declare_parameter<double>("cy", 392.621124268);
 
-    declare_parameter<double>("camera_x_m", 0.0);
+    declare_parameter<double>("camera_x_m", -0.05);
     declare_parameter<double>("camera_y_m", 0.0);
     declare_parameter<double>("camera_yaw_deg", 0.0);
 
@@ -545,12 +474,8 @@ private:
     declare_parameter<double>("manual_camera_height_m", 0.20);
     declare_parameter<int>("measurement_roi_width", 456);
     declare_parameter<int>("measurement_roi_height", 228);
-    // -1 keeps the ROI centered in the corresponding stereo dimension.
-    declare_parameter<int>("measurement_roi_center_x", -1);
-    declare_parameter<int>("measurement_roi_center_y", -1);
-    declare_parameter<bool>("measurement_depth_preview_enabled", true);
-    declare_parameter<std::string>(
-      "measurement_depth_preview_window_name", "Startup depth ROI");
+    declare_parameter<int>("measurement_roi_vertical_offset_px", 80);
+    declare_parameter<bool>("measurement_roi_preview_enabled", true);
     declare_parameter<int>("measurement_point_sample_step", 2);
     declare_parameter<int>("measurement_minimum_valid_points", 5080);
     declare_parameter<double>("measurement_minimum_depth_m", 0.30);
@@ -567,15 +492,12 @@ private:
       "measurement_plane_maximum_residual_mad_m", 0.005);
     declare_parameter<double>(
       "measurement_plane_maximum_imu_difference_deg", 5.0);
-    declare_parameter<std::string>("measurement_attitude_source", "imu");
+    declare_parameter<std::string>("measurement_attitude_source", "depth");
     declare_parameter<double>("measurement_imu_roll_bias_deg", 0.0);
     declare_parameter<double>("measurement_imu_pitch_bias_deg", 0.0);
     declare_parameter<int>("measurement_imu_sample_count", 1200);
-    declare_parameter<int>("measurement_imu_block_count", 3);
     declare_parameter<double>(
       "measurement_imu_max_direction_rms_deg", 0.50);
-    declare_parameter<double>(
-      "measurement_imu_maximum_block_normal_rms_deg", 0.15);
     declare_parameter<double>("measurement_imu_accel_min_mps2", 8.30);
     declare_parameter<double>("measurement_imu_accel_max_mps2", 11.30);
     declare_parameter<double>(
@@ -583,14 +505,9 @@ private:
     declare_parameter<double>(
       "measurement_imu_gyroscope_stddev_maximum_degps", 1.40);
     declare_parameter<int>("measurement_stable_plane_frame_count", 45);
-    declare_parameter<int>("measurement_plane_block_count", 3);
     declare_parameter<double>("measurement_maximum_height_stddev_m", 0.003);
     declare_parameter<double>(
       "measurement_maximum_plane_normal_rms_deg", 0.25);
-    declare_parameter<double>(
-      "measurement_maximum_plane_block_height_stddev_m", 0.0015);
-    declare_parameter<double>(
-      "measurement_maximum_plane_block_normal_rms_deg", 0.10);
     declare_parameter<double>("measurement_timeout_sec", 45.0);
 
     declare_parameter<double>("x_min_m", 0.0);
@@ -600,74 +517,14 @@ private:
     declare_parameter<double>("meter_per_pixel", 0.01);
     declare_parameter<int>("output_width", 120);
     declare_parameter<int>("output_height", 300);
-
-    // Bright-lane reconstruction is intentionally independent from the CUDA
-    // warp. The raw color BEV remains available on output_topic while this
-    // stage publishes a clean MONO8 lane-only image on lane_output_topic.
-    declare_parameter<bool>("lane_reconstruction_enabled", true);
-    declare_parameter<std::string>(
-      "lane_output_topic", "/camera/image_bev_lane");
-    declare_parameter<bool>("lane_preview_enabled", true);
-    declare_parameter<double>("lane_preview_overlay_alpha", 1.0);
-    declare_parameter<int>("lane_minimum_brightness", 160);
-    declare_parameter<int>("lane_far_minimum_brightness", 110);
-    declare_parameter<int>("lane_maximum_saturation", 80);
-    declare_parameter<int>("lane_brightness_blur_kernel", 1);
-    declare_parameter<double>("lane_vertical_close_m", 0.05);
-    declare_parameter<double>("lane_minimum_mark_width_m", 0.01);
-    declare_parameter<double>("lane_maximum_mark_width_m", 0.08);
-    declare_parameter<int>("lane_minimum_local_contrast", 35);
-    declare_parameter<int>(
-      "lane_maximum_local_background_brightness", 140);
-    declare_parameter<double>("lane_local_background_band_m", 0.05);
-    declare_parameter<double>(
-      "lane_tracked_mark_width_near_m", 0.11);
-    declare_parameter<double>(
-      "lane_tracked_mark_width_far_m", 0.20);
-    declare_parameter<double>(
-      "lane_measurement_lateral_gate_near_m", 0.08);
-    declare_parameter<double>(
-      "lane_measurement_lateral_gate_far_m", 0.18);
-    declare_parameter<int>("lane_row_step_px", 2);
-    declare_parameter<double>("lane_observation_minimum_x_m", 0.20);
-    declare_parameter<double>("lane_observation_maximum_x_m", 1.80);
-    declare_parameter<double>("lane_reconstruction_minimum_x_m", 0.20);
-    declare_parameter<double>("lane_reconstruction_maximum_x_m", 2.70);
-    declare_parameter<double>("lane_maximum_extrapolation_m", 0.20);
-    declare_parameter<double>("lane_sliding_window_step_m", 0.06);
-    declare_parameter<double>("lane_sliding_window_length_m", 0.18);
-    declare_parameter<double>("lane_sliding_window_half_width_near_m", 0.12);
-    declare_parameter<double>("lane_sliding_window_half_width_far_m", 0.22);
-    declare_parameter<double>("lane_sliding_window_measurement_weight", 0.90);
-    declare_parameter<double>("lane_sliding_window_heading_weight", 0.80);
-    declare_parameter<double>("lane_maximum_tracking_arc_length_m", 3.20);
-    declare_parameter<double>("lane_maximum_gap_fill_m", 0.26);
-    declare_parameter<double>("lane_measured_point_smoothing_weight", 0.85);
-    declare_parameter<int>("lane_minimum_window_pixel_count", 6);
-    declare_parameter<double>("lane_expected_width_m", 0.625);
-    declare_parameter<double>("lane_width_tolerance_m", 0.075);
-    declare_parameter<double>("lane_initial_center_tolerance_m", 0.30);
-    declare_parameter<double>("lane_single_initial_tolerance_m", 0.20);
-    declare_parameter<double>("lane_maximum_tracking_gap_m", 0.20);
-    declare_parameter<int>("lane_minimum_points", 5);
-    declare_parameter<bool>("lane_allow_single_lane", true);
-    declare_parameter<double>(
-      "lane_correspondence_minimum_width_m", 0.55);
-    declare_parameter<double>(
-      "lane_correspondence_maximum_width_m", 0.70);
-    declare_parameter<double>(
-      "lane_correspondence_longitudinal_tolerance_m", 0.10);
-    declare_parameter<bool>("lane_infer_partially_missing_lane", true);
-    declare_parameter<bool>("lane_temporal_tracking_enabled", true);
-    declare_parameter<double>(
-      "lane_temporal_maximum_lateral_jump_near_m", 0.06);
-    declare_parameter<double>(
-      "lane_temporal_maximum_lateral_jump_far_m", 0.12);
-    declare_parameter<double>(
-      "lane_temporal_maximum_heading_jump_deg", 15.0);
-    declare_parameter<int>("lane_temporal_confirmation_frames", 2);
-    declare_parameter<int>("lane_temporal_hold_frames", 2);
-    declare_parameter<double>("lane_output_line_thickness_m", 0.02);
+    declare_parameter<std::string>("bev_interpolation", "bilinear");
+    declare_parameter<double>("edge_adaptive_start_x_m", 1.20);
+    declare_parameter<double>("edge_adaptive_full_x_m", 2.00);
+    declare_parameter<double>("edge_adaptive_strength", 0.75);
+    declare_parameter<double>("edge_gradient_low", 8.0);
+    declare_parameter<double>("edge_gradient_high", 32.0);
+    declare_parameter<double>("edge_coherence_minimum", 0.30);
+    declare_parameter<double>("edge_maximum_anisotropy", 3.0);
 
     declare_parameter<double>("status_log_interval_sec", 5.0);
     declare_parameter<double>("startup_timeout_sec", 12.0);
@@ -682,23 +539,48 @@ private:
       get_parameter("performance_measurement_enabled").as_bool();
 
     input_topic_ = get_parameter("input_topic").as_string();
-    deferred_stabilization_enabled_ =
-      get_parameter("deferred_stabilization_enabled").as_bool();
-    stabilized_bottom_roi_ratio_ =
-      get_parameter("stabilized_bottom_roi_ratio").as_double();
     output_topic_ = get_parameter("output_topic").as_string();
     output_frame_id_ = get_parameter("output_frame_id").as_string();
+    startup_ground_reference_topic_ =
+      get_parameter("startup_ground_reference_topic").as_string();
+    startup_ground_reference_frame_id_ =
+      get_parameter("startup_ground_reference_frame_id").as_string();
     expected_input_fps_ = get_parameter("expected_input_fps").as_double();
+    input_bottom_fraction_ =
+      get_parameter("input_bottom_fraction").as_double();
 
     publish_enabled_ = get_parameter("publish_enabled").as_bool();
+    direct_output_enabled_ =
+      get_parameter("direct_output_enabled").as_bool();
+    direct_host_copy_enabled_ =
+      get_parameter("direct_host_copy_enabled").as_bool();
     publish_max_fps_ = get_parameter("publish_max_fps").as_double();
     preview_enabled_ = get_parameter("preview_enabled").as_bool();
     preview_max_fps_ = get_parameter("preview_max_fps").as_double();
     preview_window_name_ = get_parameter("preview_window_name").as_string();
+    preview_stop_topic_ = get_parameter("preview_stop_topic").as_string();
     preview_max_width_ =
       static_cast<int>(get_parameter("preview_max_width").as_int());
     preview_max_height_ =
       static_cast<int>(get_parameter("preview_max_height").as_int());
+    capture_directory_ = get_parameter("capture_directory").as_string();
+    capture_joy_topic_ = get_parameter("capture_joy_topic").as_string();
+    capture_joy_button_ =
+      static_cast<int>(get_parameter("capture_joy_button").as_int());
+    dataset_collection_enabled_ =
+      get_parameter("dataset_collection_enabled").as_bool();
+    dataset_collection_manual_capture_mode_ =
+      get_parameter("dataset_collection_manual_capture_mode").as_bool();
+    dataset_collection_manual_capture_button_ = static_cast<int>(
+      get_parameter("dataset_collection_manual_capture_button").as_int());
+    dataset_collection_root_directory_ =
+      get_parameter("dataset_collection_root_directory").as_string();
+    dataset_collection_fps_ =
+      get_parameter("dataset_collection_fps").as_double();
+    dataset_collection_target_count_ =
+      get_parameter("dataset_collection_target_count").as_int();
+    dataset_collection_stop_auto_on_complete_ =
+      get_parameter("dataset_collection_stop_auto_on_complete").as_bool();
     if (performance_measurement_enabled_) {
       preview_enabled_ = false;
     }
@@ -763,20 +645,10 @@ private:
       get_parameter("measurement_roi_width").as_int());
     startup_measurement_config_.roi_height = static_cast<int>(
       get_parameter("measurement_roi_height").as_int());
-    startup_measurement_config_.roi_center_x = static_cast<int>(
-      get_parameter("measurement_roi_center_x").as_int());
-    startup_measurement_config_.roi_center_y = static_cast<int>(
-      get_parameter("measurement_roi_center_y").as_int());
-    startup_measurement_config_.depth_preview_enabled =
-      get_parameter("measurement_depth_preview_enabled").as_bool();
-    startup_measurement_config_.depth_preview_window_name =
-      get_parameter("measurement_depth_preview_window_name").as_string();
-    if (
-      performance_measurement_enabled_ ||
-      !graphicalDisplayAvailable())
-    {
-      startup_measurement_config_.depth_preview_enabled = false;
-    }
+    startup_measurement_config_.roi_vertical_offset_px = static_cast<int>(
+      get_parameter("measurement_roi_vertical_offset_px").as_int());
+    startup_measurement_config_.roi_preview_enabled =
+      get_parameter("measurement_roi_preview_enabled").as_bool();
     startup_measurement_config_.point_sample_step = static_cast<int>(
       get_parameter("measurement_point_sample_step").as_int());
     startup_measurement_config_.minimum_valid_points = static_cast<int>(
@@ -812,14 +684,9 @@ private:
       get_parameter("measurement_imu_pitch_bias_deg").as_double();
     startup_measurement_config_.imu_sample_count = static_cast<int>(
       get_parameter("measurement_imu_sample_count").as_int());
-    startup_measurement_config_.imu_block_count = static_cast<int>(
-      get_parameter("measurement_imu_block_count").as_int());
     startup_measurement_config_.imu_max_direction_rms_deg =
       get_parameter(
       "measurement_imu_max_direction_rms_deg").as_double();
-    startup_measurement_config_.imu_maximum_block_normal_rms_deg =
-      get_parameter(
-      "measurement_imu_maximum_block_normal_rms_deg").as_double();
     startup_measurement_config_.imu_accel_min_mps2 =
       get_parameter("measurement_imu_accel_min_mps2").as_double();
     startup_measurement_config_.imu_accel_max_mps2 =
@@ -832,20 +699,12 @@ private:
       "measurement_imu_gyroscope_stddev_maximum_degps").as_double();
     startup_measurement_config_.stable_plane_frame_count = static_cast<int>(
       get_parameter("measurement_stable_plane_frame_count").as_int());
-    startup_measurement_config_.plane_block_count = static_cast<int>(
-      get_parameter("measurement_plane_block_count").as_int());
     startup_measurement_config_.maximum_height_stddev_m =
       get_parameter(
       "measurement_maximum_height_stddev_m").as_double();
     startup_measurement_config_.maximum_plane_normal_rms_deg =
       get_parameter(
       "measurement_maximum_plane_normal_rms_deg").as_double();
-    startup_measurement_config_.maximum_plane_block_height_stddev_m =
-      get_parameter(
-      "measurement_maximum_plane_block_height_stddev_m").as_double();
-    startup_measurement_config_.maximum_plane_block_normal_rms_deg =
-      get_parameter(
-      "measurement_maximum_plane_block_normal_rms_deg").as_double();
     startup_measurement_config_.timeout_sec =
       get_parameter("measurement_timeout_sec").as_double();
 
@@ -859,123 +718,23 @@ private:
       static_cast<int>(get_parameter("output_width").as_int());
     bev_config_.output_height =
       static_cast<int>(get_parameter("output_height").as_int());
-
-    lane_reconstruction_enabled_ =
-      get_parameter("lane_reconstruction_enabled").as_bool();
-    lane_output_topic_ = get_parameter("lane_output_topic").as_string();
-    lane_preview_enabled_ =
-      get_parameter("lane_preview_enabled").as_bool();
-    lane_preview_overlay_alpha_ =
-      get_parameter("lane_preview_overlay_alpha").as_double();
-    lane_reconstructor_config_.x_min_m = bev_config_.x_min_m;
-    lane_reconstructor_config_.x_max_m = bev_config_.x_max_m;
-    lane_reconstructor_config_.y_min_m = bev_config_.y_min_m;
-    lane_reconstructor_config_.y_max_m = bev_config_.y_max_m;
-    lane_reconstructor_config_.meter_per_pixel =
-      bev_config_.meter_per_pixel;
-    lane_reconstructor_config_.image_width = bev_config_.output_width;
-    lane_reconstructor_config_.image_height = bev_config_.output_height;
-    lane_reconstructor_config_.minimum_brightness = static_cast<int>(
-      get_parameter("lane_minimum_brightness").as_int());
-    lane_reconstructor_config_.far_minimum_brightness = static_cast<int>(
-      get_parameter("lane_far_minimum_brightness").as_int());
-    lane_reconstructor_config_.maximum_saturation = static_cast<int>(
-      get_parameter("lane_maximum_saturation").as_int());
-    lane_reconstructor_config_.brightness_blur_kernel = static_cast<int>(
-      get_parameter("lane_brightness_blur_kernel").as_int());
-    lane_reconstructor_config_.vertical_close_m =
-      get_parameter("lane_vertical_close_m").as_double();
-    lane_reconstructor_config_.minimum_lane_mark_width_m =
-      get_parameter("lane_minimum_mark_width_m").as_double();
-    lane_reconstructor_config_.maximum_lane_mark_width_m =
-      get_parameter("lane_maximum_mark_width_m").as_double();
-    lane_reconstructor_config_.minimum_local_contrast = static_cast<int>(
-      get_parameter("lane_minimum_local_contrast").as_int());
-    lane_reconstructor_config_.maximum_local_background_brightness =
-      static_cast<int>(get_parameter(
-        "lane_maximum_local_background_brightness").as_int());
-    lane_reconstructor_config_.local_background_band_m =
-      get_parameter("lane_local_background_band_m").as_double();
-    lane_reconstructor_config_.tracked_lane_mark_width_near_m =
-      get_parameter("lane_tracked_mark_width_near_m").as_double();
-    lane_reconstructor_config_.tracked_lane_mark_width_far_m =
-      get_parameter("lane_tracked_mark_width_far_m").as_double();
-    lane_reconstructor_config_.measurement_lateral_gate_near_m =
-      get_parameter("lane_measurement_lateral_gate_near_m").as_double();
-    lane_reconstructor_config_.measurement_lateral_gate_far_m =
-      get_parameter("lane_measurement_lateral_gate_far_m").as_double();
-    lane_reconstructor_config_.row_step_px = static_cast<int>(
-      get_parameter("lane_row_step_px").as_int());
-    lane_reconstructor_config_.observation_minimum_x_m =
-      get_parameter("lane_observation_minimum_x_m").as_double();
-    lane_reconstructor_config_.observation_maximum_x_m =
-      get_parameter("lane_observation_maximum_x_m").as_double();
-    lane_reconstructor_config_.reconstruction_minimum_x_m =
-      get_parameter("lane_reconstruction_minimum_x_m").as_double();
-    lane_reconstructor_config_.reconstruction_maximum_x_m =
-      get_parameter("lane_reconstruction_maximum_x_m").as_double();
-    lane_reconstructor_config_.maximum_extrapolation_m =
-      get_parameter("lane_maximum_extrapolation_m").as_double();
-    lane_reconstructor_config_.sliding_window_step_m =
-      get_parameter("lane_sliding_window_step_m").as_double();
-    lane_reconstructor_config_.sliding_window_length_m =
-      get_parameter("lane_sliding_window_length_m").as_double();
-    lane_reconstructor_config_.sliding_window_half_width_near_m =
-      get_parameter("lane_sliding_window_half_width_near_m").as_double();
-    lane_reconstructor_config_.sliding_window_half_width_far_m =
-      get_parameter("lane_sliding_window_half_width_far_m").as_double();
-    lane_reconstructor_config_.sliding_window_measurement_weight =
-      get_parameter("lane_sliding_window_measurement_weight").as_double();
-    lane_reconstructor_config_.sliding_window_heading_weight =
-      get_parameter("lane_sliding_window_heading_weight").as_double();
-    lane_reconstructor_config_.maximum_tracking_arc_length_m =
-      get_parameter("lane_maximum_tracking_arc_length_m").as_double();
-    lane_reconstructor_config_.maximum_gap_fill_m =
-      get_parameter("lane_maximum_gap_fill_m").as_double();
-    lane_reconstructor_config_.measured_point_smoothing_weight =
-      get_parameter("lane_measured_point_smoothing_weight").as_double();
-    lane_reconstructor_config_.minimum_window_pixel_count = static_cast<int>(
-      get_parameter("lane_minimum_window_pixel_count").as_int());
-    lane_reconstructor_config_.expected_lane_width_m =
-      get_parameter("lane_expected_width_m").as_double();
-    lane_reconstructor_config_.lane_width_tolerance_m =
-      get_parameter("lane_width_tolerance_m").as_double();
-    lane_reconstructor_config_.initial_center_tolerance_m =
-      get_parameter("lane_initial_center_tolerance_m").as_double();
-    lane_reconstructor_config_.single_lane_initial_tolerance_m =
-      get_parameter("lane_single_initial_tolerance_m").as_double();
-    lane_reconstructor_config_.maximum_tracking_gap_m =
-      get_parameter("lane_maximum_tracking_gap_m").as_double();
-    lane_reconstructor_config_.minimum_points = static_cast<int>(
-      get_parameter("lane_minimum_points").as_int());
-    lane_reconstructor_config_.allow_single_lane =
-      get_parameter("lane_allow_single_lane").as_bool();
-    lane_reconstructor_config_.correspondence_minimum_width_m =
-      get_parameter("lane_correspondence_minimum_width_m").as_double();
-    lane_reconstructor_config_.correspondence_maximum_width_m =
-      get_parameter("lane_correspondence_maximum_width_m").as_double();
-    lane_reconstructor_config_.correspondence_longitudinal_tolerance_m =
-      get_parameter(
-        "lane_correspondence_longitudinal_tolerance_m").as_double();
-    lane_reconstructor_config_.infer_partially_missing_lane =
-      get_parameter("lane_infer_partially_missing_lane").as_bool();
-    lane_reconstructor_config_.temporal_tracking_enabled =
-      get_parameter("lane_temporal_tracking_enabled").as_bool();
-    lane_reconstructor_config_.temporal_maximum_lateral_jump_near_m =
-      get_parameter(
-        "lane_temporal_maximum_lateral_jump_near_m").as_double();
-    lane_reconstructor_config_.temporal_maximum_lateral_jump_far_m =
-      get_parameter(
-        "lane_temporal_maximum_lateral_jump_far_m").as_double();
-    lane_reconstructor_config_.temporal_maximum_heading_jump_deg =
-      get_parameter("lane_temporal_maximum_heading_jump_deg").as_double();
-    lane_reconstructor_config_.temporal_confirmation_frames =
-      static_cast<int>(
-        get_parameter("lane_temporal_confirmation_frames").as_int());
-    lane_reconstructor_config_.temporal_hold_frames = static_cast<int>(
-      get_parameter("lane_temporal_hold_frames").as_int());
-    lane_reconstructor_config_.output_line_thickness_m =
-      get_parameter("lane_output_line_thickness_m").as_double();
+    bev_interpolation_ = get_parameter("bev_interpolation").as_string();
+    edge_adaptive_config_.start_x_m =
+      get_parameter("edge_adaptive_start_x_m").as_double();
+    edge_adaptive_config_.full_x_m =
+      get_parameter("edge_adaptive_full_x_m").as_double();
+    edge_adaptive_config_.strength =
+      get_parameter("edge_adaptive_strength").as_double();
+    edge_adaptive_config_.gradient_low =
+      get_parameter("edge_gradient_low").as_double();
+    edge_adaptive_config_.gradient_high =
+      get_parameter("edge_gradient_high").as_double();
+    edge_adaptive_config_.coherence_minimum =
+      get_parameter("edge_coherence_minimum").as_double();
+    edge_adaptive_config_.maximum_anisotropy =
+      get_parameter("edge_maximum_anisotropy").as_double();
+    edge_adaptive_config_.bev_x_max_m = bev_config_.x_max_m;
+    edge_adaptive_config_.meter_per_pixel = bev_config_.meter_per_pixel;
 
     status_log_interval_sec_ =
       get_parameter("status_log_interval_sec").as_double();
@@ -986,30 +745,63 @@ private:
 
   void validateParameters() const
   {
-    if (configuration_version_ != 1) {
+    if (configuration_version_ != 4) {
       throw std::invalid_argument(
-              "configuration_version must be 1; check that bev_config.yaml "
+              "configuration_version must be 4; check that bev_config.yaml "
               "was loaded for the bev_processor node");
     }
     if (input_topic_.empty()) {
       throw std::invalid_argument("input_topic must not be empty");
     }
     if (
-      !std::isfinite(stabilized_bottom_roi_ratio_) ||
-      stabilized_bottom_roi_ratio_ <= 0.0 ||
-      stabilized_bottom_roi_ratio_ > 1.0)
+      startup_ground_reference_topic_.empty() ||
+      startup_ground_reference_frame_id_.empty())
     {
       throw std::invalid_argument(
-              "stabilized_bottom_roi_ratio must be in (0, 1]");
+              "startup ground reference topic and frame_id must not be empty");
     }
     if (publish_enabled_ && output_topic_.empty()) {
       throw std::invalid_argument(
               "output_topic must not be empty when publishing is enabled");
     }
-    if (lane_reconstruction_enabled_ && lane_output_topic_.empty()) {
+    if (preview_stop_topic_.empty()) {
+      throw std::invalid_argument("preview_stop_topic must not be empty");
+    }
+    if (
+      capture_directory_.empty() || capture_joy_topic_.empty() ||
+      capture_joy_button_ < 0)
+    {
       throw std::invalid_argument(
-              "lane_output_topic must not be empty when lane reconstruction "
-              "is enabled");
+              "capture directory/topic must not be empty and button must "
+              "be non-negative");
+    }
+    if (dataset_collection_root_directory_.empty()) {
+      throw std::invalid_argument(
+              "dataset_collection_root_directory must not be empty");
+    }
+    if (dataset_collection_manual_capture_button_ < 0) {
+      throw std::invalid_argument(
+              "dataset_collection_manual_capture_button must be "
+              "non-negative");
+    }
+    if (
+      dataset_collection_enabled_ &&
+      dataset_collection_manual_capture_mode_)
+    {
+      throw std::invalid_argument(
+              "automatic and manual dataset collection modes cannot both "
+              "be enabled");
+    }
+    if (
+      !std::isfinite(dataset_collection_fps_) ||
+      dataset_collection_fps_ <= 0.0)
+    {
+      throw std::invalid_argument(
+              "dataset_collection_fps must be finite and positive");
+    }
+    if (dataset_collection_target_count_ <= 0) {
+      throw std::invalid_argument(
+              "dataset_collection_target_count must be positive");
     }
     if (
       camera_model_.image_width <= 1 ||
@@ -1045,14 +837,38 @@ private:
               "meter_per_pixel");
     }
     if (
+      bev_interpolation_ != "bilinear" &&
+      bev_interpolation_ != "bicubic" &&
+      bev_interpolation_ != "adaptive")
+    {
+      throw std::invalid_argument(
+              "bev_interpolation must be 'bilinear', 'bicubic', or "
+              "'adaptive'");
+    }
+    if (
+      edge_adaptive_config_.start_x_m < bev_config_.x_min_m ||
+      edge_adaptive_config_.full_x_m <= edge_adaptive_config_.start_x_m ||
+      edge_adaptive_config_.full_x_m > bev_config_.x_max_m ||
+      edge_adaptive_config_.strength < 0.0 ||
+      edge_adaptive_config_.strength > 1.0 ||
+      edge_adaptive_config_.gradient_low < 0.0 ||
+      edge_adaptive_config_.gradient_high <=
+      edge_adaptive_config_.gradient_low ||
+      edge_adaptive_config_.coherence_minimum < 0.0 ||
+      edge_adaptive_config_.coherence_minimum >= 1.0 ||
+      edge_adaptive_config_.maximum_anisotropy < 1.0)
+    {
+      throw std::invalid_argument("invalid edge-adaptive interpolation settings");
+    }
+    if (
       expected_input_fps_ <= 0.0 ||
+      !std::isfinite(input_bottom_fraction_) ||
+      input_bottom_fraction_ <= 0.0 ||
+      input_bottom_fraction_ > 1.0 ||
       publish_max_fps_ < 0.0 ||
       preview_max_fps_ <= 0.0 ||
       preview_max_width_ <= 0 ||
       preview_max_height_ <= 0 ||
-      !std::isfinite(lane_preview_overlay_alpha_) ||
-      lane_preview_overlay_alpha_ < 0.0 ||
-      lane_preview_overlay_alpha_ > 1.0 ||
       status_log_interval_sec_ <= 0.0 ||
       startup_timeout_sec_ <= 0.0 ||
       !std::isfinite(stabilization_settle_sec_) ||
@@ -1060,6 +876,38 @@ private:
     {
       throw std::invalid_argument("invalid rate, preview, or status parameter");
     }
+  }
+
+  void initializeInputCropGeometry()
+  {
+    input_crop_width_ = camera_model_.image_width;
+    input_crop_height_ = static_cast<int>(2 * std::llround(
+        static_cast<double>(camera_model_.image_height) *
+        input_bottom_fraction_ / 2.0));
+    input_crop_height_ = std::clamp(
+      input_crop_height_, 2, camera_model_.image_height);
+    input_crop_top_ = camera_model_.image_height - input_crop_height_;
+  }
+
+  void publishStartupGroundReference(const std::string & attitude_source)
+  {
+    const cv::Vec3d up_camera = attitudeUpVector(
+      startup_roll_deg_, startup_pitch_down_deg_);
+    geometry_msgs::msg::Vector3Stamped message;
+    message.header.stamp = get_clock()->now();
+    message.header.frame_id = startup_ground_reference_frame_id_;
+    message.vector.x = up_camera[0];
+    message.vector.y = up_camera[1];
+    message.vector.z = up_camera[2];
+    startup_ground_reference_publisher_->publish(message);
+    RCLCPP_INFO(
+      get_logger(),
+      "Published startup ground reference for camera stabilization: "
+      "topic=%s frame=%s source=%s normal=(%.6f, %.6f, %.6f).",
+      startup_ground_reference_topic_.c_str(),
+      startup_ground_reference_frame_id_.c_str(),
+      attitude_source.c_str(),
+      up_camera[0], up_camera[1], up_camera[2]);
   }
 
   void installProcessor(
@@ -1075,28 +923,25 @@ private:
       degToRad(camera_yaw_deg_));
     const auto lut = generateRemap(camera_model, bev_config_);
     auto processor = std::make_shared<CudaBevProcessor>(
-      camera_model.image_width,
-      camera_model.image_height,
+      input_crop_width_,
+      input_crop_height_,
       lut.map_x,
-      lut.map_y);
-
-    cv::Mat roi_mask;
-    cv::compare(
       lut.map_y,
-      cv::Scalar(
-        (1.0 - stabilized_bottom_roi_ratio_) *
-        static_cast<double>(camera_model.image_height)),
-      roi_mask,
-      cv::CMP_GE);
-    cv::Mat active_valid_mask;
-    cv::bitwise_and(lut.valid_mask, roi_mask, active_valid_mask);
-    const int valid_pixels = cv::countNonZero(active_valid_mask);
+      bev_interpolation_ == "adaptive" ?
+      BevInterpolation::Adaptive :
+      bev_interpolation_ == "bicubic" ?
+      BevInterpolation::Bicubic : BevInterpolation::Bilinear,
+      edge_adaptive_config_);
+
+    const int valid_pixels = cv::countNonZero(lut.valid_mask);
     const int output_pixels =
       bev_config_.output_width * bev_config_.output_height;
     const double valid_percent =
       100.0 * static_cast<double>(valid_pixels) /
       static_cast<double>(output_pixels);
 
+    bev_lut_ = lut;
+    fused_coverage_reported_ = false;
     std::atomic_store_explicit(
       &gpu_processor_, std::move(processor), std::memory_order_release);
     valid_lut_percent_.store(valid_percent, std::memory_order_relaxed);
@@ -1114,72 +959,46 @@ private:
     }
   }
 
-  void onDeferredImage(
-    camera_driver::msg::DeferredStabilizedNv12::ConstSharedPtr message)
-  {
-    cv::Matx33d source_to_stabilized;
-    for (int row = 0; row < 3; ++row) {
-      for (int column = 0; column < 3; ++column) {
-        source_to_stabilized(row, column) =
-          message->source_to_stabilized_homography[
-          static_cast<std::size_t>(row * 3 + column)];
-      }
-    }
-    if (
-      !cv::checkRange(cv::Mat(source_to_stabilized)) ||
-      std::abs(cv::determinant(cv::Mat(source_to_stabilized))) < 1.0e-12)
-    {
-      invalid_total_.fetch_add(1U, std::memory_order_relaxed);
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 5000,
-        "Rejected deferred image with an invalid stabilization homography.");
-      return;
-    }
-
-    // Aliasing ownership keeps the outer custom message alive without copying
-    // the nested 1.38 MB NV12 image.
-    const sensor_msgs::msg::Image * image_pointer = &message->image;
-    sensor_msgs::msg::Image::ConstSharedPtr image(message, image_pointer);
-    onImage(std::move(image), source_to_stabilized);
-  }
-
-  void onImage(
-    sensor_msgs::msg::Image::ConstSharedPtr message,
-    const cv::Matx33d & source_to_stabilized)
+  void onBevInput(camera_driver::msg::BevInput::ConstSharedPtr message)
   {
     received_total_.fetch_add(1U, std::memory_order_relaxed);
     received_interval_.fetch_add(1U, std::memory_order_relaxed);
 
     const bool dimensions_valid =
-      static_cast<int>(message->width) == camera_model_.image_width &&
-      static_cast<int>(message->height) == camera_model_.image_height;
+      static_cast<int>(message->source_width) == camera_model_.image_width &&
+      static_cast<int>(message->source_height) == camera_model_.image_height &&
+      static_cast<int>(message->source_crop_top) == input_crop_top_ &&
+      static_cast<int>(message->cropped_width) == input_crop_width_ &&
+      static_cast<int>(message->cropped_height) == input_crop_height_;
     const std::size_t minimum_step =
-      static_cast<std::size_t>(camera_model_.image_width);
+      static_cast<std::size_t>(input_crop_width_);
     const std::size_t nv12_rows =
-      static_cast<std::size_t>(camera_model_.image_height) * 3U / 2U;
+      static_cast<std::size_t>(input_crop_height_) * 3U / 2U;
     const bool memory_valid =
       message->step >= minimum_step &&
-      message->data.size() >=
+      message->nv12.size() >=
       static_cast<std::size_t>(message->step) * nv12_rows;
-    if (
-      !dimensions_valid ||
-      message->encoding != "nv12" ||
-      !memory_valid)
+    if (!dimensions_valid || !memory_valid)
     {
       invalid_total_.fetch_add(1U, std::memory_order_relaxed);
       RCLCPP_WARN_THROTTLE(
         get_logger(),
         *get_clock(),
         5000,
-        "Rejected image: expected %dx%d nv12, got %ux%u %s "
-        "(step=%u, data=%zu).",
+        "Rejected fused BEV input: expected source=%dx%d crop=top %dpx/%dx%d, "
+        "got source=%ux%u crop=top %u/%ux%u (step=%u, data=%zu).",
         camera_model_.image_width,
         camera_model_.image_height,
-        message->width,
-        message->height,
-        message->encoding.c_str(),
+        input_crop_top_,
+        input_crop_width_,
+        input_crop_height_,
+        message->source_width,
+        message->source_height,
+        message->source_crop_top,
+        message->cropped_width,
+        message->cropped_height,
         message->step,
-        message->data.size());
+        message->nv12.size());
       return;
     }
 
@@ -1210,7 +1029,6 @@ private:
     {
       std::lock_guard<std::mutex> lock(input_mutex_);
       latest_input_ = std::move(message);
-      latest_source_to_stabilized_ = source_to_stabilized;
       latest_input_received_at_ = received_at;
       ++input_generation_;
     }
@@ -1223,8 +1041,7 @@ private:
     std::uint64_t processed_input_generation = 0U;
 
     while (!stop_.load(std::memory_order_acquire)) {
-      sensor_msgs::msg::Image::ConstSharedPtr input;
-      cv::Matx33d source_to_stabilized = cv::Matx33d::eye();
+      camera_driver::msg::BevInput::ConstSharedPtr input;
       SteadyClock::time_point input_received_at;
       std::uint64_t generation = 0U;
       {
@@ -1240,7 +1057,6 @@ private:
           break;
         }
         input = latest_input_;
-        source_to_stabilized = latest_source_to_stabilized_;
         input_received_at = latest_input_received_at_;
         generation = input_generation_;
       }
@@ -1260,50 +1076,72 @@ private:
         auto output = std::make_shared<BevFrame>();
         const auto processor = std::atomic_load_explicit(
           &gpu_processor_, std::memory_order_acquire);
-        output->image = processor->process(
-          input->data.data(),
-          input->data.size(),
-          static_cast<std::size_t>(input->step),
-          source_to_stabilized,
-          stabilized_bottom_roi_ratio_);
-        if (lane_reconstructor_) {
-          const auto lane_started_at = SteadyClock::now();
-          const auto lane = lane_reconstructor_->reconstruct(output->image);
-          const auto lane_finished_at = SteadyClock::now();
-          const auto lane_process_ns = static_cast<std::uint64_t>(
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-              lane_finished_at - lane_started_at).count());
-          lane_process_samples_interval_.fetch_add(
-            1U, std::memory_order_relaxed);
-          lane_process_ns_interval_.fetch_add(
-            lane_process_ns, std::memory_order_relaxed);
-          updateMaximum(lane_process_ns_max_interval_, lane_process_ns);
-          output->lane_mask = lane.reconstructed_mask;
-          latest_lane_points_.store(
-            lane.measured_point_count, std::memory_order_relaxed);
-          latest_lane_inferred_points_.store(
-            lane.inferred_point_count, std::memory_order_relaxed);
-          latest_lane_temporal_hold_.store(
-            lane.temporal_hold_used, std::memory_order_relaxed);
-          latest_lane_width_mm_.store(
-            static_cast<int>(std::lround(
-              1000.0 * lane.measured_lane_width_m)),
-            std::memory_order_relaxed);
-          latest_lane_reconstructed_maximum_x_mm_.store(
-            static_cast<int>(std::lround(
-              1000.0 * lane.reconstructed_maximum_x_m)),
-            std::memory_order_relaxed);
-          if (lane.valid) {
-            lane_valid_total_.fetch_add(1U, std::memory_order_relaxed);
-            lane_valid_interval_.fetch_add(1U, std::memory_order_relaxed);
-          } else {
-            lane_invalid_total_.fetch_add(1U, std::memory_order_relaxed);
-            lane_invalid_interval_.fetch_add(1U, std::memory_order_relaxed);
+        cv::Matx33d source_to_stabilized;
+        for (int row = 0; row < 3; ++row) {
+          for (int column = 0; column < 3; ++column) {
+            source_to_stabilized(row, column) =
+              input->source_to_stabilized_homography[
+              static_cast<std::size_t>(row * 3 + column)];
           }
         }
+        const double determinant = cv::determinant(
+          cv::Mat(source_to_stabilized));
+        if (
+          !cv::checkRange(cv::Mat(source_to_stabilized)) ||
+          !std::isfinite(determinant) || std::abs(determinant) < 1.0e-9)
+        {
+          throw std::runtime_error(
+                  "camera supplied an invalid stabilization homography");
+        }
+        const cv::Matx33d stabilized_to_source =
+          source_to_stabilized.inv(cv::DECOMP_LU);
+        if (!fused_coverage_reported_) {
+          const auto coverage = assessFusedRemapCoverage(
+            bev_lut_,
+            source_to_stabilized,
+            static_cast<int>(input->source_width),
+            static_cast<int>(input->source_height),
+            static_cast<int>(input->source_crop_top));
+          const double coverage_percent = 100.0 * coverage.coverage_ratio;
+          if (coverage.coverage_ratio < 0.995) {
+            RCLCPP_WARN(
+              get_logger(),
+              "Fused bottom-crop coverage is %.2f%% (%d/%d static LUT "
+              "pixels). Increase bev_input_bottom_fraction if the far BEV "
+              "edge is black.",
+              coverage_percent,
+              coverage.covered_pixels,
+              coverage.valid_lut_pixels);
+          } else {
+            RCLCPP_INFO(
+              get_logger(),
+              "Fused bottom-crop coverage: %.2f%% (%d/%d static LUT pixels).",
+              coverage_percent,
+              coverage.covered_pixels,
+              coverage.valid_lut_pixels);
+          }
+          fused_coverage_reported_ = true;
+        }
+        CudaBevResult cuda_result = processor->process(
+          input->nv12.data(),
+          input->nv12.size(),
+          static_cast<std::size_t>(input->step),
+          stabilized_to_source,
+          static_cast<int>(input->source_crop_top),
+          publish_enabled_ || preview_enabled_ ||
+          dataset_collection_enabled_ ||
+          dataset_collection_manual_capture_mode_ ||
+          direct_host_copy_enabled_);
+        output->bgr = std::move(cuda_result.bgr);
+        output->device_bgr = cuda_result.device_bgr;
+        output->device_stride = cuda_result.device_stride;
+        output->width = bev_config_.output_width;
+        output->height = bev_config_.output_height;
+        output->device_owner = std::move(cuda_result.device_owner);
         output->header = input->header;
-        output->input_received_at = input_received_at;
-        output->generation = generation;
+        output->header.frame_id = output_frame_id_;
+        output->bev_input_received_at = input_received_at;
+        output->source_generation = generation;
         const auto finished_at = SteadyClock::now();
 
         const auto process_ns = static_cast<std::uint64_t>(
@@ -1322,6 +1160,27 @@ private:
             std::memory_order_release);
         }
         output_cv_.notify_all();
+        if (direct_output_enabled_) {
+          const auto direct_frame = std::atomic_load_explicit(
+            &latest_output_, std::memory_order_acquire);
+          if (bev_handoff::deliverDirectBevFrame(direct_frame)) {
+            const auto delivered_at = SteadyClock::now();
+            direct_delivered_total_.fetch_add(1U, std::memory_order_relaxed);
+            direct_delivered_interval_.fetch_add(1U, std::memory_order_relaxed);
+            recordPipelineLatency(
+              direct_frame->header,
+              bev_ready_latency_samples_interval_,
+              bev_ready_latency_ns_interval_,
+              bev_ready_latency_ns_max_interval_);
+            recordSteadyLatency(
+              delivered_at - direct_frame->bev_input_received_at,
+              bev_stage_latency_samples_interval_,
+              bev_stage_latency_ns_interval_,
+              bev_stage_latency_ns_max_interval_);
+          } else {
+            direct_unavailable_total_.fetch_add(1U, std::memory_order_relaxed);
+          }
+        }
       } catch (const std::exception & exception) {
         processing_error_total_.fetch_add(1U, std::memory_order_relaxed);
         RCLCPP_ERROR_THROTTLE(
@@ -1344,7 +1203,7 @@ private:
       if (!frame) {
         continue;
       }
-      last_generation = frame->generation;
+      last_generation = frame->source_generation;
 
       const auto now = SteadyClock::now();
       if (
@@ -1364,21 +1223,19 @@ private:
           output_publisher_->publish(
             makeBgr8Message(*frame, output_frame_id_));
         }
-        if (lane_reconstruction_enabled_) {
-          lane_output_publisher_->publish(
-            makeMono8Message(*frame, output_frame_id_));
-        }
         const auto published_at = SteadyClock::now();
-        recordPipelineLatency(
-          frame->header,
-          bev_ready_latency_samples_interval_,
-          bev_ready_latency_ns_interval_,
-          bev_ready_latency_ns_max_interval_);
-        recordSteadyLatency(
-          published_at - frame->input_received_at,
-          bev_stage_latency_samples_interval_,
-          bev_stage_latency_ns_interval_,
-          bev_stage_latency_ns_max_interval_);
+        if (!direct_output_enabled_) {
+          recordPipelineLatency(
+            frame->header,
+            bev_ready_latency_samples_interval_,
+            bev_ready_latency_ns_interval_,
+            bev_ready_latency_ns_max_interval_);
+          recordSteadyLatency(
+            published_at - frame->bev_input_received_at,
+            bev_stage_latency_samples_interval_,
+            bev_stage_latency_ns_interval_,
+            bev_stage_latency_ns_max_interval_);
+        }
         last_published_at = now;
         published_total_.fetch_add(1U, std::memory_order_relaxed);
         published_interval_.fetch_add(1U, std::memory_order_relaxed);
@@ -1394,173 +1251,369 @@ private:
     }
   }
 
-  static constexpr int kPreviewLeftMargin = 55;
-  static constexpr int kPreviewRightMargin = 35;
-  static constexpr int kPreviewTopMargin = 24;
-  static constexpr int kPreviewBottomMargin = 30;
-
-  static void drawPreviewText(
-    cv::Mat & image,
-    const std::string & text,
-    const cv::Point & origin)
+  void captureLatestBev(const char * trigger)
   {
-    constexpr double font_scale = 0.32;
-    constexpr int font_face = cv::FONT_HERSHEY_SIMPLEX;
-    cv::putText(
-      image, text, origin, font_face, font_scale,
-      cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
+    const auto frame = std::atomic_load_explicit(
+      &latest_output_, std::memory_order_acquire);
+    if (!frame || frame->bgr.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        "%s capture requested before a BEV frame was available.",
+        trigger);
+      return;
+    }
+
+    try {
+      const std::filesystem::path directory(capture_directory_);
+      std::error_code error;
+      std::filesystem::create_directories(directory, error);
+      if (error) {
+        RCLCPP_ERROR(
+          get_logger(),
+          "Failed to create BEV capture directory '%s': %s",
+          directory.string().c_str(),
+          error.message().c_str());
+        return;
+      }
+      const std::filesystem::path filename = directory /
+        ("bev_capture_" +
+        std::to_string(get_clock()->now().nanoseconds()) + ".png");
+      if (!cv::imwrite(filename.string(), frame->bgr)) {
+        RCLCPP_ERROR(
+          get_logger(),
+          "Failed to capture BEV image: %s",
+          filename.string().c_str());
+        return;
+      }
+      const auto absolute_filename = std::filesystem::absolute(filename, error);
+      const std::string saved_path = error ?
+        filename.string() : absolute_filename.string();
+      RCLCPP_INFO(
+        get_logger(),
+        "BEV image captured by %s: %s",
+        trigger,
+        saved_path.c_str());
+    } catch (const cv::Exception & exception) {
+      RCLCPP_ERROR(
+        get_logger(),
+        "Failed to capture BEV image: %s",
+        exception.what());
+    }
   }
 
-  cv::Mat makeCoordinatePreview(const cv::Mat & bev_image) const
+  static std::string zeroPaddedNumber(
+    const std::uint64_t value,
+    const int minimum_width)
   {
-    constexpr double grid_step_m = 0.1;
-    constexpr double label_step_m = 0.5;
-    constexpr double epsilon = 1.0e-9;
-    const cv::Scalar margin_color(245, 245, 245);
-    const cv::Scalar grid_color(210, 210, 210);
-    const cv::Scalar border_color(180, 180, 180);
-    const cv::Scalar centerline_color(0, 200, 0);
+    std::ostringstream stream;
+    stream << std::setfill('0') << std::setw(minimum_width) << value;
+    return stream.str();
+  }
 
-    cv::Mat preview(
-      bev_image.rows + kPreviewTopMargin + kPreviewBottomMargin,
-      bev_image.cols + kPreviewLeftMargin + kPreviewRightMargin,
-      CV_8UC3,
-      margin_color);
-    const cv::Rect bev_region(
-      kPreviewLeftMargin,
-      kPreviewTopMargin,
-      bev_image.cols,
-      bev_image.rows);
-    bev_image.copyTo(preview(bev_region));
-    cv::Mat displayed_bev = preview(bev_region);
-    cv::Mat grid_overlay = displayed_bev.clone();
+  void initializeDatasetCollection()
+  {
+    namespace fs = std::filesystem;
 
-    const double first_x =
-      std::ceil(bev_config_.x_min_m / grid_step_m) * grid_step_m;
-    for (
-      double x_m = first_x;
-      x_m <= bev_config_.x_max_m + epsilon;
-      x_m += grid_step_m)
-    {
-      const int row = std::clamp(
-        static_cast<int>(std::lround(
-          (bev_config_.x_max_m - x_m) /
-          bev_config_.meter_per_pixel)),
-        0,
-        displayed_bev.rows - 1);
-      cv::line(
-        grid_overlay,
-        cv::Point(0, row),
-        cv::Point(displayed_bev.cols - 1, row),
-        grid_color,
-        1,
-        cv::LINE_AA);
-      const double label_units = x_m / label_step_m;
-      if (std::abs(label_units - std::round(label_units)) < epsilon) {
-        const std::string label = cv::format("X %.1f", x_m);
-        int baseline = 0;
-        const cv::Size label_size = cv::getTextSize(
-          label, cv::FONT_HERSHEY_SIMPLEX, 0.32, 1, &baseline);
-        drawPreviewText(
-          preview,
-          label,
-          cv::Point(
-            kPreviewLeftMargin - label_size.width - 5,
-            kPreviewTopMargin + row + label_size.height / 2));
+    const fs::path root(dataset_collection_root_directory_);
+    fs::create_directories(root);
+
+    const std::string prefix = "dataset_";
+    std::uint64_t maximum_index = 0U;
+    for (const fs::directory_entry & entry : fs::directory_iterator(root)) {
+      if (!entry.is_directory()) {
+        continue;
+      }
+      const std::string name = entry.path().filename().string();
+      if (name.compare(0, prefix.size(), prefix) != 0) {
+        continue;
+      }
+      const std::string suffix = name.substr(prefix.size());
+      if (
+        suffix.empty() ||
+        !std::all_of(
+          suffix.begin(), suffix.end(),
+          [](const char character) {
+            return character >= '0' && character <= '9';
+          }))
+      {
+        continue;
+      }
+      try {
+        maximum_index = std::max(
+          maximum_index,
+          static_cast<std::uint64_t>(std::stoull(suffix)));
+      } catch (const std::exception &) {
+        // Ignore unrelated directories with an out-of-range numeric suffix.
       }
     }
 
-    cv::line(
-      grid_overlay,
-      cv::Point(0, displayed_bev.rows - 1),
-      cv::Point(displayed_bev.cols - 1, displayed_bev.rows - 1),
-      grid_color,
-      1,
-      cv::LINE_AA);
-    const std::string minimum_x_label =
-      cv::format("X %.2f", bev_config_.x_min_m);
-    int minimum_x_baseline = 0;
-    const cv::Size minimum_x_label_size = cv::getTextSize(
-      minimum_x_label,
-      cv::FONT_HERSHEY_SIMPLEX,
-      0.32,
-      1,
-      &minimum_x_baseline);
-    drawPreviewText(
-      preview,
-      minimum_x_label,
-      cv::Point(
-        kPreviewLeftMargin - minimum_x_label_size.width - 5,
-        kPreviewTopMargin + displayed_bev.rows - 2));
-
-    const double first_y =
-      std::ceil(bev_config_.y_min_m / grid_step_m) * grid_step_m;
-    for (
-      double y_m = first_y;
-      y_m <= bev_config_.y_max_m + epsilon;
-      y_m += grid_step_m)
-    {
-      const int column = std::clamp(
-        static_cast<int>(std::lround(
-          (bev_config_.y_max_m - y_m) /
-          bev_config_.meter_per_pixel)),
-        0,
-        displayed_bev.cols - 1);
-      cv::line(
-        grid_overlay,
-        cv::Point(column, 0),
-        cv::Point(column, displayed_bev.rows - 1),
-        grid_color,
-        1,
-        cv::LINE_AA);
-      const double label_units = y_m / label_step_m;
-      if (std::abs(label_units - std::round(label_units)) < epsilon) {
-        const std::string label = cv::format("Y %+.1f", y_m);
-        int baseline = 0;
-        const cv::Size label_size = cv::getTextSize(
-          label, cv::FONT_HERSHEY_SIMPLEX, 0.32, 1, &baseline);
-        drawPreviewText(
-          preview,
-          label,
-          cv::Point(
-            kPreviewLeftMargin + column - label_size.width / 2,
-            kPreviewTopMargin + displayed_bev.rows + 16));
+    std::uint64_t next_index = maximum_index + 1U;
+    while (true) {
+      const fs::path candidate = root /
+        (prefix + zeroPaddedNumber(next_index, 3));
+      if (fs::create_directory(candidate)) {
+        dataset_collection_directory_ = fs::absolute(candidate);
+        break;
       }
+      ++next_index;
     }
 
-    cv::addWeighted(
-      grid_overlay, 0.35, displayed_bev, 0.65, 0.0, displayed_bev);
+    fs::create_directories(dataset_collection_directory_ / "origin_bev");
+    if (dataset_collection_manual_capture_mode_) {
+      RCLCPP_INFO(
+        get_logger(),
+        "BEV manual dataset capture enabled: directory=%s, joy=%s, "
+        "button=%d (A), target=%lld frames.",
+        dataset_collection_directory_.string().c_str(),
+        capture_joy_topic_.c_str(),
+        dataset_collection_manual_capture_button_,
+        static_cast<long long>(dataset_collection_target_count_));
+    } else {
+      RCLCPP_INFO(
+        get_logger(),
+        "BEV automatic dataset collection enabled: directory=%s, "
+        "rate=%.2fHz, target=%lld frames, stop_auto_on_complete=%s.",
+        dataset_collection_directory_.string().c_str(),
+        dataset_collection_fps_,
+        static_cast<long long>(dataset_collection_target_count_),
+        dataset_collection_stop_auto_on_complete_ ? "true" : "false");
+    }
+  }
 
-    const int center_column = std::clamp(
-      static_cast<int>(std::lround(
-        bev_config_.y_max_m / bev_config_.meter_per_pixel)),
-      0,
-      displayed_bev.cols - 1);
-    cv::line(
-      displayed_bev,
-      cv::Point(center_column, 0),
-      cv::Point(center_column, displayed_bev.rows - 1),
-      centerline_color,
-      1,
-      cv::LINE_AA);
-    cv::rectangle(preview, bev_region, border_color, 1, cv::LINE_AA);
+  std::int64_t captureTimeNanoseconds(const BevFrame & frame)
+  {
+    const std::int64_t timestamp =
+      static_cast<std::int64_t>(frame.header.stamp.sec) * 1000000000LL +
+      static_cast<std::int64_t>(frame.header.stamp.nanosec);
+    return timestamp > 0 ? timestamp : get_clock()->now().nanoseconds();
+  }
 
-    const std::string direction_label = "+X forward / +Y left";
-    int direction_baseline = 0;
-    const cv::Size direction_size = cv::getTextSize(
-      direction_label,
-      cv::FONT_HERSHEY_SIMPLEX,
-      0.32,
-      1,
-      &direction_baseline);
-    drawPreviewText(
-      preview,
-      direction_label,
-      cv::Point(
-        kPreviewLeftMargin +
-        (displayed_bev.cols - direction_size.width) / 2,
-        15));
-    return preview;
+  // BEV capture remains available; legacy automatic lane labels are no longer produced.
+  void saveDatasetFrame(const BevFrame & frame, const std::uint64_t matching_number)
+  {
+    namespace fs = std::filesystem;
+    if (
+      frame.bgr.type() != CV_8UC3 || frame.bgr.cols != bev_config_.output_width ||
+      frame.bgr.rows != bev_config_.output_height)
+    {
+      throw std::runtime_error("dataset frame has invalid BGR BEV dimensions");
+    }
+    const auto stem = std::to_string(captureTimeNanoseconds(frame)) + "_" +
+      zeroPaddedNumber(matching_number, 6);
+    const fs::path output = dataset_collection_directory_ / "origin_bev" / (stem + ".png");
+    const fs::path temporary = dataset_collection_directory_ / "origin_bev" / (stem + ".tmp.png");
+    try {
+      if (!cv::imwrite(temporary.string(), frame.bgr)) {
+        throw std::runtime_error("failed to encode origin BEV PNG");
+      }
+      fs::rename(temporary, output);
+    } catch (...) {
+      std::error_code error;
+      fs::remove(temporary, error);
+      throw;
+    }
+  }
+
+  void requestAutomaticStop(const char * reason)
+  {
+    std_msgs::msg::Bool enabled_message;
+    enabled_message.data = false;
+    preview_stop_publisher_->publish(enabled_message);
+    RCLCPP_WARN(
+      get_logger(),
+      "%s Requested automatic duty 0 on %s.",
+      reason,
+      preview_stop_topic_.c_str());
+  }
+
+  void captureManualDatasetFrame(const char * trigger)
+  {
+    const auto frame = std::atomic_load_explicit(
+      &latest_output_, std::memory_order_acquire);
+    if (!frame || frame->bgr.empty()) {
+      RCLCPP_WARN(
+        get_logger(),
+        "%s dataset capture requested before a BEV frame was available.",
+        trigger);
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(dataset_collection_save_mutex_);
+    const std::uint64_t saved_count =
+      dataset_collection_saved_total_.load(std::memory_order_relaxed);
+    const std::uint64_t target_count =
+      static_cast<std::uint64_t>(dataset_collection_target_count_);
+    if (saved_count >= target_count) {
+      dataset_collection_complete_.store(true, std::memory_order_release);
+      RCLCPP_WARN(
+        get_logger(),
+        "Manual BEV dataset target already reached: %llu/%llu frames.",
+        static_cast<unsigned long long>(saved_count),
+        static_cast<unsigned long long>(target_count));
+      return;
+    }
+
+    try {
+      saveDatasetFrame(*frame, saved_count + 1U);
+    } catch (const std::exception & exception) {
+      dataset_collection_failed_.store(true, std::memory_order_release);
+      RCLCPP_ERROR(
+        get_logger(),
+        "Manual BEV dataset capture failed at frame %llu: %s",
+        static_cast<unsigned long long>(saved_count + 1U),
+        exception.what());
+      return;
+    }
+
+    const std::uint64_t new_count = saved_count + 1U;
+    dataset_collection_saved_total_.store(
+      new_count, std::memory_order_release);
+    dataset_collection_failed_.store(false, std::memory_order_release);
+    RCLCPP_INFO(
+      get_logger(),
+      "BEV dataset frame captured by %s: %llu/%llu in %s.",
+      trigger,
+      static_cast<unsigned long long>(new_count),
+      static_cast<unsigned long long>(target_count),
+      dataset_collection_directory_.string().c_str());
+    if (new_count == target_count) {
+      dataset_collection_complete_.store(true, std::memory_order_release);
+      RCLCPP_INFO(
+        get_logger(),
+        "Manual BEV dataset capture completed: %llu frames saved in %s.",
+        static_cast<unsigned long long>(new_count),
+        dataset_collection_directory_.string().c_str());
+    }
+  }
+
+  void datasetCollectionLoop()
+  {
+    const auto minimum_period =
+      std::chrono::duration_cast<SteadyClock::duration>(
+      std::chrono::duration<double>(1.0 / dataset_collection_fps_));
+    const std::uint64_t target_count =
+      static_cast<std::uint64_t>(dataset_collection_target_count_);
+    std::uint64_t last_generation = 0U;
+    std::uint64_t saved_count = 0U;
+    SteadyClock::time_point last_saved_at{};
+
+    while (
+      !stop_.load(std::memory_order_acquire) &&
+      saved_count < target_count)
+    {
+      const auto frame = waitForNewOutput(last_generation);
+      if (!frame) {
+        continue;
+      }
+      last_generation = frame->source_generation;
+
+      const auto now = SteadyClock::now();
+      if (
+        last_saved_at.time_since_epoch().count() != 0 &&
+        now - last_saved_at < minimum_period)
+      {
+        continue;
+      }
+
+      try {
+        saveDatasetFrame(*frame, saved_count + 1U);
+      } catch (const std::exception & exception) {
+        dataset_collection_failed_.store(true, std::memory_order_release);
+        RCLCPP_ERROR(
+          get_logger(),
+          "BEV dataset collection stopped after %llu/%llu frames: %s",
+          static_cast<unsigned long long>(saved_count),
+          static_cast<unsigned long long>(target_count),
+          exception.what());
+        if (dataset_collection_stop_auto_on_complete_) {
+          requestAutomaticStop("Dataset write failed.");
+        }
+        return;
+      }
+
+      ++saved_count;
+      dataset_collection_saved_total_.store(
+        saved_count, std::memory_order_release);
+      last_saved_at = SteadyClock::now();
+    }
+
+    if (saved_count == target_count) {
+      dataset_collection_complete_.store(true, std::memory_order_release);
+      RCLCPP_INFO(
+        get_logger(),
+        "BEV dataset collection completed: %llu frames saved in %s.",
+        static_cast<unsigned long long>(saved_count),
+        dataset_collection_directory_.string().c_str());
+      if (dataset_collection_stop_auto_on_complete_) {
+        requestAutomaticStop("Dataset target reached.");
+      }
+    }
+  }
+
+  void onCaptureJoy(const sensor_msgs::msg::Joy::ConstSharedPtr message)
+  {
+    const bool bev_button_available =
+      capture_joy_button_ < static_cast<int>(message->buttons.size());
+    const bool bev_pressed =
+      bev_button_available &&
+      message->buttons[static_cast<std::size_t>(capture_joy_button_)] != 0;
+    const bool bev_was_pressed = capture_joy_button_pressed_.exchange(
+      bev_pressed, std::memory_order_relaxed);
+    if (!bev_button_available) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(),
+        *get_clock(),
+        5000,
+        "Joy message on %s has no capture button index %d.",
+        capture_joy_topic_.c_str(),
+        capture_joy_button_);
+    } else if (bev_pressed && !bev_was_pressed) {
+      captureLatestBev("controller B");
+    }
+
+    if (!dataset_collection_manual_capture_mode_) {
+      return;
+    }
+    const bool dataset_button_available =
+      dataset_collection_manual_capture_button_ <
+      static_cast<int>(message->buttons.size());
+    const bool dataset_pressed =
+      dataset_button_available &&
+      message->buttons[static_cast<std::size_t>(
+        dataset_collection_manual_capture_button_)] != 0;
+    const bool dataset_was_pressed =
+      dataset_collection_manual_capture_button_pressed_.exchange(
+      dataset_pressed, std::memory_order_relaxed);
+    if (!dataset_button_available) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(),
+        *get_clock(),
+        5000,
+        "Joy message on %s has no manual dataset button index %d.",
+        capture_joy_topic_.c_str(),
+        dataset_collection_manual_capture_button_);
+    } else if (dataset_pressed && !dataset_was_pressed) {
+      captureManualDatasetFrame("controller A");
+    }
+  }
+
+  bool handlePreviewKey(const int key)
+  {
+    if (key == 'b' || key == 'B') {
+      captureLatestBev("keyboard B");
+      return false;
+    }
+    if (key == ' ') {
+      std_msgs::msg::Bool enabled_message;
+      enabled_message.data = false;
+      preview_stop_publisher_->publish(enabled_message);
+      RCLCPP_WARN(
+        get_logger(),
+        "SPACE pressed in the BEV preview: requested automatic duty 0 on %s.",
+        preview_stop_topic_.c_str());
+      return false;
+    }
+    return key == 27 || key == 'q' || key == 'Q';
   }
 
   void previewLoop()
@@ -1569,14 +1622,8 @@ private:
       cv::namedWindow(preview_window_name_, cv::WINDOW_NORMAL);
       cv::resizeWindow(
         preview_window_name_,
-        std::min(
-          preview_max_width_,
-          bev_config_.output_width +
-          kPreviewLeftMargin + kPreviewRightMargin),
-        std::min(
-          preview_max_height_,
-          bev_config_.output_height +
-          kPreviewTopMargin + kPreviewBottomMargin));
+        std::min(preview_max_width_, 2 * bev_config_.output_width),
+        std::min(preview_max_height_, 2 * bev_config_.output_height));
 
       const auto preview_period =
         std::chrono::duration_cast<SteadyClock::duration>(
@@ -1592,7 +1639,7 @@ private:
             next_preview_at - now);
           const int key = cv::waitKey(
             std::clamp(static_cast<int>(remaining.count()), 1, 10));
-          if (key == 27 || key == 'q' || key == 'Q') {
+          if (handlePreviewKey(key)) {
             break;
           }
           continue;
@@ -1601,19 +1648,8 @@ private:
         const auto frame = std::atomic_load_explicit(
           &latest_output_, std::memory_order_acquire);
         if (frame) {
-          cv::Mat displayed_image;
-          if (
-            lane_preview_enabled_ &&
-            !frame->lane_mask.empty())
-          {
-            displayed_image = makeLaneOverlayPreview(
-              frame->image, frame->lane_mask,
-              lane_preview_overlay_alpha_);
-          } else {
-            displayed_image = frame->image;
-          }
-          cv::Mat preview_image = makeCoordinatePreview(displayed_image);
-          cv::imshow(preview_window_name_, preview_image);
+          const cv::Mat & displayed_image = frame->bgr;
+          cv::imshow(preview_window_name_, displayed_image);
           previewed_total_.fetch_add(1U, std::memory_order_relaxed);
           previewed_interval_.fetch_add(1U, std::memory_order_relaxed);
           next_preview_at = now + preview_period;
@@ -1622,7 +1658,7 @@ private:
         }
 
         const int key = cv::waitKey(1);
-        if (key == 27 || key == 'q' || key == 'Q') {
+        if (handlePreviewKey(key)) {
           break;
         }
         const double visible = cv::getWindowProperty(
@@ -1660,7 +1696,7 @@ private:
           &latest_output_, std::memory_order_acquire);
         return
           stop_.load(std::memory_order_acquire) ||
-          (frame && frame->generation != last_generation);
+          (frame && frame->source_generation != last_generation);
       });
     if (stop_.load(std::memory_order_acquire)) {
       return nullptr;
@@ -1753,18 +1789,12 @@ private:
       skipped_interval_.exchange(0U, std::memory_order_relaxed);
     const auto published =
       published_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto direct_delivered =
+      direct_delivered_interval_.exchange(0U, std::memory_order_relaxed);
+    const auto bev_ready = direct_output_enabled_ ?
+      direct_delivered : published;
     const auto previewed =
       previewed_interval_.exchange(0U, std::memory_order_relaxed);
-    const auto lane_valid =
-      lane_valid_interval_.exchange(0U, std::memory_order_relaxed);
-    const auto lane_invalid =
-      lane_invalid_interval_.exchange(0U, std::memory_order_relaxed);
-    const auto lane_process_samples =
-      lane_process_samples_interval_.exchange(0U, std::memory_order_relaxed);
-    const auto lane_process_ns =
-      lane_process_ns_interval_.exchange(0U, std::memory_order_relaxed);
-    const auto lane_process_ns_max =
-      lane_process_ns_max_interval_.exchange(0U, std::memory_order_relaxed);
     const auto process_ns =
       process_ns_interval_.exchange(0U, std::memory_order_relaxed);
     const auto process_ns_max =
@@ -1800,17 +1830,12 @@ private:
     if (latest) {
       latest_age_ms =
         std::chrono::duration<double, std::milli>(
-        now - latest->input_received_at).count();
+        now - latest->bev_input_received_at).count();
     }
     const double average_process_ms =
       processed > 0U ?
       static_cast<double>(process_ns) /
       static_cast<double>(processed) / 1.0e6 :
-      0.0;
-    const double average_lane_process_ms =
-      lane_process_samples > 0U ?
-      static_cast<double>(lane_process_ns) /
-      static_cast<double>(lane_process_samples) / 1.0e6 :
       0.0;
     const double average_stabilized_latency_ms =
       stabilized_latency_samples > 0U ?
@@ -1830,7 +1855,7 @@ private:
     if (performance_measurement_enabled_) {
       RCLCPP_INFO(
         get_logger(),
-        "[PERF][PIPELINE] camera_input_fps=%.1f bev_ready_fps=%.1f "
+        "[PERF][PIPELINE] stabilized_fps=%.1f bev_ready_fps=%.1f "
         "processed_fps=%.1f "
         "latency_ms(depthai_to_bev_input_avg/max=%.2f/%.2f,"
         "depthai_to_bev_ready_avg/max=%.2f/%.2f,"
@@ -1838,7 +1863,7 @@ private:
         "bev_compute_ms(avg/max)=%.3f/%.3f skipped=%llu "
         "errors(invalid/process/publish)=%llu/%llu/%llu",
         static_cast<double>(accepted) / elapsed_sec,
-        static_cast<double>(published) / elapsed_sec,
+        static_cast<double>(bev_ready) / elapsed_sec,
         static_cast<double>(processed) / elapsed_sec,
         average_stabilized_latency_ms,
         static_cast<double>(stabilized_latency_ns_max) / 1.0e6,
@@ -1860,7 +1885,7 @@ private:
         get_logger(),
         "\nBEV status: input=%.1fHz (%llu total), processed=%.1fHz "
         "(%llu total, skipped=%llu/%llu interval/total), "
-        "ROS=%.1fHz, preview=%.1fHz, "
+        "direct=%.1fHz, ROS=%.1fHz, preview=%.1fHz, "
         "compute=%.3f/%.3fms avg/max, latest_age=%.2fms, "
         "extrinsics=startup_measured, fixed_lut=true, "
         "(height=%.3fm,roll=%.2f,pitch_down=%.2fdeg), "
@@ -1874,6 +1899,7 @@ private:
         static_cast<unsigned long long>(skipped),
         static_cast<unsigned long long>(
           skipped_total_.load(std::memory_order_relaxed)),
+        static_cast<double>(direct_delivered) / elapsed_sec,
         static_cast<double>(published) / elapsed_sec,
         static_cast<double>(previewed) / elapsed_sec,
         average_process_ms,
@@ -1890,30 +1916,25 @@ private:
           publish_error_total_.load(std::memory_order_relaxed)));
     }
 
-    if (lane_reconstruction_enabled_) {
+
+    if (
+      dataset_collection_enabled_ ||
+      dataset_collection_manual_capture_mode_)
+    {
+      const char * state =
+        dataset_collection_failed_.load(std::memory_order_relaxed) ?
+        "failed" :
+        dataset_collection_complete_.load(std::memory_order_relaxed) ?
+        "complete" : "collecting";
       RCLCPP_INFO(
         get_logger(),
-        "BEV lane: valid/invalid=%.1f/%.1fHz "
-        "(%llu/%llu total), measured/inferred=%d/%d, hold=%s, "
-        "width=%.3fm, reconstructed_to=%.2fm, "
-        "lane_compute_ms(avg/max)=%.3f/%.3f, output=%s",
-        static_cast<double>(lane_valid) / elapsed_sec,
-        static_cast<double>(lane_invalid) / elapsed_sec,
+        "BEV dataset: mode=%s, %llu/%lld frames, state=%s, directory=%s",
+        dataset_collection_manual_capture_mode_ ? "manual-A" : "automatic",
         static_cast<unsigned long long>(
-          lane_valid_total_.load(std::memory_order_relaxed)),
-        static_cast<unsigned long long>(
-          lane_invalid_total_.load(std::memory_order_relaxed)),
-        latest_lane_points_.load(std::memory_order_relaxed),
-        latest_lane_inferred_points_.load(std::memory_order_relaxed),
-        latest_lane_temporal_hold_.load(std::memory_order_relaxed) ?
-        "yes" : "no",
-        static_cast<double>(
-          latest_lane_width_mm_.load(std::memory_order_relaxed)) / 1000.0,
-        static_cast<double>(latest_lane_reconstructed_maximum_x_mm_.load(
-          std::memory_order_relaxed)) / 1000.0,
-        average_lane_process_ms,
-        static_cast<double>(lane_process_ns_max) / 1.0e6,
-        lane_output_topic_.c_str());
+          dataset_collection_saved_total_.load(std::memory_order_relaxed)),
+        static_cast<long long>(dataset_collection_target_count_),
+        state,
+        dataset_collection_directory_.string().c_str());
     }
 
     if (
@@ -1925,62 +1946,98 @@ private:
         get_logger(),
         *get_clock(),
         5000,
-        "No camera input received on %s. Check that camera_driver publishing "
-        "is enabled and the image is %dx%d nv12.",
+        "No fused camera input received on %s. Check that camera_driver "
+        "fused_bev_output_enabled is true and its crop is %dx%d.",
         input_topic_.c_str(),
-        camera_model_.image_width,
-        camera_model_.image_height);
+        input_crop_width_,
+        input_crop_height_);
+    }
+    if (
+      direct_output_enabled_ &&
+      direct_delivered_total_.load(std::memory_order_relaxed) == 0U &&
+      std::chrono::duration<double>(now - node_started_at_).count() >=
+      startup_timeout_sec_)
+    {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(),
+        *get_clock(),
+        5000,
+        "No process-local BEV consumer is registered; load line_detactor "
+        "into bev_processor_container with direct_bev_input_enabled=true.");
     }
   }
 
   int configuration_version_{0};
   bool performance_measurement_enabled_{false};
   std::string input_topic_;
-  bool deferred_stabilization_enabled_{false};
-  double stabilized_bottom_roi_ratio_{1.0};
   std::string output_topic_;
   std::string output_frame_id_;
-  double expected_input_fps_{110.0};
+  std::string startup_ground_reference_topic_;
+  std::string startup_ground_reference_frame_id_;
+  double expected_input_fps_{80.0};
+  double input_bottom_fraction_{0.70};
+  int input_crop_width_{1280};
+  int input_crop_height_{560};
+  int input_crop_top_{240};
   bool publish_enabled_{true};
+  bool direct_output_enabled_{false};
+  bool direct_host_copy_enabled_{false};
   double publish_max_fps_{0.0};
   bool preview_enabled_{true};
-  double preview_max_fps_{30.0};
+  double preview_max_fps_{60.0};
   std::string preview_window_name_;
+  std::string preview_stop_topic_{"/auto/enabled"};
   int preview_max_width_{1280};
-  int preview_max_height_{720};
-  bool lane_reconstruction_enabled_{true};
-  std::string lane_output_topic_{"/camera/image_bev_lane"};
-  bool lane_preview_enabled_{true};
-  double lane_preview_overlay_alpha_{1.0};
-  BevLaneReconstructorConfig lane_reconstructor_config_{};
+  int preview_max_height_{800};
+  std::string capture_directory_{"."};
+  std::string capture_joy_topic_{"/joy"};
+  int capture_joy_button_{1};
+  std::atomic<bool> capture_joy_button_pressed_{false};
+  bool dataset_collection_enabled_{false};
+  bool dataset_collection_manual_capture_mode_{false};
+  int dataset_collection_manual_capture_button_{0};
+  std::atomic<bool> dataset_collection_manual_capture_button_pressed_{false};
+  std::string dataset_collection_root_directory_{"datasets"};
+  double dataset_collection_fps_{10.0};
+  std::int64_t dataset_collection_target_count_{1000};
+  bool dataset_collection_stop_auto_on_complete_{true};
+  std::filesystem::path dataset_collection_directory_;
+  std::atomic<std::uint64_t> dataset_collection_saved_total_{0U};
+  std::atomic<bool> dataset_collection_complete_{false};
+  std::atomic<bool> dataset_collection_failed_{false};
+  std::mutex dataset_collection_save_mutex_;
   double status_log_interval_sec_{5.0};
   double startup_timeout_sec_{12.0};
   double stabilization_settle_sec_{5.5};
   double camera_yaw_deg_{0.0};
+  std::string bev_interpolation_{"bilinear"};
+  EdgeAdaptiveConfig edge_adaptive_config_{};
   OakStartupMeasurementConfig startup_measurement_config_{};
 
   RectifiedCameraModel camera_model_{};
   BevConfig bev_config_{};
+  RemapLut bev_lut_{};
+  bool fused_coverage_reported_{false};
   double startup_roll_deg_{0.0};
   double startup_pitch_down_deg_{14.0};
   std::atomic<double> valid_lut_percent_{0.0};
   std::atomic<double> applied_roll_deg_{0.0};
   std::atomic<double> applied_pitch_down_deg_{14.0};
   std::shared_ptr<CudaBevProcessor> gpu_processor_;
-  std::unique_ptr<BevLaneReconstructor> lane_reconstructor_;
 
-  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr input_subscription_;
-  rclcpp::Subscription<
-    camera_driver::msg::DeferredStabilizedNv12>::SharedPtr
-  deferred_input_subscription_;
+  rclcpp::Subscription<camera_driver::msg::BevInput>::SharedPtr
+    input_subscription_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr output_publisher_;
-  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr lane_output_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr preview_stop_publisher_;
+  rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr
+    capture_joy_subscription_;
+  rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr
+    startup_ground_reference_publisher_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 
   std::mutex input_mutex_;
   std::condition_variable input_cv_;
-  sensor_msgs::msg::Image::ConstSharedPtr latest_input_;
-  cv::Matx33d latest_source_to_stabilized_{cv::Matx33d::eye()};
+  camera_driver::msg::BevInput::ConstSharedPtr latest_input_;
   SteadyClock::time_point latest_input_received_at_;
   std::uint64_t input_generation_{0U};
   bool first_camera_input_seen_{false};
@@ -1994,6 +2051,7 @@ private:
   std::thread processing_thread_;
   std::thread publishing_thread_;
   std::thread preview_thread_;
+  std::thread dataset_collection_thread_;
 
   const SteadyClock::time_point node_started_at_{SteadyClock::now()};
   SteadyClock::time_point status_started_at_{SteadyClock::now()};
@@ -2003,30 +2061,21 @@ private:
   std::atomic<std::uint64_t> processed_total_{0U};
   std::atomic<std::uint64_t> skipped_total_{0U};
   std::atomic<std::uint64_t> published_total_{0U};
+  std::atomic<std::uint64_t> direct_delivered_total_{0U};
+  std::atomic<std::uint64_t> direct_unavailable_total_{0U};
   std::atomic<std::uint64_t> previewed_total_{0U};
   std::atomic<std::uint64_t> publish_throttled_total_{0U};
   std::atomic<std::uint64_t> invalid_total_{0U};
   std::atomic<std::uint64_t> stabilization_settle_total_{0U};
   std::atomic<std::uint64_t> processing_error_total_{0U};
   std::atomic<std::uint64_t> publish_error_total_{0U};
-  std::atomic<std::uint64_t> lane_valid_total_{0U};
-  std::atomic<std::uint64_t> lane_invalid_total_{0U};
-  std::atomic<int> latest_lane_points_{0};
-  std::atomic<int> latest_lane_inferred_points_{0};
-  std::atomic<bool> latest_lane_temporal_hold_{false};
-  std::atomic<int> latest_lane_width_mm_{0};
-  std::atomic<int> latest_lane_reconstructed_maximum_x_mm_{0};
   std::atomic<std::uint64_t> received_interval_{0U};
   std::atomic<std::uint64_t> accepted_interval_{0U};
   std::atomic<std::uint64_t> processed_interval_{0U};
   std::atomic<std::uint64_t> skipped_interval_{0U};
   std::atomic<std::uint64_t> published_interval_{0U};
+  std::atomic<std::uint64_t> direct_delivered_interval_{0U};
   std::atomic<std::uint64_t> previewed_interval_{0U};
-  std::atomic<std::uint64_t> lane_valid_interval_{0U};
-  std::atomic<std::uint64_t> lane_invalid_interval_{0U};
-  std::atomic<std::uint64_t> lane_process_samples_interval_{0U};
-  std::atomic<std::uint64_t> lane_process_ns_interval_{0U};
-  std::atomic<std::uint64_t> lane_process_ns_max_interval_{0U};
   std::atomic<std::uint64_t> process_ns_interval_{0U};
   std::atomic<std::uint64_t> process_ns_max_interval_{0U};
   std::atomic<std::uint64_t> stabilized_latency_samples_interval_{0U};

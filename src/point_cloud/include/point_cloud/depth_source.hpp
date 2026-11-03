@@ -1,0 +1,67 @@
+#pragma once
+
+#include "point_cloud/depth_projection.hpp"
+#include "point_cloud/ground_filter.hpp"
+#include "point_cloud/bev_crop.hpp"
+#include <map>
+
+#include <depthai/depthai.hpp>
+
+#include <memory>
+#include <string>
+#include <utility>
+
+namespace point_cloud
+{
+struct Config
+{
+  std::string resolution{"400p"};
+  double fps{50.0};
+  std::string mode{"high_density"};
+  double dot_intensity{0.5};
+  double flood_intensity{0.0};
+  int confidence{200};
+  bool lr_check{true};
+  int lr_threshold{10};
+  bool subpixel{false};
+  int subpixel_bits{3};
+  bool extended{false};
+  std::string median{"off"};
+  bool spatial{false};
+  bool speckle{false};
+  bool hole_filling{false};
+  bool adaptive_median{false};
+  ProjectionOptions projection;
+  GroundOptions ground;
+  BevOptions bev;
+  bool publish_depth{true};
+  double max_age_sec{0.5};
+  double metrics_interval{1.0};
+};
+
+std::pair<std::uint32_t, std::uint32_t> resolutionSize(const std::string & resolution);
+void validate(const Config & config);
+
+// Build stereo on an existing device pipeline (does not open/start a device).
+std::shared_ptr<dai::node::StereoDepth> addStereoDepth(dai::Pipeline & pipeline, const Config & config);
+RigidTransform rgbFromFrame(dai::ImgFrame & frame, const dai::CalibrationHandler & calibration);
+
+// Owns one device session. Closing/reopening also reapplies both IR intensities.
+class DepthSource
+{
+public:
+  DepthSource(const Config & config, const std::string & device_id, bool right_preview = false, double rgb_fps = 0.0);
+  ~DepthSource();
+  std::shared_ptr<dai::ImgFrame> tryGet();
+  std::shared_ptr<dai::ImgFrame> tryGetRight();
+  std::shared_ptr<dai::ImgFrame> tryGetRgb();
+  std::string deviceId() const;
+  RigidTransform rgbFromFrame(dai::ImgFrame & frame);
+
+private:
+  std::map<dai::CameraBoardSocket, RigidTransform> rgb_from_reference_;
+  std::shared_ptr<dai::Device> device_;
+  std::unique_ptr<dai::Pipeline> pipeline_;
+  std::shared_ptr<dai::MessageQueue> queue_, right_queue_, rgb_queue_;
+};
+}  // namespace point_cloud

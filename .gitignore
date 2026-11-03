@@ -4,6 +4,13 @@
 build/
 install/
 log/
+logs/
+devel/
+driving_logs/
+datasets/
+performance_logs/
+.cache/
+.DS_Store
 
 # ==============================================================================
 # ROS 1 / 2 Generation Artifacts (If applicable)

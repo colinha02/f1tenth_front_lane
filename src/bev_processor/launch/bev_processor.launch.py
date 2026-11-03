@@ -1,12 +1,75 @@
 import os
 
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch_ros.parameter_descriptions import ParameterValue
+
+
+_PARAMETER_FILE_DEFAULT = "__PARAMETER_FILE_DEFAULT__"
+
+
+def _ros_parameters(config_path, node_name):
+    with open(config_path, encoding="utf-8") as config_file:
+        config = yaml.safe_load(config_file) or {}
+    return config.get(node_name, {}).get("ros__parameters", {})
+
+
+def _launch_default(parameters, name, fallback):
+    value = parameters.get(name, fallback)
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def _merged_parameters(base_path, selected_path, node_name):
+    parameters = _ros_parameters(base_path, node_name)
+    selected_path = os.path.abspath(selected_path)
+    if not os.path.isfile(selected_path):
+        raise RuntimeError(f"parameter file does not exist: {selected_path}")
+    if os.path.realpath(selected_path) != os.path.realpath(base_path):
+        overrides = _ros_parameters(selected_path, node_name)
+        if not overrides:
+            raise RuntimeError(
+                f"{selected_path} has no {node_name}.ros__parameters section"
+            )
+        parameters.update(overrides)
+    return parameters
+
+
+def _apply_parameter_file_defaults(
+    context,
+    *,
+    bev_params,
+    launch_parameter_defaults,
+):
+    parameters = _merged_parameters(
+        bev_params,
+        LaunchConfiguration("bev_params_file").perform(context),
+        "bev_processor",
+    )
+    for launch_name, parameter_name, fallback in launch_parameter_defaults:
+        if (
+            context.launch_configurations[launch_name]
+            == _PARAMETER_FILE_DEFAULT
+        ):
+            context.launch_configurations[launch_name] = _launch_default(
+                parameters, parameter_name, fallback
+            )
+    camera = _ros_parameters(
+        LaunchConfiguration("camera_params_file").perform(context), "camera_driver"
+    )
+    for argument, parameter, fallback in (
+        ("measured_erpm_topic", "imu_stabilization_measured_erpm_topic", "/vesc/measured_erpm"),
+        ("vehicle_acceleration_topic", "imu_stabilization_can_acceleration_topic", "/vehicle/dynamics/acceleration"),
+    ):
+        if context.launch_configurations[argument] == _PARAMETER_FILE_DEFAULT:
+            context.launch_configurations[argument] = str(camera.get(parameter, fallback))
+    return []
 
 
 def generate_launch_description():
@@ -20,79 +83,121 @@ def generate_launch_description():
     performance_measurement_enabled = LaunchConfiguration(
         "performance_measurement_enabled"
     )
+    imu_stabilization_enabled = LaunchConfiguration(
+        "imu_stabilization_enabled"
+    )
+    high_frequency_only = LaunchConfiguration(
+        "imu_stabilization_high_frequency_only"
+    )
+    high_frequency_cutoff_hz = LaunchConfiguration(
+        "imu_stabilization_high_frequency_vibration_cutoff_hz"
+    )
+    gyroscope_correction_gain = LaunchConfiguration(
+        "imu_stabilization_gyroscope_correction_gain"
+    )
+    can_longitudinal_compensation_gain = LaunchConfiguration(
+        "imu_stabilization_can_longitudinal_compensation_gain"
+    )
+    can_lateral_compensation_gain = LaunchConfiguration(
+        "imu_stabilization_can_lateral_compensation_gain"
+    )
+    moving_accelerometer_nudge_strength = LaunchConfiguration(
+        "imu_stabilization_moving_accelerometer_nudge_strength"
+    )
+    moving_gravity_anchor_maximum_correction_rate_degps = LaunchConfiguration(
+        "imu_stabilization_moving_gravity_anchor_maximum_correction_rate_degps"
+    )
+    invalid_correction_hold_frames = LaunchConfiguration(
+        "imu_stabilization_invalid_correction_hold_frames"
+    )
+    bev_input_bottom_fraction = LaunchConfiguration(
+        "bev_input_bottom_fraction"
+    )
+    preview_enabled = LaunchConfiguration("preview_enabled")
+    camera_preview_enabled = LaunchConfiguration("camera_preview_enabled")
+    camera_publish_enabled = LaunchConfiguration("camera_publish_enabled")
+    camera_publish_fps = LaunchConfiguration("camera_publish_fps")
+    bev_interpolation = LaunchConfiguration("bev_interpolation")
     performance_measurement_parameter = ParameterValue(
         performance_measurement_enabled,
         value_type=bool,
     )
+    imu_stabilization_parameter = ParameterValue(
+        imu_stabilization_enabled,
+        value_type=bool,
+    )
+    high_frequency_only_parameter = ParameterValue(
+        high_frequency_only,
+        value_type=bool,
+    )
+    high_frequency_cutoff_parameter = ParameterValue(
+        high_frequency_cutoff_hz,
+        value_type=float,
+    )
+    gyroscope_correction_gain_parameter = ParameterValue(
+        gyroscope_correction_gain,
+        value_type=float,
+    )
+    can_longitudinal_compensation_parameter = ParameterValue(
+        can_longitudinal_compensation_gain,
+        value_type=float,
+    )
+    can_lateral_compensation_parameter = ParameterValue(
+        can_lateral_compensation_gain,
+        value_type=float,
+    )
+    moving_accelerometer_nudge_strength_parameter = ParameterValue(
+        moving_accelerometer_nudge_strength,
+        value_type=float,
+    )
+    moving_gravity_anchor_rate_parameter = ParameterValue(
+        moving_gravity_anchor_maximum_correction_rate_degps,
+        value_type=float,
+    )
+    invalid_correction_hold_frames_parameter = ParameterValue(
+        invalid_correction_hold_frames,
+        value_type=int,
+    )
 
-    # Keep every lane tuning value overridable from `ros2 launch ... name:=x`.
-    # Defaults below mirror the documented YAML baseline. They are explicit
-    # launch-time overrides so field tuning never requires rebuilding.
-    lane_parameters = [
-        ("lane_reconstruction_enabled", "true", bool),
-        ("lane_output_topic", "/camera/image_bev_lane", str),
-        ("lane_preview_enabled", "true", bool),
-        ("lane_preview_overlay_alpha", "1.0", float),
-        ("lane_minimum_brightness", "160", int),
-        ("lane_far_minimum_brightness", "110", int),
-        ("lane_maximum_saturation", "80", int),
-        ("lane_brightness_blur_kernel", "1", int),
-        ("lane_vertical_close_m", "0.05", float),
-        ("lane_minimum_mark_width_m", "0.01", float),
-        ("lane_maximum_mark_width_m", "0.08", float),
-        ("lane_minimum_local_contrast", "35", int),
-        ("lane_maximum_local_background_brightness", "140", int),
-        ("lane_local_background_band_m", "0.05", float),
-        ("lane_tracked_mark_width_near_m", "0.11", float),
-        ("lane_tracked_mark_width_far_m", "0.20", float),
-        ("lane_measurement_lateral_gate_near_m", "0.08", float),
-        ("lane_measurement_lateral_gate_far_m", "0.18", float),
-        ("lane_row_step_px", "2", int),
-        ("lane_observation_minimum_x_m", "0.20", float),
-        ("lane_observation_maximum_x_m", "1.80", float),
-        ("lane_reconstruction_minimum_x_m", "0.20", float),
-        ("lane_reconstruction_maximum_x_m", "2.70", float),
-        ("lane_maximum_extrapolation_m", "0.20", float),
-        ("lane_sliding_window_step_m", "0.06", float),
-        ("lane_sliding_window_length_m", "0.18", float),
-        ("lane_sliding_window_half_width_near_m", "0.12", float),
-        ("lane_sliding_window_half_width_far_m", "0.22", float),
-        ("lane_sliding_window_measurement_weight", "0.90", float),
-        ("lane_sliding_window_heading_weight", "0.80", float),
-        ("lane_maximum_tracking_arc_length_m", "3.20", float),
-        ("lane_maximum_gap_fill_m", "0.26", float),
-        ("lane_measured_point_smoothing_weight", "0.85", float),
-        ("lane_minimum_window_pixel_count", "6", int),
-        ("lane_expected_width_m", "0.625", float),
-        ("lane_width_tolerance_m", "0.075", float),
-        ("lane_initial_center_tolerance_m", "0.30", float),
-        ("lane_single_initial_tolerance_m", "0.20", float),
-        ("lane_maximum_tracking_gap_m", "0.20", float),
-        ("lane_minimum_points", "5", int),
-        ("lane_allow_single_lane", "true", bool),
-        ("lane_correspondence_minimum_width_m", "0.55", float),
-        ("lane_correspondence_maximum_width_m", "0.70", float),
-        ("lane_correspondence_longitudinal_tolerance_m", "0.10", float),
-        ("lane_infer_partially_missing_lane", "true", bool),
-        ("lane_temporal_tracking_enabled", "true", bool),
-        ("lane_temporal_maximum_lateral_jump_near_m", "0.06", float),
-        ("lane_temporal_maximum_lateral_jump_far_m", "0.12", float),
-        ("lane_temporal_maximum_heading_jump_deg", "15.0", float),
-        ("lane_temporal_confirmation_frames", "2", int),
-        ("lane_temporal_hold_frames", "2", int),
-        ("lane_output_line_thickness_m", "0.02", float),
+    # Keep capture/publication settings overridable from `ros2 launch ... name:=x`.
+    # When omitted, each value is resolved from bev_params_file at launch time.
+    runtime_parameters = [
+        ("capture_directory", ".", str),
+        ("capture_joy_topic", "/joy", str),
+        ("capture_joy_button", "1", int),
+        ("publish_enabled", "true", bool),
+        ("direct_output_enabled", "false", bool),
+        ("direct_host_copy_enabled", "false", bool),
+        ("dataset_collection_enabled", "false", bool),
+        ("dataset_collection_manual_capture_mode", "false", bool),
+        ("dataset_collection_manual_capture_button", "0", int),
+        ("dataset_collection_root_directory", "datasets", str),
+        ("dataset_collection_fps", "10.0", float),
+        ("dataset_collection_target_count", "1000", int),
+        ("dataset_collection_stop_auto_on_complete", "true", bool),
     ]
-    lane_launch_arguments = [
+    launch_parameter_defaults = [
+        (
+            "performance_measurement_enabled",
+            "performance_measurement_enabled",
+            "false",
+        ),
+        ("bev_input_bottom_fraction", "input_bottom_fraction", "0.70"),
+        ("preview_enabled", "preview_enabled", "true"),
+        ("bev_interpolation", "bev_interpolation", "bilinear"),
+        *[(name, name, fallback) for name, fallback, _ in runtime_parameters],
+    ]
+    runtime_launch_arguments = [
         DeclareLaunchArgument(
             name,
-            default_value=default,
+            default_value=_PARAMETER_FILE_DEFAULT,
             description=f"Override bev_processor parameter '{name}'.",
         )
-        for name, default, _ in lane_parameters
+        for name, _, _ in runtime_parameters
     ]
-    lane_parameter_overrides = {
+    runtime_parameter_overrides = {
         name: ParameterValue(LaunchConfiguration(name), value_type=value_type)
-        for name, _, value_type in lane_parameters
+        for name, _, value_type in runtime_parameters
     }
 
     return LaunchDescription(
@@ -109,15 +214,131 @@ def generate_launch_description():
                     "BEV parameter YAML; its root must be bev_processor"
                 ),
             ),
+            DeclareLaunchArgument("obstacles_enabled", default_value="false"),
+            DeclareLaunchArgument("measured_erpm_topic", default_value=_PARAMETER_FILE_DEFAULT),
+            DeclareLaunchArgument("vehicle_acceleration_topic", default_value=_PARAMETER_FILE_DEFAULT),
+            DeclareLaunchArgument("perception_params_file", default_value=LaunchConfiguration("bev_params_file"),
+                                  description="Optional shared obstacle parameters; default reuses the selected BEV YAML"),
             DeclareLaunchArgument(
                 "performance_measurement_enabled",
-                default_value="false",
+                default_value=_PARAMETER_FILE_DEFAULT,
                 description=(
                     "Disable GUI previews and print stabilized/BEV pipeline "
                     "performance measurements."
                 ),
             ),
-            *lane_launch_arguments,
+            DeclareLaunchArgument(
+                "imu_stabilization_enabled",
+                default_value="true",
+                description=(
+                    "Apply OAK IMU pitch/roll stabilization. The camera's "
+                    "fixed_view_zoom remains active when this is disabled."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_high_frequency_only",
+                default_value="false",
+                description=(
+                    "Disable CAN and moving accelerometer corrections, "
+                    "leaving gyro high-frequency stabilization only."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_high_frequency_vibration_cutoff_hz",
+                default_value="3.0",
+                description="High-frequency-only gyro cutoff in Hz.",
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_gyroscope_correction_gain",
+                default_value="1.0",
+                description=(
+                    "Applied gyro image correction fraction from 0.0 to 1.0."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_can_longitudinal_compensation_gain",
+                default_value="1.0",
+                description=(
+                    "Fraction of CAN longitudinal acceleration removed "
+                    "from the camera accelerometer, from 0.0 to 1.0."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_can_lateral_compensation_gain",
+                default_value="1.0",
+                description=(
+                    "Fraction of CAN lateral acceleration removed from "
+                    "the camera accelerometer, from 0.0 to 1.0."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_moving_accelerometer_nudge_strength",
+                default_value="0.15",
+                description=(
+                    "Strength of the bounded residual-accelerometer image "
+                    "correction, from 0.0 to 1.0."
+                ),
+            ),
+            DeclareLaunchArgument(
+                (
+                    "imu_stabilization_moving_gravity_anchor_maximum_"
+                    "correction_rate_degps"
+                ),
+                default_value="0.50",
+                description=(
+                    "Maximum persistent CAN-compensated gravity anchor "
+                    "correction rate in degrees per second."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "imu_stabilization_invalid_correction_hold_frames",
+                default_value="2",
+                description=(
+                    "Reuse the last valid stabilization homography for this "
+                    "many consecutive camera/IMU matching misses."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "bev_input_bottom_fraction",
+                default_value=_PARAMETER_FILE_DEFAULT,
+                description=(
+                    "Bottom fraction of the rectified camera frame sent to "
+                    "the fused CUDA stabilization/BEV path."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "preview_enabled",
+                default_value=_PARAMETER_FILE_DEFAULT,
+                description="Show or completely disable the BEV GUI preview.",
+            ),
+            DeclareLaunchArgument(
+                "camera_preview_enabled",
+                default_value="false",
+                description="Show the stabilized rectified RGB camera preview.",
+            ),
+            DeclareLaunchArgument(
+                "camera_publish_enabled",
+                default_value="false",
+                description="Publish the rectified RGB image topic.",
+            ),
+            DeclareLaunchArgument(
+                "camera_publish_fps",
+                default_value="30.0",
+                description="Maximum rectified RGB publication rate.",
+            ),
+            DeclareLaunchArgument(
+                "bev_interpolation",
+                default_value=_PARAMETER_FILE_DEFAULT,
+                description="Interpolation used by the CUDA NV12-to-BEV warp.",
+            ),
+            *runtime_launch_arguments,
+            OpaqueFunction(
+                function=_apply_parameter_file_defaults,
+                kwargs={
+                    "bev_params": bev_params,
+                    "launch_parameter_defaults": launch_parameter_defaults,
+                },
+            ),
             ComposableNodeContainer(
                 name="bev_processor_container",
                 namespace="",
@@ -132,43 +353,104 @@ def generate_launch_description():
                         plugin="bev_processor::BevProcessorNode",
                         name="bev_processor",
                         parameters=[
+                            bev_params,
                             LaunchConfiguration("bev_params_file"),
+                            LaunchConfiguration("perception_params_file"),
                             {
+                                "obstacles.share_reference": ParameterValue(LaunchConfiguration("obstacles_enabled"), value_type=bool),
                                 "performance_measurement_enabled": (
                                     performance_measurement_parameter
                                 ),
-                                "input_topic": (
-                                    "/camera/image_rect_deferred"
+                                "preview_enabled": ParameterValue(
+                                    preview_enabled,
+                                    value_type=bool,
                                 ),
-                                "deferred_stabilization_enabled": True,
-                                "stabilized_bottom_roi_ratio": 0.70,
+                                "input_bottom_fraction": ParameterValue(
+                                    bev_input_bottom_fraction,
+                                    value_type=float,
+                                ),
+                                "bev_interpolation": ParameterValue(
+                                    bev_interpolation,
+                                    value_type=str,
+                                ),
                             },
-                            lane_parameter_overrides,
+                            runtime_parameter_overrides,
                         ],
                         extra_arguments=[
                             {"use_intra_process_comms": True},
                         ],
                     ),
-                    # 안정화된 전체 NV12 영상을 BEV에 전달한다. BEV는
-                    # 시작 측정 LUT를 유지하므로 IMU 토픽 발행은 필요 없다.
+                    # 하단 raw NV12와 보정 행렬을 전달한다. CUDA가 안정화와
+                    # BEV를 한 번에 수행하므로 전체 CPU warp는 실행하지 않는다.
                     ComposableNode(
                         package="camera_driver",
                         plugin="camera_driver::CameraDriverNode",
                         name="camera_driver",
                         parameters=[
                             LaunchConfiguration("camera_params_file"),
+                            LaunchConfiguration("perception_params_file"),
                             {
-                                "preview_enabled": False,
-                                "publish_enabled": True,
-                                "imu_bridge_enabled": False,
-                                "imu_stabilization_enabled": True,
-                                "deferred_stabilization_enabled": True,
-                                "deferred_image_topic": (
-                                    "/camera/image_rect_deferred"
+                                "obstacles.depth.enabled": ParameterValue(LaunchConfiguration("obstacles_enabled"), value_type=bool),
+                                "imu_stabilization_measured_erpm_topic": LaunchConfiguration("measured_erpm_topic"),
+                                "imu_stabilization_can_acceleration_topic": LaunchConfiguration("vehicle_acceleration_topic"),
+                                "preview_enabled": ParameterValue(
+                                    camera_preview_enabled,
+                                    value_type=bool,
                                 ),
-                                # BEV intrinsics in bev_config.yaml include
-                                # this fixed-view zoom, so enforce it here.
-                                "fixed_view_zoom": 1.25,
+                                "publish_enabled": ParameterValue(
+                                    camera_publish_enabled,
+                                    value_type=bool,
+                                ),
+                                "publish_fps": ParameterValue(
+                                    camera_publish_fps,
+                                    value_type=float,
+                                ),
+                                "fused_bev_output_enabled": True,
+                                "bev_input_bottom_fraction": ParameterValue(
+                                    bev_input_bottom_fraction,
+                                    value_type=float,
+                                ),
+                                # CAN dynamics uses this yaw rate for ay.
+                                "imu_bridge_enabled": True,
+                                "imu_stabilization_enabled": (
+                                    imu_stabilization_parameter
+                                ),
+                                "imu_stabilization_high_frequency_only": (
+                                    high_frequency_only_parameter
+                                ),
+                                (
+                                    "imu_stabilization_high_frequency_"
+                                    "vibration_cutoff_hz"
+                                ): high_frequency_cutoff_parameter,
+                                (
+                                    "imu_stabilization_gyroscope_"
+                                    "correction_gain"
+                                ): gyroscope_correction_gain_parameter,
+                                (
+                                    "imu_stabilization_can_longitudinal_"
+                                    "compensation_gain"
+                                ): can_longitudinal_compensation_parameter,
+                                (
+                                    "imu_stabilization_can_lateral_"
+                                    "compensation_gain"
+                                ): can_lateral_compensation_parameter,
+                                (
+                                    "imu_stabilization_moving_"
+                                    "accelerometer_nudge_strength"
+                                ): (
+                                    moving_accelerometer_nudge_strength_parameter
+                                ),
+                                (
+                                    "imu_stabilization_moving_gravity_anchor_"
+                                    "maximum_correction_rate_degps"
+                                ): moving_gravity_anchor_rate_parameter,
+                                (
+                                    "imu_stabilization_invalid_correction_"
+                                    "hold_frames"
+                                ): invalid_correction_hold_frames_parameter,
+                                (
+                                    "imu_stabilization_external_reference_required"
+                                ): True,
                                 "output_crop_top_px": 0,
                                 "performance_measurement_enabled": (
                                     performance_measurement_parameter

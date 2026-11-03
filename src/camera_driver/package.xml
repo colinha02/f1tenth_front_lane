@@ -14,19 +14,23 @@
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>bev_handoff</depend>
+  <depend>point_cloud</depend>
   <depend>rclcpp_components</depend>
+  <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
-  <!-- DepthAI is a native CMake library, not an ament/ROS package.  The
-       CMakeLists.txt locates depthai::core through depthaiConfig.cmake. -->
+  <depend>std_msgs</depend>
+  <depend>depthai</depend>
   <depend>opencv4</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
 
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
-
-  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
     <build_type>ament_cmake</build_type>

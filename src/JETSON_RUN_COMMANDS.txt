@@ -22,8 +22,8 @@ ros2 topic echo /joy
 
 [2. VESC 통신 노드만 실행]
 
-ros2 run vesc_initializer vesc_initialize_node --ros-args \
-  --params-file "$(ros2 pkg prefix vehicle_config)/share/vehicle_config/config/vesc_config.yaml"
+ros2 run vesc_bridge vesc_bridge_node --ros-args \
+  --params-file "$(ros2 pkg prefix vehicle_bringup)/share/vehicle_bringup/config/vesc_config.yaml"
 
 VESC 연결 상태 확인용 별도 터미널:
 
@@ -32,11 +32,11 @@ source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 topic echo /vesc/connected
 
-기본 설정은 Jetson UART `/dev/ttyTHS1`이다. 다른 포트를 쓸 경우:
+CH341T가 /dev/ttyUSB1에 연결된 경우:
 
-ros2 run vesc_initializer vesc_initialize_node --ros-args \
-  --params-file "$(ros2 pkg prefix vehicle_config)/share/vehicle_config/config/vesc_config.yaml" \
-  -p port:=/dev/ttyACM0
+ros2 run vesc_bridge vesc_bridge_node --ros-args \
+  --params-file "$(ros2 pkg prefix vehicle_bringup)/share/vehicle_bringup/config/vesc_config.yaml" \
+  -p port:=/dev/ttyUSB1
 
 주의: 이 명령은 VESC 통신 노드만 시작한다. 실제 주행 명령은 별도의
 /vesc/erpm 및 /vesc/servo_position publisher가 있어야 전달된다.
@@ -44,14 +44,14 @@ ros2 run vesc_initializer vesc_initialize_node --ros-args \
 
 [3. 조이스틱 수동 주행 전체 실행]
 
-ros2 launch vehicle_launcher manual_drive.launch.py
+ros2 launch vehicle_bringup manual_drive.launch.py
 
 이 launch에는 다음 노드가 모두 포함된다.
 
 - joy_node
 - joy_params_converter_node
 - actuator_commander_node
-- vesc_initialize_node
+- vesc_bridge_node
 
 따라서 [1] 조이스틱 노드나 [2] VESC 노드를 따로 실행하지 않는다.
 
@@ -60,9 +60,9 @@ ros2 launch vehicle_launcher manual_drive.launch.py
 
 ros2 launch vehicle_test_drive vehicle_test_drive.launch.py
 
-기본 UART 포트가 아닌 다른 포트를 쓸 경우:
+CH341T가 /dev/ttyUSB1에 연결된 경우:
 
-ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyACM0
+ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyUSB1
 
 테스트 주행 launch는 VESC 연결과 펌웨어 응답을 확인한 뒤 다음 순서로
 자동 실행한다.
@@ -73,7 +73,7 @@ ros2 launch vehicle_test_drive vehicle_test_drive.launch.py vesc_port:=/dev/ttyA
 4. ERPM 0 -> -5000
 5. ERPM 0 및 조향 위치 0.5로 복귀 후 종료
 
-테스트 주행 launch가 vesc_initialize_node를 직접 실행하므로 [2] VESC 노드,
+테스트 주행 launch가 vesc_bridge_node를 직접 실행하므로 [2] VESC 노드,
 [3] 수동 주행 launch와 동시에 실행하지 않는다.
 
 
@@ -130,8 +130,8 @@ cd ~/Desktop/f1tenth_test0724/f1tenth_project_repo
 
 source /opt/ros/humble/setup.bash
 colcon build --cmake-clean-cache --packages-select \
-  joy_initializer vehicle_config vehicle_launcher manual_control \
-  vesc_initializer vehicle_test_drive camera_driver \
+  joy_initializer vehicle_bringup manual_control auto_control \
+  vesc_bridge vehicle_test_drive camera_driver \
   camera_height_estimator bev_processor \
   --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
@@ -143,6 +143,11 @@ source install/setup.bash
 차량을 완전히 정지시키고 중앙 ROI에 장애물 없는 평평한 노면을 둔다.
 
 ros2 launch bev_processor bev_processor.launch.py
+
+곡선 형태를 더 부드럽게 유지하는 bicubic 보간으로 실행:
+
+ros2 launch bev_processor bev_processor.launch.py \
+  bev_interpolation:=bicubic
 
 이 launch는 다음 순서로 실행한다.
 
@@ -156,6 +161,24 @@ GUI 없이 성능만 측정:
 
 ros2 launch bev_processor bev_processor.launch.py \
   performance_measurement_enabled:=true
+
+
+[8. BEV 중앙선 기반 자율주행]
+
+수동주행 launch와 동시에 실행하지 않는다. 기본 실행은 원본 영상을 숨기고
+차선 인식 결과만 프리뷰하며, 중앙선과 VESC/ERPM이 준비되면 바로 출발한다.
+
+ros2 launch vehicle_bringup auto_drive.launch.py
+
+프리뷰를 완전히 끄고 실행:
+
+ros2 launch vehicle_bringup auto_drive.launch.py preview_enabled:=false
+
+바퀴를 띄운 상태에서 명령만 점검하려면 자동 출발을 끈다.
+
+ros2 launch vehicle_bringup auto_drive.launch.py \
+  preview_enabled:=false \
+  auto_enabled:=false
 
 
 [안전 주의]

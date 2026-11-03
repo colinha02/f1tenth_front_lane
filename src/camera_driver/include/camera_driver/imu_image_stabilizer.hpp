@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 
@@ -21,11 +22,20 @@ struct ImuImageStabilizerConfig
   double gravity_mps2{9.80665};
   double accelerometer_full_trust_deviation_mps2{0.15};
   double accelerometer_zero_trust_deviation_mps2{1.50};
-  double acceleration_correction_time_constant_sec{4.3};
+  double acceleration_correction_time_constant_sec{1.5};
   double acceleration_correction_gate_deg{4.3};
-  double roll_acceleration_correction_time_constant_sec{6.0};
+  double roll_acceleration_correction_time_constant_sec{2.0};
   double roll_acceleration_direction_gate_deg{4.3};
-  bool acceleration_correction_requires_stationary{true};
+  bool acceleration_correction_stationary_only{true};
+  bool moving_accelerometer_nudge_enabled{false};
+  double moving_accelerometer_nudge_time_constant_sec{0.15};
+  double moving_accelerometer_nudge_strength{0.15};
+  double moving_accelerometer_pitch_nudge_maximum_deg{0.20};
+  double moving_accelerometer_roll_nudge_maximum_deg{0.15};
+  double moving_gravity_anchor_maximum_correction_rate_degps{0.50};
+  bool external_reference_required{false};
+  double reference_tilt_leak_time_constant_sec{4.0};
+  double stationary_tilt_recovery_time_constant_sec{0.35};
   bool online_gyroscope_tilt_bias_enabled{true};
   double online_gyroscope_tilt_bias_time_constant_sec{10.0};
   double stationary_detection_window_sec{1.0};
@@ -37,12 +47,13 @@ struct ImuImageStabilizerConfig
   double stationary_gyroscope_stddev_maximum_degps{0.8};
   bool pitch_correction_enabled{true};
   bool roll_correction_enabled{true};
-  double maximum_correction_deg{12.0};
+  double gyroscope_correction_gain{1.0};
+  double maximum_correction_deg{3.0};
   double maximum_sample_interval_sec{0.1};
   double maximum_history_sec{2.0};
-  double maximum_frame_imu_wait_sec{0.008};
+  double maximum_frame_imu_wait_sec{0.001};
   double maximum_frame_imu_age_sec{0.006};
-  double maximum_frame_imu_prediction_sec{0.0};
+  double maximum_frame_imu_prediction_sec{0.015};
 };
 
 struct ImageStabilizationCorrection
@@ -86,7 +97,13 @@ public:
   void update(
     const std::optional<cv::Vec3d> & acceleration_camera_mps2,
     const cv::Vec3d & angular_velocity_camera_radps,
-    double timestamp_sec);
+    double timestamp_sec,
+    std::optional<bool> vehicle_stationary = std::nullopt);
+
+  // Supplies the immutable ground-plane normal used by the static BEV LUT.
+  // It must be expressed in camera optical coordinates and is accepted only
+  // before the startup stationary calibration has completed.
+  bool setExternalReferenceUpCamera(const cv::Vec3d & up_camera);
 
   std::optional<ImageStabilizationCorrection> correctionAt(
     double timestamp_sec) const;
@@ -94,12 +111,36 @@ public:
   bool initialized() const;
   ImageStabilizerCalibrationProgress calibrationProgress() const;
   cv::Vec3d gyroscopeBiasRadps() const;
+  cv::Vec2d movingAccelerometerNudgeDegrees() const;
+  std::uint64_t movingGravityAnchorUpdateCount() const;
+  std::optional<cv::Vec3d> referenceUpCamera() const;
   bool stationaryConfirmed() const;
+  bool externalReferenceReceived() const;
   std::uint64_t onlineTiltBiasUpdateCount() const;
 
 private:
   class Impl;
   std::unique_ptr<Impl> impl_;
+};
+
+class LastValidStabilizationHomography
+{
+public:
+  explicit LastValidStabilizationHomography(
+    std::size_t maximum_hold_frames = 2U);
+
+  void setMaximumHoldFrames(std::size_t maximum_hold_frames);
+  void remember(const cv::Matx33d & homography);
+  std::optional<cv::Matx33d> reuseForFrame(std::uint64_t frame_token);
+  void clear();
+  std::size_t remainingHoldFrames() const;
+
+private:
+  mutable std::mutex mutex_;
+  std::size_t maximum_hold_frames_{2U};
+  std::size_t remaining_hold_frames_{0U};
+  std::optional<cv::Matx33d> homography_;
+  std::optional<std::uint64_t> last_reused_frame_token_;
 };
 
 cv::Matx33d makeImageStabilizationHomography(

@@ -12,15 +12,21 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(bev_handoff REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rcl_interfaces REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(OpenCV 4 REQUIRED COMPONENTS core highgui imgproc)
-find_package(depthai 3 CONFIG QUIET)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(OpenCV 4 REQUIRED COMPONENTS core highgui imgcodecs imgproc)
+# Load the complete DepthAI export set in this directory before ament loads
+# dependencies that may expose only depthai::core from a nested scope.
+find_package(depthai 3.6 CONFIG QUIET)
 if(NOT depthai_FOUND)
   message(FATAL_ERROR
-    "DepthAI C++ 3.x was not found. The Python 'depthai' wheel is not "
+    "DepthAI C++ 3.6+ was not found. The Python 'depthai' wheel is not "
     "sufficient because this package links against depthai::core. Install "
     "depthai-core as a shared C++ library, then pass "
     "-Ddepthai_DIR=<prefix>/lib/cmake/depthai or add <prefix> to "
@@ -28,10 +34,11 @@ if(NOT depthai_FOUND)
   )
 endif()
 find_package(Threads REQUIRED)
+find_package(point_cloud REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/DeferredStabilizedNv12.msg"
-  DEPENDENCIES sensor_msgs
+  "msg/BevInput.msg"
+  DEPENDENCIES std_msgs
 )
 
 add_library(camera_imu_stabilizer STATIC
@@ -47,6 +54,17 @@ target_include_directories(camera_imu_stabilizer
 )
 target_link_libraries(camera_imu_stabilizer PUBLIC ${OpenCV_LIBS})
 
+add_library(camera_vehicle_motion STATIC
+  src/vehicle_motion_estimator.cpp
+)
+set_target_properties(
+  camera_vehicle_motion PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_include_directories(camera_vehicle_motion
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
 add_library(camera_driver_component SHARED
   src/camera_driver_node.cpp
 )
@@ -59,19 +77,26 @@ target_include_directories(camera_driver_component
     $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(camera_driver_component
+  bev_handoff
   rclcpp
+  rcl_interfaces
   rclcpp_components
+  geometry_msgs
   sensor_msgs
+  std_msgs
 )
 target_link_libraries(camera_driver_component
   camera_imu_stabilizer
+  camera_vehicle_motion
+  point_cloud::point_cloud_depth_source
   depthai::core
   ${OpenCV_LIBS}
   Threads::Threads
 )
 rosidl_get_typesupport_target(
-  camera_driver_typesupport ${PROJECT_NAME} "rosidl_typesupport_cpp")
-target_link_libraries(camera_driver_component ${camera_driver_typesupport})
+  camera_driver_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(
+  camera_driver_component "${camera_driver_typesupport_target}")
 
 rclcpp_components_register_nodes(
   camera_driver_component
@@ -96,6 +121,12 @@ if(BUILD_TESTING)
     imu_image_stabilizer_test camera_imu_stabilizer ${OpenCV_LIBS})
   add_test(
     NAME imu_image_stabilizer_test COMMAND imu_image_stabilizer_test)
+  add_executable(
+    vehicle_motion_estimator_test test/vehicle_motion_estimator_test.cpp)
+  target_link_libraries(
+    vehicle_motion_estimator_test camera_vehicle_motion)
+  add_test(
+    NAME vehicle_motion_estimator_test COMMAND vehicle_motion_estimator_test)
 endif()
 
 install(
@@ -111,19 +142,24 @@ install(
 install(
   TARGETS
     camera_imu_stabilizer
+    camera_vehicle_motion
     camera_driver_component
   EXPORT export_camera_driver
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+# Executables must not be part of the exported library target set: packages
+# that depend on camera_driver for BevInput would otherwise try to link it.
 install(
-  TARGETS camera_driver_node
+  TARGETS
+    camera_driver_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_export_targets(export_camera_driver HAS_LIBRARY_TARGET)
 ament_export_dependencies(
-  OpenCV rclcpp rclcpp_components sensor_msgs rosidl_default_runtime)
+  bev_handoff point_cloud
+  OpenCV rclcpp rcl_interfaces rclcpp_components geometry_msgs rosidl_default_runtime
+  sensor_msgs std_msgs)
 
 ament_package()
