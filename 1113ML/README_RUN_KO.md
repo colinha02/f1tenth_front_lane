@@ -24,6 +24,15 @@ CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build --executor sequential --symlink-instal
 source install/setup.bash
 ```
 
+`model_startup_check` 등의 Python 실행 스크립트는 `--symlink-install`에서 원본 파일의 실행 권한이 필요합니다. 이미 받은 작업공간에서 `executable 'model_startup_check' not found`가 나오면 저장소를 업데이트하고 `auto_control`을 다시 설치하세요.
+
+```bash
+git -C .. pull --ff-only
+colcon build --packages-select auto_control --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
+ls -l install/auto_control/lib/auto_control/model_startup_check
+```
+
 ## 신호등 정지 주행 확인
 
 ```bash
