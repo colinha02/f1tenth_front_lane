@@ -1,0 +1,14 @@
+devel/
+log/
+logs/
+driving_logs/
+install/
+build/
+bin/
+lib/
+msg_gen/
+srv_gen/
+__pycache__/
+*.pyc
+captures/
+.DS_Store
