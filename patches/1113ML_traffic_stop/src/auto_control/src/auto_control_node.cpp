@@ -308,10 +308,11 @@ public:
       longitudinal_start_duty_, duty_rise_rate_per_sec_);
     RCLCPP_INFO(get_logger(),
       "Traffic stop=%s | bumper offset=%.2fm, margin=%.2fm, accepted range=0..%.2fm, planning decel=%.2fm/s2, "
-      "response=%.2fs, approach=%.2fm/s, brake cap=%.2fA (independent of normal electrical_brake_enabled)",
+      "response=%.2fs, approach=%.2fm/s, approach brake=%s, final brake cap=%.2fA",
       traffic_stop_enabled_ ? "ON" : "OFF", traffic_front_offset_, traffic_margin_,
       traffic_stop_range_max_m_, planning_deceleration_mps2_, traffic_response_time_,
-      traffic_approach_speed_, brake_maximum_current_amps_);
+      traffic_approach_speed_, traffic_approach_brake_enabled_ ? "ON" : "OFF",
+      brake_maximum_current_amps_);
     RCLCPP_INFO(get_logger(),
       "Auto control C++ ready: mode=%s, lane=%s, speed=%.2f..%.2fm/s, "
       "duty=%.3f..%.3f, auto_brake=%s/%.1fA, control=on_lane_result, watchdog=%.1fHz",
@@ -359,7 +360,8 @@ private:
       "traffic_brake_amps_per_mps2", "traffic_brake_deceleration_hysteresis_mps2", "traffic_brake_response_time_sec",
       "traffic_brake_speed_hysteresis_mps", "traffic_brake_urgent_rise_amps_per_sec", "traffic_coast_probe_sec",
       "traffic_front_axle_to_bumper_m", "traffic_hold_current_amps", "traffic_pass_if_unstoppable_enabled",
-      "traffic_pass_overshoot_m", "traffic_approach_speed_mps", "traffic_reapproach_speed_mps", "traffic_state_timeout_sec",
+      "traffic_pass_overshoot_m", "traffic_approach_speed_mps", "traffic_approach_electrical_brake_enabled",
+      "traffic_reapproach_speed_mps", "traffic_state_timeout_sec",
       "traffic_stop_enabled", "traffic_stop_line_confirm_frames", "traffic_stop_line_current_weight",
       "traffic_stop_line_match_tolerance_m", "traffic_stop_line_timeout_sec", "traffic_stop_margin_m",
       "traffic_stop_position_tolerance_m", "traffic_stop_range_max_m", "traffic_terminal_tracking_distance_m",
@@ -535,6 +537,7 @@ private:
     traffic_line_confirm_frames_ = parameter("traffic_stop_line_confirm_frames", 3);
     traffic_arrival_tolerance_ = parameter("traffic_stop_position_tolerance_m", 0.03);
     traffic_approach_speed_ = parameter("traffic_approach_speed_mps", 0.30);
+    traffic_approach_brake_enabled_ = parameter("traffic_approach_electrical_brake_enabled", false);
     traffic_reapproach_speed_ = parameter("traffic_reapproach_speed_mps", 0.20);
     enabled_ = parameter("enabled", true);
     control_mode_ = parameter<std::string>("control_mode", "drive");
@@ -1262,8 +1265,11 @@ private:
     const bool zero_target = target <= 0.0;
     if (zero_target != longitudinal_zero_target_) {longitudinal_pid_->reset();}
     longitudinal_zero_target_ = zero_target;
-    const bool braking_allowed = traffic_stop || electrical_brake_enabled_ ||
-      obstacle_profile_active_ || corner_braking_allowed_;
+    // Coast on duty during a red-light approach. Keep electrical braking for
+    // the final zero-speed request and for independent input/stop guards.
+    const bool braking_allowed = traffic_stop ?
+      (zero_target || traffic_approach_brake_enabled_) :
+      (electrical_brake_enabled_ || obstacle_profile_active_ || corner_braking_allowed_);
     const double brake_cap = brake_maximum_current_amps_;
     required_deceleration_mps2_ = kUnavailable;
     const bool approaching = traffic_stop && !zero_target && stop_remaining_;
@@ -1520,8 +1526,9 @@ private:
     const double effort = longitudinal_pid_->update(target, feedback_speed, 0.0, dt);
     latest_pid_effort_ = effort;
     latest_desired_duty_ = target > 0 ? std::max(0.0, effort) * maximum_duty_ : 0.0;
-    const bool braking_allowed = traffic_stop || electrical_brake_enabled_ ||
-      obstacle_profile_active_ || corner_braking_allowed_;
+    const bool braking_allowed = traffic_stop ?
+      (target <= 0.0 || traffic_approach_brake_enabled_) :
+      (electrical_brake_enabled_ || obstacle_profile_active_ || corner_braking_allowed_);
     const double brake_cap = brake_maximum_current_amps_;
     double brake = braking_allowed ? std::max(0.0, -effort) * brake_cap : 0.0;
     if (traffic_stop && target <= 0 && std::abs(current_speed_mps_) < 0.05) {
@@ -2364,6 +2371,7 @@ private:
   bool tunnel_enabled_{false},tunnel_active_{false},outside_avoidance_{false},outside_slowdown_{false},outside_traffic_{false};
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr tunnel_state_sub_;
   bool traffic_stop_enabled_{false}, traffic_red_{false}, traffic_holding_{false};
+  bool traffic_approach_brake_enabled_{false};
   bool traffic_range_stop_committed_{false};
   double traffic_stop_range_max_m_;
   bool traffic_stop_active_{false}, traffic_pass_committed_{false};

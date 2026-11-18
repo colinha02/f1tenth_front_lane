@@ -53,7 +53,10 @@ auto_control:
     # 정지 접근/통과 결정은 같은 정지선에 대해 유지하며, GREEN 확인 시 해제한다.
     traffic_pass_if_unstoppable_enabled: false
     traffic_pass_overshoot_m: 0.5
-    # 신호등 정지는 일반 electrical_brake_enabled=false여도 공통 제동 상한을 사용해 작동.
+    # 일반 주행 electrical_brake_enabled와 별개로 신호등 접근 전류 제동을 제어.
+    # false: 접근 중 duty만 줄임. 정지 범위에서 목표 0 및 보호 정지 제동은 유지.
+    traffic_approach_electrical_brake_enabled: false
+    # 신호등 최종 제동은 일반 electrical_brake_enabled=false여도 공통 제동 상한을 사용.
     traffic_brake_amps_per_mps2: 2.0      # 구버전 호환용. 현재 제어에서는 사용하지 않음
     # brake_maximum_current_amps를 정지선과 코너에 공통 적용
     traffic_hold_current_amps: 0.7       # 목표 0 + 저속에서만 유지 전류. 접근 제동에는 하한 없음.

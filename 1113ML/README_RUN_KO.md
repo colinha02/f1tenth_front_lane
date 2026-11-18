@@ -45,4 +45,6 @@ ros2 launch vehicle_bringup auto_drive.launch.py \
 
 `manual_test:=true`는 신호등 정지 기능을 끄므로 이 실험에는 사용하지 않습니다. 이 명령은 실제 조향·구동 명령을 출력합니다. 정지선 접근 목표 속도는 `src/auto_control/config/auto_control.yaml`의 `traffic_approach_speed_mps: 0.30`입니다.
 
+신호등 접근 중에는 `traffic_approach_electrical_brake_enabled: false`로 전류 제동을 요청하지 않고 구동 duty를 줄여 감속합니다. 정지 범위(앞범퍼 기준 25 cm 이내)에서 목표속도가 0이 되면 최종 전류 제동을 사용합니다. 입력 유실·운전자 STOP의 보호 제동도 유지됩니다. 따라서 멀리서 다시 멈춘다면 CSV의 `traffic_phase`, `control_state`, `brake_current_a`로 입력 유실 여부를 구분하세요. 25 cm는 제동 개시 범위이며 정확한 정지 위치는 실차 측정이 필요합니다.
+
 GitHub의 `patches/1113ML_traffic_stop/`에는 같은 수정의 개별 파일과 패치도 보관되어 있습니다. **이 폴더에는 이미 적용되어 있으므로 패치를 다시 적용하지 마세요.**
