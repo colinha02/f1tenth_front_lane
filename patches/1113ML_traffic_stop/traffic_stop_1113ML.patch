@@ -1,50 +1,172 @@
 diff --git a/src/auto_control/src/auto_control_node.cpp b/src/auto_control/src/auto_control_node.cpp
-index 3cbaf93..75315b5 100644
+index 3cbaf93..ae69618 100644
 --- a/src/auto_control/src/auto_control_node.cpp
 +++ b/src/auto_control/src/auto_control_node.cpp
-@@ -308,9 +308,11 @@ public:
+@@ -185,6 +185,7 @@ public:
+           obstacle_last_depth_ns_.reset(); obstacle_planned_speed_.reset();
+           obstacle_profile_active_=false;
+           traffic_stop_active_=false; traffic_holding_=false;
++          traffic_final_brake_active_=traffic_range_stop_committed_=false;
+           traffic_pass_committed_=false; traffic_red_=false;
+           clear_stop_line_track();
+           RCLCPP_INFO(get_logger(),"Tunnel mode=%s; outside obstacle/traffic control=%s",
+@@ -307,10 +308,14 @@ public:
+     RCLCPP_INFO(get_logger(), "Staged departure: start duty=%.3f (0=disabled), then rise=%.3f/s",
        longitudinal_start_duty_, duty_rise_rate_per_sec_);
      RCLCPP_INFO(get_logger(),
-       "Traffic stop=%s | bumper offset=%.2fm, margin=%.2fm, accepted range=0..%.2fm, planning decel=%.2fm/s2, "
+-      "Traffic stop=%s | bumper offset=%.2fm, margin=%.2fm, accepted range=0..%.2fm, planning decel=%.2fm/s2, "
 -      "response=%.2fs, brake cap=%.2fA (independent of normal electrical_brake_enabled)",
-+      "response=%.2fs, approach=%.2fm/s, approach brake=%s, final brake cap=%.2fA",
++      "Traffic stop=%s | bumper offset=%.2fm, margin=%.2fm, target gap=%.2fm, planning decel=%.2fm/s2, "
++      "response=%.2fs, RED pre-slow=%.2fm/s, crawl=%.2fm/s, approach brake=%s, "
++      "final brake cap=%.2fA, line grace=%.2fs/%.2fm",
        traffic_stop_enabled_ ? "ON" : "OFF", traffic_front_offset_, traffic_margin_,
 -      traffic_stop_range_max_m_, planning_deceleration_mps2_, traffic_response_time_, brake_maximum_current_amps_);
 +      traffic_stop_range_max_m_, planning_deceleration_mps2_, traffic_response_time_,
-+      traffic_approach_speed_, traffic_approach_brake_enabled_ ? "ON" : "OFF",
-+      brake_maximum_current_amps_);
++      traffic_red_preapproach_speed_, traffic_approach_speed_,
++      traffic_approach_brake_enabled_ ? "ON" : "OFF", brake_maximum_current_amps_,
++      traffic_tracking_grace_sec_, traffic_tracking_max_travel_m_);
      RCLCPP_INFO(get_logger(),
        "Auto control C++ ready: mode=%s, lane=%s, speed=%.2f..%.2fm/s, "
        "duty=%.3f..%.3f, auto_brake=%s/%.1fA, control=on_lane_result, watchdog=%.1fHz",
-@@ -358,7 +360,8 @@ private:
+@@ -358,7 +363,10 @@ private:
        "traffic_brake_amps_per_mps2", "traffic_brake_deceleration_hysteresis_mps2", "traffic_brake_response_time_sec",
        "traffic_brake_speed_hysteresis_mps", "traffic_brake_urgent_rise_amps_per_sec", "traffic_coast_probe_sec",
        "traffic_front_axle_to_bumper_m", "traffic_hold_current_amps", "traffic_pass_if_unstoppable_enabled",
 -      "traffic_pass_overshoot_m", "traffic_reapproach_speed_mps", "traffic_state_timeout_sec",
 +      "traffic_pass_overshoot_m", "traffic_approach_speed_mps", "traffic_approach_electrical_brake_enabled",
-+      "traffic_reapproach_speed_mps", "traffic_state_timeout_sec",
++      "traffic_coast_plan_deceleration_mps2", "traffic_final_brake_deceleration_mps2",
++      "traffic_line_tracking_grace_sec", "traffic_line_tracking_max_travel_m",
++      "traffic_red_preapproach_speed_mps", "traffic_reapproach_speed_mps", "traffic_state_timeout_sec",
        "traffic_stop_enabled", "traffic_stop_line_confirm_frames", "traffic_stop_line_current_weight",
        "traffic_stop_line_match_tolerance_m", "traffic_stop_line_timeout_sec", "traffic_stop_margin_m",
        "traffic_stop_position_tolerance_m", "traffic_stop_range_max_m", "traffic_terminal_tracking_distance_m",
-@@ -533,6 +536,8 @@ private:
+@@ -479,10 +487,14 @@ private:
+     traffic_state_topic_ = parameter<std::string>("traffic_state_topic", "/traffic_light/state");
+     traffic_state_timeout_ = parameter("traffic_state_timeout_sec", 0.30);
+     traffic_line_timeout_ = parameter("traffic_stop_line_timeout_sec", 0.50);
++    traffic_tracking_grace_sec_ = parameter("traffic_line_tracking_grace_sec", 0.90);
++    traffic_tracking_max_travel_m_ = parameter("traffic_line_tracking_max_travel_m", 0.50);
+     traffic_margin_ = parameter("traffic_stop_margin_m", 0.15);
+     traffic_stop_range_max_m_ = parameter("traffic_stop_range_max_m", 0.30);
+     traffic_front_offset_ = parameter("traffic_front_axle_to_bumper_m", 0.10);
+     planning_deceleration_mps2_ = parameter("longitudinal_planning_deceleration_mps2", 0.50);
++    traffic_coast_plan_decel_ = parameter("traffic_coast_plan_deceleration_mps2", 0.20);
++    traffic_final_brake_decel_ = parameter("traffic_final_brake_deceleration_mps2", 0.50);
+     // Accepted for older parameter files; the shared planning value is authoritative.
+     parameter("traffic_stop_deceleration_mps2", 0.60);
+     parameter("corner_planning_deceleration_mps2", 0.35);
+@@ -533,6 +545,9 @@ private:
      traffic_line_weight_ = parameter("traffic_stop_line_current_weight", 0.35);
      traffic_line_confirm_frames_ = parameter("traffic_stop_line_confirm_frames", 3);
      traffic_arrival_tolerance_ = parameter("traffic_stop_position_tolerance_m", 0.03);
 +    traffic_approach_speed_ = parameter("traffic_approach_speed_mps", 0.30);
 +    traffic_approach_brake_enabled_ = parameter("traffic_approach_electrical_brake_enabled", false);
++    traffic_red_preapproach_speed_ = parameter("traffic_red_preapproach_speed_mps", 1.0);
      traffic_reapproach_speed_ = parameter("traffic_reapproach_speed_mps", 0.20);
      enabled_ = parameter("enabled", true);
      control_mode_ = parameter<std::string>("control_mode", "drive");
-@@ -662,7 +667,7 @@ private:
+@@ -660,9 +675,11 @@ private:
+       obstacle_brake_exit_margin_ >= obstacle_brake_entry_margin_ ||
+       !std::isfinite(obstacle_coast_probe_sec_) || obstacle_coast_probe_sec_ < 0.0)
      {throw std::invalid_argument("invalid gradual slowdown/recovery parameters");}
-     if (!finite_positive({traffic_state_timeout_, traffic_line_timeout_, planning_deceleration_mps2_,
+-    if (!finite_positive({traffic_state_timeout_, traffic_line_timeout_, planning_deceleration_mps2_,
++    if (!finite_positive({traffic_state_timeout_, traffic_line_timeout_, traffic_tracking_grace_sec_,
++        traffic_tracking_max_travel_m_, planning_deceleration_mps2_, traffic_coast_plan_decel_,
++        traffic_final_brake_decel_, traffic_red_preapproach_speed_,
          traffic_brake_gain_, traffic_hold_current_, longitudinal_kp_, longitudinal_integral_limit_,
 -        traffic_line_gate_, traffic_line_weight_, traffic_reapproach_speed_}) ||
 +        traffic_line_gate_, traffic_line_weight_, traffic_approach_speed_, traffic_reapproach_speed_}) ||
        !finite({traffic_margin_, traffic_front_offset_, traffic_response_time_,
          longitudinal_ki_, longitudinal_kd_, traffic_arrival_tolerance_}) ||
        traffic_margin_ < 0 || traffic_front_offset_ < 0 || traffic_response_time_ < 0 ||
-@@ -1206,15 +1211,6 @@ private:
+@@ -670,6 +687,10 @@ private:
+       longitudinal_ki_ < 0 || longitudinal_kd_ < 0 || traffic_arrival_tolerance_ < 0 || traffic_line_weight_ > 1 ||
+       traffic_line_confirm_frames_ < 1)
+     {throw std::invalid_argument("invalid traffic stop parameters");}
++    if (traffic_tracking_grace_sec_ < traffic_line_timeout_ ||
++      traffic_red_preapproach_speed_ < traffic_approach_speed_ ||
++      traffic_coast_plan_decel_ > planning_deceleration_mps2_)
++    {throw std::invalid_argument("invalid traffic approach speed or tracking limits");}
+     if (!std::isfinite(traffic_stop_range_max_m_) || traffic_stop_range_max_m_ <= 0.0 ||
+       traffic_margin_ + traffic_arrival_tolerance_ > traffic_stop_range_max_m_)
+     {throw std::invalid_argument(
+@@ -1008,6 +1029,7 @@ private:
+     stop_candidate_count_ = 0;
+     stop_candidate_ns_ = 0;
+     last_observed_remaining_ = 0.0;
++    stop_line_coast_travel_m_ = 0.0;
+   }
+ 
+   bool stop_line_fresh(std::int64_t now_ns) const
+@@ -1016,13 +1038,25 @@ private:
+       seconds(now_ns - *stop_line_seen_ns_) <= traffic_line_timeout_;
+   }
+ 
++  bool stop_line_tracked(std::int64_t now_ns) const
++  {
++    if (stop_line_fresh(now_ns)) {return true;}
++    return traffic_stop_active_ && stop_remaining_ && stop_line_seen_ns_ &&
++      now_ns >= *stop_line_seen_ns_ &&
++      seconds(now_ns - *stop_line_seen_ns_) <= traffic_tracking_grace_sec_ &&
++      stop_line_coast_travel_m_ <= traffic_tracking_max_travel_m_ &&
++      last_erpm_ns_ && now_ns >= *last_erpm_ns_ &&
++      seconds(now_ns - *last_erpm_ns_) <= erpm_timeout_sec_;
++  }
++
+   void advance_stop_distance(std::int64_t now_ns)
+   {
+     if (stop_distance_updated_ns_) {
+       const double elapsed = seconds(now_ns - *stop_distance_updated_ns_);
+       const bool speed_fresh = last_erpm_ns_ && now_ns >= *last_erpm_ns_ &&
+         seconds(now_ns - *last_erpm_ns_) <= erpm_timeout_sec_;
+-      if (elapsed < 0 || elapsed > traffic_line_timeout_ || !speed_fresh) {
++      if (elapsed < 0 || elapsed >
++        (traffic_stop_active_ ? traffic_tracking_grace_sec_ : traffic_line_timeout_) || !speed_fresh) {
+         clear_stop_line_track();
+         // Without valid motion integration a previous pass cannot remain armed
+         // indefinitely. Normal input guards stop control; recovery needs a new pair.
+@@ -1032,7 +1066,10 @@ private:
+         }
+       } else {
+         const double travel = std::max(0.0, current_speed_mps_) * elapsed;
+-        if (stop_remaining_) {*stop_remaining_ -= travel;}
++        if (stop_remaining_) {
++          *stop_remaining_ -= travel;
++          if (stop_line_seen_ns_) {stop_line_coast_travel_m_ += travel;}
++        }
+         if (stop_candidate_count_) {stop_candidate_distance_ -= travel;}
+       }
+     }
+@@ -1085,6 +1122,7 @@ private:
+       *stop_remaining_ + traffic_line_weight_ * (distance - *stop_remaining_) : distance;
+     stop_line_seen_ns_ = now_ns;
+     last_observed_remaining_ = distance;
++    stop_line_coast_travel_m_ = 0.0;
+   }
+ 
+   bool traffic_stop_requested() const
+@@ -1133,7 +1171,9 @@ private:
+     }
+     traffic_stop_active_ = true;
+     traffic_holding_ = traffic_reapproach_ = false;
+-    traffic_range_stop_committed_ = false;
++    traffic_range_stop_committed_ = traffic_final_brake_active_ = false;
++    traffic_brake_decel_estimate_ = traffic_final_brake_decel_;
++    traffic_brake_start_gap_m_ = kUnavailable;
+     traffic_phase_ = "approach";
+     longitudinal_pid_->reset();
+     speed_pid_->reset();
+@@ -1172,7 +1212,8 @@ private:
+       traffic_green_seen_ = true;
+       traffic_red_ = traffic_stop_active_ = traffic_pass_committed_ = false;
+       traffic_holding_ = traffic_reapproach_ = traffic_red_from_green_ = false;
+-      traffic_range_stop_committed_ = false;
++      traffic_range_stop_committed_ = traffic_final_brake_active_ = false;
++      traffic_brake_start_gap_m_ = kUnavailable;
+       traffic_red_seen_ns_.reset();
+       if (had_target) {clear_stop_line_track();}
+       if (was_stopping) {
+@@ -1206,24 +1247,10 @@ private:
        0.5 * std::max(0.0, reference - current) / brake_current_rise_amps_per_sec_;
    }
  
@@ -60,21 +182,91 @@ index 3cbaf93..75315b5 100644
    double traffic_speed_limit(std::int64_t now_ns)
    {
      advance_stop_distance(now_ns);
-@@ -1248,9 +1244,11 @@ private:
+-    terminal_tracking_active_ = staged_control_enabled_ && stop_remaining_ && stop_line_seen_ns_ &&
+-      last_observed_remaining_ >= -traffic_arrival_tolerance_ &&
+-      last_observed_remaining_ <= traffic_terminal_distance_ &&
+-      now_ns >= *stop_line_seen_ns_ &&
+-      seconds(now_ns - *stop_line_seen_ns_) <= traffic_terminal_timeout_ &&
+-      last_erpm_ns_ && now_ns >= *last_erpm_ns_ && seconds(now_ns - *last_erpm_ns_) <= erpm_timeout_sec_;
++    terminal_tracking_active_ = !stop_line_fresh(now_ns) && stop_line_tracked(now_ns);
+     if (traffic_holding_) {traffic_phase_ = "position_hold"; return 0.0;}
+     // Once braking into the accepted bumper-to-line range has begun, neither
+     // observation jitter nor an input outage may cause another forward request.
+@@ -1233,31 +1260,63 @@ private:
+       traffic_phase_ = traffic_holding_ ? "position_hold" : "range_braking";
+       return 0.0;
+     }
+-    if (!stop_line_fresh(now_ns) && !terminal_tracking_active_)
++    if (!stop_line_tracked(now_ns))
+     {
+       traffic_reapproach_ = true;
+       traffic_phase_ = "temporary_stop_line_unavailable";
+       return 0.0;
+     }
+-    // stop_remaining_ is measured from the nominal buffered target. Add its
+-    // margin back to compare with the physical line from the FRONT BUMPER.
+-    // A negative distance is an overshoot and must still command braking.
+-    if (*stop_remaining_ + traffic_margin_ <= traffic_stop_range_max_m_) {
++    // The configured gap is the desired front-bumper clearance at standstill.
++    // Compute brake onset separately from speed and response delay.
++    const double bumper_gap = *stop_remaining_ + traffic_margin_;
++    const double speed = std::max(0.0, current_speed_mps_);
++    if (bumper_gap <= traffic_stop_range_max_m_ ||
++      (bumper_gap <= traffic_stop_range_max_m_ + traffic_arrival_tolerance_ && speed < 0.05)) {
+       traffic_range_stop_committed_ = true;
+       traffic_holding_ = std::abs(current_speed_mps_) < 0.05;
        traffic_phase_ = traffic_holding_ ? "position_hold" : "range_braking";
        return 0.0;
      }
 -    const double limit = traffic_distance_speed_limit(*stop_remaining_);
-     traffic_phase_ = traffic_reapproach_ ? "slow_reapproach" : "approach";
+-    traffic_phase_ = traffic_reapproach_ ? "slow_reapproach" : "approach";
 -    return traffic_reapproach_ ? std::min(limit, traffic_reapproach_speed_) : limit;
-+    // Keep a fixed crawl target while the confirmed stop line is tracked.
-+    // The range latch above, not the instantaneous speed, starts final braking.
-+    return traffic_reapproach_ ?
-+      std::min(traffic_approach_speed_, traffic_reapproach_speed_) : traffic_approach_speed_;
++    const double brake_decel = clamp(traffic_brake_decel_estimate_, 0.10, 3.0);
++    const double brake_delay = traffic_brake_delay(command_brake_current_);
++    const double remaining_to_goal = bumper_gap - traffic_stop_range_max_m_;
++    traffic_brake_start_gap_m_ = traffic_stop_range_max_m_ +
++      speed * brake_delay + speed * speed / (2.0 * brake_decel) + traffic_arrival_tolerance_;
++    if (bumper_gap <= traffic_brake_start_gap_m_) {traffic_final_brake_active_ = true;}
++
++    // Use recent duty-only deceleration when available, bounded by the
++    // configured service profile. A conservative estimate starts the profile.
++    double coast_decel = traffic_coast_plan_decel_;
++    if (coast_deceleration_seen_ns_ && now_ns >= *coast_deceleration_seen_ns_ &&
++      seconds(now_ns - *coast_deceleration_seen_ns_) <= 1.0)
++    {coast_decel = clamp(coast_deceleration_mps2_, 0.05, planning_deceleration_mps2_);}
++    const double crawl_brake_gap = traffic_stop_range_max_m_ +
++      traffic_approach_speed_ * traffic_brake_delay(0.0) +
++      traffic_approach_speed_ * traffic_approach_speed_ / (2.0 * brake_decel) +
++      traffic_arrival_tolerance_;
++    const double coast_room = std::max(0.0,
++      bumper_gap - crawl_brake_gap - speed * traffic_response_time_);
++    double target = std::min(traffic_red_preapproach_speed_,
++      std::sqrt(traffic_approach_speed_ * traffic_approach_speed_ +
++      2.0 * coast_decel * coast_room));
++    if (traffic_reapproach_) {target = std::min(target, traffic_reapproach_speed_);}
++    if (traffic_final_brake_active_) {
++      const double brake_room = std::max(0.0,
++        remaining_to_goal - speed * brake_delay - traffic_arrival_tolerance_);
++      target = std::min(target, std::sqrt(2.0 * brake_decel * brake_room));
++    }
++    traffic_phase_ = traffic_final_brake_active_ ? "final_braking" :
++      traffic_reapproach_ ? "slow_reapproach" :
++      terminal_tracking_active_ ? "tracked_approach" : "approach";
++    return target;
    }
  
-   std::string longitudinal_motor(double target, double dt, bool traffic_stop)
-@@ -1267,8 +1265,11 @@ private:
+-  std::string longitudinal_motor(double target, double dt, bool traffic_stop)
++  std::string longitudinal_motor(double target, double dt, bool traffic_stop,
++    bool traffic_preapproach)
+   {
+     if (!staged_control_enabled_) {
+       longitudinal_phase_ = "legacy_pid";
+-      return legacy_longitudinal_motor(target, dt, traffic_stop);
++      return legacy_longitudinal_motor(target, dt, traffic_stop, traffic_preapproach);
+     }
+     speed_pid_->reset();
+     brake_profile_->reset();
+@@ -1267,8 +1326,12 @@ private:
      const bool zero_target = target <= 0.0;
      if (zero_target != longitudinal_zero_target_) {longitudinal_pid_->reset();}
      longitudinal_zero_target_ = zero_target;
@@ -83,12 +275,13 @@ index 3cbaf93..75315b5 100644
 +    // Coast on duty during a red-light approach. Keep electrical braking for
 +    // the final zero-speed request and for independent input/stop guards.
 +    const bool braking_allowed = traffic_stop ?
-+      (zero_target || traffic_approach_brake_enabled_) :
++      (zero_target || traffic_final_brake_active_ || traffic_approach_brake_enabled_) :
++      traffic_preapproach ? false :
 +      (electrical_brake_enabled_ || obstacle_profile_active_ || corner_braking_allowed_);
      const double brake_cap = brake_maximum_current_amps_;
      required_deceleration_mps2_ = kUnavailable;
      const bool approaching = traffic_stop && !zero_target && stop_remaining_;
-@@ -1284,8 +1285,15 @@ private:
+@@ -1284,8 +1347,15 @@ private:
      const double observed_decel = std::isfinite(measured_deceleration_mps2_) ?
        std::max(0.0, measured_deceleration_mps2_) : 0.0;
      if (approaching) {
@@ -106,7 +299,7 @@ index 3cbaf93..75315b5 100644
      } else if (approaching_corner) {
        required_deceleration_mps2_ = corner_required_deceleration_mps2_;
      } else if (approaching_obstacle) {
-@@ -1314,21 +1322,25 @@ private:
+@@ -1314,21 +1384,25 @@ private:
        coast_probe_elapsed_ = 0.0;
        traction_recovery_ = false;
      } else if (approaching) {
@@ -115,7 +308,7 @@ index 3cbaf93..75315b5 100644
 +      // Skip the coast observation only when the probe itself would consume
 +      // the distance left before the final braking range. A high speed alone
 +      // no longer bypasses the probe.
-+      const bool urgent = *stop_remaining_ + traffic_margin_ <=
++      const bool urgent = traffic_final_brake_active_ || *stop_remaining_ + traffic_margin_ <=
 +        traffic_stop_range_max_m_ +
 +        speed * (traffic_coast_probe_sec_ + latest_brake_delay_sec_);
        // Braking continues while current ramps down and the actuator responds.
@@ -139,28 +332,159 @@ index 3cbaf93..75315b5 100644
          coast_probe_elapsed_ += dt;
          service_brake_requested_ = urgent ||
            (coast_probe_elapsed_ >= traffic_coast_probe_sec_ &&
-@@ -1514,8 +1526,9 @@ private:
+@@ -1501,7 +1575,8 @@ private:
+     return "duty";
+   }
+ 
+-  std::string legacy_longitudinal_motor(double target, double dt, bool traffic_stop)
++  std::string legacy_longitudinal_motor(double target, double dt, bool traffic_stop,
++    bool traffic_preapproach)
+   {
+     speed_pid_->reset();
+     brake_profile_->reset();
+@@ -1514,8 +1589,10 @@ private:
      const double effort = longitudinal_pid_->update(target, feedback_speed, 0.0, dt);
      latest_pid_effort_ = effort;
      latest_desired_duty_ = target > 0 ? std::max(0.0, effort) * maximum_duty_ : 0.0;
 -    const bool braking_allowed = traffic_stop || electrical_brake_enabled_ ||
 -      obstacle_profile_active_ || corner_braking_allowed_;
 +    const bool braking_allowed = traffic_stop ?
-+      (target <= 0.0 || traffic_approach_brake_enabled_) :
++      (target <= 0.0 || traffic_final_brake_active_ || traffic_approach_brake_enabled_) :
++      traffic_preapproach ? false :
 +      (electrical_brake_enabled_ || obstacle_profile_active_ || corner_braking_allowed_);
      const double brake_cap = brake_maximum_current_amps_;
      double brake = braking_allowed ? std::max(0.0, -effort) * brake_cap : 0.0;
      if (traffic_stop && target <= 0 && std::abs(current_speed_mps_) < 0.05) {
-@@ -2358,6 +2371,7 @@ private:
+@@ -1832,6 +1909,14 @@ private:
+     target_speed = std::min(target_speed, obstacle_limit);
+     // Traffic/curvature may request a lower target; release never overrides them.
+     const bool traffic_stop = traffic_stop_requested();
++    const bool traffic_preapproach = traffic_stop_enabled_ && traffic_red_ &&
++      !traffic_stop && !traffic_pass_committed_ && traffic_red_seen_ns_ &&
++      now_ns >= *traffic_red_seen_ns_ &&
++      seconds(now_ns - *traffic_red_seen_ns_) <= traffic_state_timeout_;
++    if (traffic_preapproach) {
++      target_speed = std::min(target_speed, traffic_red_preapproach_speed_);
++      corner_speed_in_band_ = false;
++    }
+     if (traffic_stop) {target_speed = std::min(target_speed, traffic_speed_limit(now_ns));}
+     // A live UI ceiling applies immediately to the target, even while an old
+     // curve/obstacle recovery profile is retained. Physical deceleration still
+@@ -1879,9 +1964,9 @@ private:
+       longitudinal_phase_ = "suppressed";
+       service_brake_requested_ = traction_recovery_ = false;
+       coast_probe_elapsed_ = 0.0;
+-    } else if (longitudinal_pid_enabled_ || traffic_stop || obstacle_profile_active_ ||
++    } else if (longitudinal_pid_enabled_ || traffic_stop || traffic_preapproach || obstacle_profile_active_ ||
+       corner_braking_allowed_) {
+-      motor_mode = longitudinal_motor(target_speed, dt, traffic_stop);
++      motor_mode = longitudinal_motor(target_speed, dt, traffic_stop, traffic_preapproach);
+     } else {
+       longitudinal_phase_ = "legacy_speed_pid";
+       service_brake_requested_ = traction_recovery_ = false;
+@@ -1912,7 +1997,8 @@ private:
+         motor_mode = "duty";
+       }
+     }
+-    last_stop_reason_ = traffic_stop ? "traffic_" + traffic_phase_ : "running";
++    last_stop_reason_ = traffic_stop ? "traffic_" + traffic_phase_ :
++      traffic_preapproach ? "traffic_red_preapproach" : "running";
+     latest_target_speed_mps_ = target_speed;
+     latest_curvature_per_m_ = curvature;
+     latest_cross_track_error_m_ = stanley.cross_track_error_m;
+@@ -2009,6 +2095,12 @@ private:
+       refresh_start_authorization();
+       if (motor_mode=="duty" && !start_authorization_.approved()) {duty=0.0;}
+     }
++    if (motor_mode == "brake" && traffic_final_brake_active_ &&
++      !traffic_brake_mode_started_ns_) {
++      traffic_brake_mode_started_ns_ = now().nanoseconds();
++    } else if (motor_mode != "brake" || !traffic_final_brake_active_) {
++      traffic_brake_mode_started_ns_.reset();
++    }
+     if (motor_mode == "brake" || motor_mode == "brake_release") {
+       last_brake_command_ns_ = now().nanoseconds();
+     }
+@@ -2137,6 +2229,17 @@ private:
+         const double decel_weight = 1.0 - std::exp(-dt / deceleration_filter_sec_);
+         measured_deceleration_mps2_ = std::isfinite(measured_deceleration_mps2_) ?
+           measured_deceleration_mps2_ + decel_weight * (decel - measured_deceleration_mps2_) : decel;
++        if (traffic_final_brake_active_ && traffic_brake_mode_started_ns_ &&
++          now_ns >= *traffic_brake_mode_started_ns_ &&
++          seconds(now_ns - *traffic_brake_mode_started_ns_) >=
++          traffic_response_time_ + speed_filter_time_constant_sec_ &&
++          command_brake_current_ >= 0.5 && current_speed_mps_ > 0.10 &&
++          std::isfinite(measured_deceleration_mps2_))
++        {
++          traffic_brake_decel_estimate_ = clamp(
++            0.85 * traffic_brake_decel_estimate_ +
++            0.15 * clamp(measured_deceleration_mps2_, 0.10, 3.0), 0.10, 3.0);
++        }
+         // Braking-induced deceleration must not be mistaken for what duty
+         // reduction alone can achieve on the next control cycle.
+         const bool brake_settled = !last_brake_command_ns_ ||
+@@ -2220,7 +2323,8 @@ private:
+         "corner_upper_speed_mps,corner_required_deceleration_mps2,planning_deceleration_mps2,"
+         "can_duty,can_motor_current_a,obstacle_requested_speed_mps,obstacle_planned_speed_mps,"
+         "obstacle_profile_active,obstacle_plan_deceleration_mps2,turn_recovery_hold,predicted_release_speed_mps,"
+-        "runtime_maximum_speed_mps,centerline_xy_m",
++        "traffic_bumper_gap_m,traffic_brake_start_gap_m,traffic_brake_decel_estimate_mps2,"
++        "stop_line_coast_travel_m,traffic_final_brake_active,runtime_maximum_speed_mps,centerline_xy_m",
+         parameters);
+       driving_log_started_ = std::chrono::steady_clock::now();
+       RCLCPP_INFO(get_logger(), "Driving CSV: %s (%.1f Hz + state changes; parameters beside CSV)",
+@@ -2296,7 +2400,10 @@ private:
+       seconds(ns - *dynamics_motor_current_seen_ns_) <= 0.20 ? dynamics_motor_current_ : kUnavailable,
+       obstacle_requested_speed_, obstacle_planned_speed_.value_or(kUnavailable),
+       double(obstacle_profile_active_), obstacle_plan_deceleration_, double(turn_recovery_hold_),
+-      predicted_release_speed_, maximum_speed_mps_};
++      predicted_release_speed_,
++      stop_remaining_ ? *stop_remaining_ + traffic_margin_ : kUnavailable,
++      traffic_brake_start_gap_m_, traffic_brake_decel_estimate_,
++      stop_line_coast_travel_m_, double(traffic_final_brake_active_), maximum_speed_mps_};
+     if (path_) {frame.path = path_->points;}
+     driving_log_->enqueue(std::move(frame));
+   }
+@@ -2332,9 +2439,13 @@ private:
+       lane_result_count_, lane_result_status_.c_str(), lane_result_points_,
+       receive_age.c_str(), capture_age.c_str(),obstacle_slowdown_active_?"ON":"OFF");
+     if (traffic_stop_enabled_) {
+-      RCLCPP_INFO(get_logger(), "Traffic stop | red_latched=%s | hold=%s | remaining=%s | phase=%s | line_rejected=%llu | signal_seen=%s",
++      RCLCPP_INFO(get_logger(), "Traffic stop | red_latched=%s | hold=%s | remaining=%s | bumper_gap=%s | "
++        "brake_start=%s | phase=%s | line_rejected=%llu | signal_seen=%s",
+         traffic_red_ ? "yes" : "no", traffic_holding_ ? "yes" : "no",
+         stop_remaining_ ? std::to_string(*stop_remaining_).c_str() : "unknown",
++        stop_remaining_ ? std::to_string(*stop_remaining_ + traffic_margin_).c_str() : "unknown",
++        std::isfinite(traffic_brake_start_gap_m_) ?
++        std::to_string(traffic_brake_start_gap_m_).c_str() : "unknown",
+         traffic_status(),
+         static_cast<unsigned long long>(stop_line_rejections_), traffic_signal_seen_ ? "yes" : "no");
+     }
+@@ -2358,6 +2469,8 @@ private:
    bool tunnel_enabled_{false},tunnel_active_{false},outside_avoidance_{false},outside_slowdown_{false},outside_traffic_{false};
    rclcpp::Subscription<std_msgs::msg::String>::SharedPtr tunnel_state_sub_;
    bool traffic_stop_enabled_{false}, traffic_red_{false}, traffic_holding_{false};
 +  bool traffic_approach_brake_enabled_{false};
++  bool traffic_final_brake_active_{false};
    bool traffic_range_stop_committed_{false};
    double traffic_stop_range_max_m_;
    bool traffic_stop_active_{false}, traffic_pass_committed_{false};
-@@ -2407,7 +2421,8 @@ private:
+@@ -2369,6 +2482,10 @@ private:
+   std::string traffic_state_topic_;
+   double traffic_state_timeout_, traffic_line_timeout_, traffic_margin_, traffic_front_offset_;
+   double planning_deceleration_mps2_, traffic_response_time_, traffic_brake_gain_;
++  double traffic_tracking_grace_sec_, traffic_tracking_max_travel_m_;
++  double traffic_coast_plan_decel_, traffic_final_brake_decel_, traffic_brake_decel_estimate_{0.50};
++  double traffic_red_preapproach_speed_, stop_line_coast_travel_m_{0.0};
++  double traffic_brake_start_gap_m_{kUnavailable};
+   double traffic_hold_current_;
+   bool longitudinal_pid_enabled_{true}, curvature_speed_control_enabled_{false};
+   bool corner_braking_allowed_{false};
+@@ -2405,9 +2522,11 @@ private:
+   double latest_feedforward_duty_{kUnavailable}, requested_brake_current_{0.0};
+   std::optional<std::int64_t> coast_deceleration_seen_ns_;
    std::optional<std::int64_t> last_brake_command_ns_;
++  std::optional<std::int64_t> traffic_brake_mode_started_ns_;
    bool longitudinal_zero_target_{false};
    double longitudinal_kp_, longitudinal_ki_, longitudinal_kd_, longitudinal_integral_limit_;
 -  double traffic_line_gate_, traffic_line_weight_, traffic_arrival_tolerance_, traffic_reapproach_speed_;
@@ -170,26 +494,51 @@ index 3cbaf93..75315b5 100644
    double stop_candidate_distance_{0.0}, last_observed_remaining_{0.0};
    std::int64_t stop_candidate_ns_{0};
 diff --git a/src/auto_control/config/auto_control.yaml b/src/auto_control/config/auto_control.yaml
-index a037e3d..2107233 100644
+index a037e3d..8a89f3a 100644
 --- a/src/auto_control/config/auto_control.yaml
 +++ b/src/auto_control/config/auto_control.yaml
-@@ -53,7 +53,10 @@ auto_control:
+@@ -36,13 +36,17 @@ auto_control:
+     traffic_stop_enabled: true
+     traffic_state_topic: "/traffic_light/state"
+     traffic_state_timeout_sec: 0.30       # 수신 신호/접근 시작 전 RED 수명. 접근 시작 후 RED 유실은 정지를 해제하지 않음
+-    traffic_stop_line_timeout_sec: 0.50   # 일반 정지선 유실 허용 시간. 아래 근접 추적 예외 적용
+-    traffic_terminal_tracking_distance_m: 0.10 # 마지막 확인 거리(목표점까지)가 이 값 이내면 근접 추적 허용
+-    traffic_terminal_tracking_timeout_sec: 1.50 # 마지막 확인부터의 시간 상한. 최신 차선/ERPM 필요
++    traffic_stop_line_timeout_sec: 0.50   # 최초 RED+정지선 확인과 일반 관측 유효 시간
++    traffic_line_tracking_grace_sec: 0.90 # 확인된 정지선의 짧은 관측 공백을 ERPM 이동량으로 추적
++    traffic_line_tracking_max_travel_m: 0.50 # 관측 공백 동안 허용할 최대 이동량
++    traffic_terminal_tracking_distance_m: 0.10 # 구버전 설정 호환용
++    traffic_terminal_tracking_timeout_sec: 1.50 # 구버전 설정 호환용
+     traffic_stop_margin_m: 0.1           # 범위 진입 전 감속 계획의 명목 여유 거리
+-    traffic_stop_range_max_m: 0.25       # 앞범퍼 기준 정지선 전방 0~25cm를 허용 정차 범위로 사용
+-    traffic_front_axle_to_bumper_m: 0.05  # 앞차축→앞범퍼 실제 길이로 설정
++    traffic_stop_range_max_m: 0.25       # 앞범퍼 기준 목표 정지 간격. 최종 제동 시작 거리는 속도로 계산
++    traffic_front_axle_to_bumper_m: 0.07  # 실측 앞차축→앞범퍼 7cm
+     longitudinal_planning_deceleration_mps2: 0.50 # 정지선·코너 공통 계획 감속도
++    traffic_coast_plan_deceleration_mps2: 0.20 # 실측 duty 감속이 아직 없을 때의 보수적 초기 추정
++    traffic_final_brake_deceleration_mps2: 0.50 # 실측 전류 제동 감속이 아직 없을 때의 초기 추정
+     traffic_brake_response_time_sec: 0.15 # 구동기 응답 여유. 단계 제어는 전류 상승 지연도 별도 추정해 더함
+     traffic_brake_urgent_rise_amps_per_sec: 6.0 # 남은 시간 부족 시 전류 상승 한도. 공통 상승률보다 낮으면 공통값 적용
+     traffic_coast_probe_sec: 0.15         # 초과속도 발생 후 duty 감속 관찰 시간. 급한 경우 생략
+@@ -53,14 +57,19 @@ auto_control:
      # 정지 접근/통과 결정은 같은 정지선에 대해 유지하며, GREEN 확인 시 해제한다.
      traffic_pass_if_unstoppable_enabled: false
      traffic_pass_overshoot_m: 0.5
 -    # 신호등 정지는 일반 electrical_brake_enabled=false여도 공통 제동 상한을 사용해 작동.
 +    # 일반 주행 electrical_brake_enabled와 별개로 신호등 접근 전류 제동을 제어.
-+    # false: 접근 중 duty만 줄임. 정지 범위에서 목표 0 및 보호 정지 제동은 유지.
++    # false: RED 선감속·거리 기반 접근은 duty 우선. 계산된 최종 제동 구간과 보호 정지는 전류 사용.
 +    traffic_approach_electrical_brake_enabled: false
 +    # 신호등 최종 제동은 일반 electrical_brake_enabled=false여도 공통 제동 상한을 사용.
      traffic_brake_amps_per_mps2: 2.0      # 구버전 호환용. 현재 제어에서는 사용하지 않음
      # brake_maximum_current_amps를 정지선과 코너에 공통 적용
      traffic_hold_current_amps: 0.7       # 목표 0 + 저속에서만 유지 전류. 접근 제동에는 하한 없음.
-@@ -61,6 +64,7 @@ auto_control:
+     traffic_stop_line_match_tolerance_m: 0.30 # 이동량 보정 거리와 관측값의 일치 허용 오차
      traffic_stop_line_current_weight: 0.35   # 정상 관측으로 거리 증가/감소 양방향 보정
      traffic_stop_line_confirm_frames: 3     # 정지선 관측 확인 횟수 (신호등 색 확인과 별개)
-     traffic_stop_position_tolerance_m: 0.03 # 감속 계획 거리 여유. 실제 정지 개시는 위 허용 범위 진입 시 확정
-+    traffic_approach_speed_mps: 0.30        # RED+정지선 확인 후 고정 저속 목표. 진입 속도와 무관하게 이 속도로 접근
+-    traffic_stop_position_tolerance_m: 0.03 # 감속 계획 거리 여유. 실제 정지 개시는 위 허용 범위 진입 시 확정
++    traffic_stop_position_tolerance_m: 0.03 # 목표 간격 주변 정지 허용차·제동 계획 여유
++    traffic_red_preapproach_speed_mps: 1.00 # RED만 확인돼도 정지선 확인 전부터 duty로 선감속
++    traffic_approach_speed_mps: 0.30        # 정지선 거리 기반 속도 계획의 최종 저속 목표
      traffic_reapproach_speed_mps: 0.20      # 임시 정지 후 관측 복구 시 접근 속도 상한
  
      # drive: duty/brake/servo output, steering_only: servo output only,

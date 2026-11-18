@@ -59,13 +59,18 @@ traffic_stop_enabled: false
 traffic_state_topic: "/traffic_light/state"
 traffic_state_timeout_sec: 0.30
 traffic_stop_line_timeout_sec: 0.50
-traffic_terminal_tracking_distance_m: 0.10
-traffic_terminal_tracking_timeout_sec: 1.50
-traffic_stop_margin_m: 0.15
-traffic_stop_range_max_m: 0.30
-traffic_front_axle_to_bumper_m: 0.10
+traffic_line_tracking_grace_sec: 0.90
+traffic_line_tracking_max_travel_m: 0.50
+traffic_stop_margin_m: 0.10
+traffic_stop_range_max_m: 0.25
+traffic_front_axle_to_bumper_m: 0.07
 longitudinal_planning_deceleration_mps2: 0.50
+traffic_coast_plan_deceleration_mps2: 0.20
+traffic_final_brake_deceleration_mps2: 0.50
 traffic_brake_response_time_sec: 0.15
+traffic_red_preapproach_speed_mps: 1.00
+traffic_approach_speed_mps: 0.30
+traffic_approach_electrical_brake_enabled: false
 traffic_coast_probe_sec: 0.15
 traffic_brake_deceleration_hysteresis_mps2: 0.10
 traffic_brake_speed_hysteresis_mps: 0.05
@@ -81,32 +86,25 @@ traffic_stop_position_tolerance_m: 0.03
 traffic_reapproach_speed_mps: 0.20
 ```
 
-### 목표 속도 곡선 → duty 감속 → 부족한 감속을 전류 제동으로 보완
+### RED 선감속 → 정지선 거리 기반 속도 계획 → 최종 전류 제동
 
 코너 감속 OFF에서는 기본 목표가 `maximum_speed_mps`다. Stanley 조향은 그대로 사용한다.
-신호등 정지를 켜고 최신 RED와 유효한 정지선 거리를 함께 확인해 접근을 시작하면,
-남은 거리에 따른 속도 곡선 `v(d)`에서 매 차선
-결과마다 목표를 다시 계산한다. 하나의 고정 속도나 미리 저장한 배열이 아니라,
-정지선에 접근할수록 낮아지는 연속 곡선을 온라인으로 샘플링한다.
-앞범퍼가 정지선 전방 0~`traffic_stop_range_max_m`(기본 0.30m) 범위에 들어오면
-목표 속도와 duty를 0으로 전환해 제동을 시작한다. 30cm는 앞차축이나 명목 목표점 기준이 아니다.
-현재 속도에 따라 제동하면서 범위 안으로 더 이동할 수 있으며 실차 정지 위치는 검증이 필요하다.
-이미 선을 넘어선 거리도 전진 요청 없이 제동한다.
+유효 RED가 확인되면 정지선 관측 전에도 최대 1.0 m/s의 duty 선감속을 시작한다.
+RED와 정지선을 함께 확인하면 앞범퍼 간격, 현재 속도와 실제 duty 감속 추정치를 사용해
+목표속도를 매 제어 주기 갱신한다. 정지선이 잠시 가려지면 ERPM 이동량으로 거리를 갱신하며,
+설정된 시간·이동량 한도를 넘으면 보호 정지한다.
+`traffic_stop_range_max_m`(기본 0.25 m)는 앞범퍼 기준 **목표 정지 간격**이다.
+최종 전류 제동은 현재 속도, 응답 지연, 관측한 제동 감속도로 계산한 지점에서 시작한다.
+제동 구간에 들어가도 목표속도를 거리별로 낮추며, 목표 간격에 도달하면 0으로 고정한다.
 
-범위 진입 후에는 `range_braking`을 유지하고 기존 저속 조건(절대 속도 0.05m/s 미만)을
+목표 간격에 도달한 뒤에는 `range_braking`을 유지하고 기존 저속 조건(절대 속도 0.05m/s 미만)을
 만족하면 `position_hold`로 전환한다. 거리 관측 흔들림이나 입력 유실/복구로 다시 전진하지
 않으며 유효 GREEN에서 정지 확정을 해제한다. 차선/ERPM/연결/주행 허용 감시는 계속 적용한다.
 이 변경은 저속 ERPM을 0으로 보정하거나 ERPM 기반 정지 판정 기준을 바꾸지는 않는다.
 
-앞차축 기준 정지선 거리에서 범퍼 길이, 여유 거리, 촬영 이후 이동량을 뺀 거리를 d라 할 때
-`v(d) = min(주행속도, sqrt((a*t)^2 + 2*a*max(0,d-허용오차)) - a*t)`다.
-a는 정지선·코너 공통 `longitudinal_planning_deceleration_mps2`, t는 구동기 응답 여유다. 단계 제어에서는 t에
-기준 제동 전류까지 선형 상승하는 시간의 절반을 더한다. 속도 곡선은 0A에서의 고정 지연을
-쓰므로 전류가 증가했다고 목표 속도가 올라가지 않는다. a가 작을수록 일찍 감속한다.
-`traffic_stop_margin_m`와 `traffic_stop_position_tolerance_m`는 범위 진입 전 감속 계획에
-사용한다. 두 값의 합은 허용 범위 상한 이하여야 한다. 범위에 들어온 차량을 이 명목 목표까지
-다시 전진시키지 않는다. `auto_drive`에서 `traffic_stop_range_max_m:=0.30`으로도 지정할 수 있다.
-기본 범퍼 길이 0.10m는 실측값이 아니므로 차량 치수로 수정한다.
+최종 제동 시작 간격은 `목표 간격 + 현재속도×응답지연 + 현재속도²/(2×제동감속도) + 위치여유`다.
+전류 제동이 시작되면 실제 감속도를 필터링해 추정치를 갱신한다. 제동 전류가 충분하지 않거나
+정지선이 너무 늦게 잡히면 목표 간격을 맞추지 못할 수 있으므로 주행 CSV로 보정해야 한다.
 
 `longitudinal_staged_control_enabled: true`에서는 다음 순서로 구동기를 제어한다.
 
@@ -256,12 +254,11 @@ true이면 정지 접근 대신 정상 목표 속도로 통과한다. 최초 인
 접근 대상이 정해지기 전 관측은 마지막 정지선 확인 시각 기준으로 만료하고,
 범퍼가 통과한 관측도 버린다. 이전 정지선의 음수 거리가 다음 정지선을 계속 거부하지 않는다.
 접근을 이미 시작한 대상은 임의로 다음 정지선으로 바꾸지 않는다.
-RED 정지 접근 중 정지선 거리 미검출은 일반적으로 `traffic_stop_line_timeout_sec`까지
-이동량으로 보정하고, 그 이후에는 **임시 정지**한다. 단계 제어에서는 마지막 확인 거리가
-목표 정차점까지 `traffic_terminal_tracking_distance_m`(기본 0.10m) 이내라면,
-최신 차선/ERPM을 유지하는 동안 마지막 확인부터 `traffic_terminal_tracking_timeout_sec`
-(기본 1.50초)까지 이동량으로 근접 접근을 마칠 수 있다. 가까운 정지선이 영상에서
-사라져 도착 직전 임시 정지가 걸리는 현상을 줄인다. 멀리서 잃은 정지선에는 적용하지 않는다.
+RED 정지 접근 중 정지선 거리 미검출은 마지막 확인부터
+`traffic_line_tracking_grace_sec`(기본 0.90초)와
+`traffic_line_tracking_max_travel_m`(기본 0.50m) 이내에서만 최신 ERPM 속도로
+이동량을 보정한다. 두 한도 중 하나를 넘거나 ERPM이 오래되면 **임시 정지**한다.
+최초 RED·정지선 쌍을 확인하기 전에는 `traffic_stop_line_timeout_sec`(기본 0.50초)를 사용한다.
 차선/속도 입력 손실은 기존대로 임시 정지다.
 정지선이 정상적으로 재확인되고 입력이 복구되면 남은 거리를 따라 저속 재접근한다.
 임시 정지를 최종 도착으로 고정하지 않는다. 복구 접근 속도는 GREEN까지
@@ -274,12 +271,11 @@ RED 정지 접근 중 정지선 거리 미검출은 일반적으로 `traffic_sto
 자동으로 수용하지 않아 임시 정지가 계속될 수 있다. 정지선 확인 3회는 신호등 색상
 연속 확인 설정과 별개이며 한 번의 정지선 오검출을 바로 목표로 고정하지 않게 한다.
 
-최근 확인된 정지선 위치가 허용오차 이내이거나 위의 제한된 근접 추적 조건을 만족하고,
-이동량으로 보정한 위치도 허용오차 이내이며,
-실제 속도가 0.05m/s 미만일 때에만 최종 `position_hold`로 전환한다.
+앞범퍼와 정지선의 추정 간격이 목표인 0.25m 이내로 들어온 뒤,
+실제 속도가 0.05m/s 미만이면 최종 `position_hold`로 전환한다.
 그 상태는 GREEN까지 유지한다. 정지 위치를 지난 경우 뒤로 복귀하지 않는다.
 상태 로그 `phase`는 inactive/waiting_for_red_line_pair/pass_committed/
-approach/slow_reapproach/position_braking/position_hold/
+approach/tracked_approach/final_braking/slow_reapproach/range_braking/position_hold/
 temporary_stop_line_unavailable/temporary_stop_control_input을 구분한다.
 `line_rejected`는 거리 불일치로 거부한 누적 관측 수다.
 

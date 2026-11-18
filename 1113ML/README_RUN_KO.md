@@ -43,8 +43,10 @@ ros2 launch vehicle_bringup auto_drive.launch.py \
   preview_enabled:=true
 ```
 
-`manual_test:=true`는 신호등 정지 기능을 끄므로 이 실험에는 사용하지 않습니다. 이 명령은 실제 조향·구동 명령을 출력합니다. 정지선 접근 목표 속도는 `src/auto_control/config/auto_control.yaml`의 `traffic_approach_speed_mps: 0.30`입니다.
+`manual_test:=true`는 신호등 정지 기능을 끄므로 이 실험에는 사용하지 않습니다. 이 명령은 실제 조향·구동 명령을 출력합니다.
 
-신호등 접근 중에는 `traffic_approach_electrical_brake_enabled: false`로 전류 제동을 요청하지 않고 구동 duty를 줄여 감속합니다. 정지 범위(앞범퍼 기준 25 cm 이내)에서 목표속도가 0이 되면 최종 전류 제동을 사용합니다. 입력 유실·운전자 STOP의 보호 제동도 유지됩니다. 따라서 멀리서 다시 멈춘다면 CSV의 `traffic_phase`, `control_state`, `brake_current_a`로 입력 유실 여부를 구분하세요. 25 cm는 제동 개시 범위이며 정확한 정지 위치는 실차 측정이 필요합니다.
+유효한 RED를 보면 정지선 확인 전부터 목표속도를 최대 `traffic_red_preapproach_speed_mps: 1.0`으로 낮추고 duty로 선감속합니다. 정지선을 확인한 뒤에는 현재 속도·관측한 duty 감속도·정지선 거리로 목표속도를 계속 계산하며, 관측이 잠깐 끊기면 최대 0.9초·0.5 m만 ERPM 이동량으로 추적합니다. 앞범퍼 기준 `traffic_stop_range_max_m: 0.25`는 **목표 정지 간격**입니다. 최종 전류 제동은 속도·제동 응답 지연·제동 감속도로 계산한 더 먼 위치에서 시작합니다. 전류 제동 감속도 초기 추정 0.50 m/s²와 앞범퍼 위치 7 cm는 실차 로그와 치수로 재확인해야 합니다.
+
+초기 RED 선감속과 거리 기반 일반 접근에서는 `traffic_approach_electrical_brake_enabled: false`로 전류 제동을 요청하지 않습니다. 계산된 최종 제동 구간, 추적 불가·제어 입력 유실, 운전자 STOP에서는 전류 제동을 사용합니다. 실차에서 정확히 25 cm에 정지하는지는 아직 검증되지 않았습니다. CSV의 `traffic_phase`, `traffic_bumper_gap_m`, `traffic_brake_start_gap_m`, `target_speed_mps`, `speed_mps`, `brake_current_a`를 비교하세요.
 
 GitHub의 `patches/1113ML_traffic_stop/`에는 같은 수정의 개별 파일과 패치도 보관되어 있습니다. **이 폴더에는 이미 적용되어 있으므로 패치를 다시 적용하지 마세요.**
